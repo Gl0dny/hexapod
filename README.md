@@ -1,6 +1,6 @@
 # hexapod
 
-## LinkedIn post
+## LinkedIn post 2023
 
 I am thrilled to announce that I have graduated from AGH University of Krakow with a Bachelor of Science in Automatic Control and Robotics. Below is a brief description of my diploma project concerning subject of  "Hexapod walking robot design and implementation of real-time gait generating algorithm".
  
@@ -32,4 +32,4 @@ The developed prototype has a wide scope of possible improvements in the future 
 ·       Software implementation using the Robot Operating System framework
 
 
-~[Hexapod](./assets/myimage.png)
+![Hexapod](./assets/hexapod.jpg)
