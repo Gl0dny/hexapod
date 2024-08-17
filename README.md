@@ -11,7 +11,7 @@ Diploma project completed at AGH University of Krakow as part of the Bachelor of
 5. [Mechanical Design](#mechanical-design)
 6. [Electronics and Control Systems](#electronics-and-control-systems)
 7. [Software](#software)
-    - [Execution Layer](#execution-layer)
+    - [Control Layer](#control-layer)
     - [Gait Generator](#gait-generator)
     - [Decision Layer - User Interface](#decision-layer---user-interface)
 8. [Summary - Future Development](#summary---future-development)
@@ -41,14 +41,6 @@ Particular components of the robot were made using 3D printing technology. Detac
 The constructed walking robot carries out an electrically driven, statically stable gait, which is remotely controlled by the user from a host computer.  The motion can be executed along the axis of the crab - it is possible to change the direction vector of the of movement at any time. 
 
 Implemented control system allows elimination of interference arising in response to the environment, resulting in the preservation of permissible deviations of the actual trajectory. The implementation of gait generator is based on geometric relationships present in the machine's design and the module performs inverse kinematics calculations. The motion algorithm is designed to the extent to which the machine can efficiently move on a flat surface. 
-
-The developed prototype has a wide scope of possible improvements in the future due to its high modularity:
-- Inertial navigation system - maintaining spatial orientation, determining position and velocity by measuring accelerations and angular - Adaptation and maneuverability in varied (uneven) terrain
-- Autonomy of overcoming obstacles
-- Voice control of the walking robot
-- Data acquisition in a time-series database
-- Graphical user interface
-- Software implementation using the Robot Operating System framework
 
 Below - hexapod with the diploma :D
 
@@ -88,7 +80,7 @@ Figure 5: Constructed six-legged walking robot.
 - Additionally, a main control algorithm will be developed to determine the position of the robot's central point based on the positions of all six legs and calculate the gait parameters accordingly – inverse kinematics.
 - One of the main assumptions is the use of hierarchical software architecture, separating layers of abstraction:
 
-#### Execution layer
+#### Control layer
 
 - Position control of the servomechanism horn
 - Setting the rotation speed of the servomechanism
@@ -116,14 +108,10 @@ Figure 5: Constructed six-legged walking robot.
 
 ### Summary - Future Development
 
-- Inertial navigation – maintaining spatial orientation, determining position by measuring accelerations acting on the machine and its angular velocities.
-- Adaptation and maneuverability in varied (uneven) terrain.
-- Autonomous obstacle overcoming (holes, irregularities).
-- Ability to manipulate objects using limbs.
-- Software architecture implemented using the Robot Operating System (ROS) framework.
-- Voice control of the walking robot.
-- Use of Rust programming language, which features memory management safety mechanisms. It allows control over lower-level software details while maintaining high-level ergonomics.
-- Data acquisition in a time-series database.
-- Graphical user interface.
-
-
+The developed prototype has a wide scope of possible improvements in the future due to its high modularity:
+- Inertial navigation system - maintaining spatial orientation, determining position and velocity by measuring accelerations and angular - Adaptation and maneuverability in varied (uneven) terrain
+- Autonomy of overcoming obstacles
+- Voice control of the walking robot
+- Data acquisition in a time-series database
+- Graphical user interface
+- Software implementation using the Robot Operating System framework
