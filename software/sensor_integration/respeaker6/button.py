@@ -1,16 +1,15 @@
+from gpiozero import Button
+from signal import pause
 
-import RPi.GPIO as GPIO
-import time
+button = Button(26)
 
-BUTTON = 26
+def button_pressed():
+    print("on")
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(BUTTON, GPIO.IN)
+def button_released():
+    print("off")
 
-while True:
-    state = GPIO.input(BUTTON)
-    if state:
-        print("off")
-    else:
-        print("on")
-    time.sleep(1)
+button.when_pressed = button_pressed
+button.when_released = button_released
+
+pause()  # Keep the script running
