@@ -1,6 +1,6 @@
 Pololu Maestro USB Servo Controller Linux Software
 
-Release Date: 2022-05-09
+Release Date: 2024-08-14
 http://www.pololu.com/
 
 
