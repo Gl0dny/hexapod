@@ -14,7 +14,8 @@ to control the pixel ring
 
 requirements = [
     'spidev',
-    'pyusb'
+    'pyusb',
+    'gpiozero'
 ]
 
 setup_requirements = [
