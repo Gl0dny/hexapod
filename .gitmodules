@@ -1,0 +1,12 @@
+[submodule "firmware/maestro-linux"]
+	path = firmware/maestro-linux
+	url = git@github.com:Gl0dny/maestro-linux.git
+	branch = hexapod
+[submodule "firmware/seeed-voicecard"]
+	path = firmware/seeed-voicecard
+	url = git@github.com:Gl0dny/seeed-voicecard.git
+	branch = hexapod
+[submodule "lib/respeaker6/pixel_ring"]
+	path = lib/respeaker6/pixel_ring
+	url = git@github.com:Gl0dny/pixel_ring.git
+	branch = hexapod
