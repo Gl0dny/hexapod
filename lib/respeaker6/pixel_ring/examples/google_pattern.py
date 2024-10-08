@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Control pixel ring on ReSpeaker 4 Mic Array
 
@@ -12,7 +13,7 @@ from gpiozero import LED
 power = LED(5)
 power.on()
 
-pixel_ring.set_brightness(10)
+pixel_ring.set_brightness(5)
 
 if __name__ == '__main__':
     while True:

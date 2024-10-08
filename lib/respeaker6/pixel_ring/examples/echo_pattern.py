@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Control pixel ring on ReSpeaker 4 Mic Array
 
