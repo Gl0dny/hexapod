@@ -16,9 +16,6 @@ Diploma project completed at AGH University of Krakow as part of the Bachelor of
     - [Decision Layer - User Interface](#decision-layer---user-interface)
 8. [Summary - Future Development](#summary---future-development)
 
-
-
-
 ### Introduction
 The main objective of this project was to design and develop a six-legged walking robot as well as enabling the machine to realize real-time gait by developing and implementing a control system that includes a gait generator - an abstract module on software level, which task would be to synchronize actuators.
 
