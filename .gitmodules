@@ -6,6 +6,10 @@
 	path = firmware/seeed-voicecard
 	url = git@github.com:Gl0dny/seeed-voicecard.git
 	branch = hexapod
+[submodule "lib/odas"]
+	path = lib/odas
+	url = git@github.com:Gl0dny/odas.git
+	branch = hexapod
 [submodule "lib/respeaker6/pixel_ring"]
 	path = lib/respeaker6/pixel_ring
 	url = git@github.com:Gl0dny/pixel_ring.git
