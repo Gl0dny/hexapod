@@ -15,6 +15,6 @@
 	url = git@github.com:Gl0dny/pixel_ring.git
 	branch = hexapod
 [submodule "lib/odas_web"]
-    path = lib/odas_web
-    url = git@github.com:Gl0dny/odas_web.git
-    branch = hexapod
+	path = lib/odas_web
+	url = git@github.com:Gl0dny/odas_web.git
+	branch = hexapod
