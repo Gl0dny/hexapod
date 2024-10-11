@@ -61,7 +61,7 @@ class MaestroUART(object):
 		n = 0
 		while n != 2:
 			data[n] = self.ser.read(1)
-			if data[n] is None or data[n] == b'': continue
+			if data[n] == b'': continue
 			n = n + 1
 
 		return int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
@@ -85,10 +85,10 @@ class MaestroUART(object):
 		n = 0
 		while n != 2:
 			data[n] = self.ser.read(1)
-			if not data[n]: continue
+			if data[n] == b'': continue
 			n = n + 1
 
-		return int.from_bytes(data[0], byteorder='big') + 256 * int.from_bytes(data[1], byteorder='big')
+		return int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
 
 	def set_speed(self, channel, speed):
 		"""Sets the speed of a Maestro channel.
