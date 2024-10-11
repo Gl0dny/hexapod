@@ -1,6 +1,28 @@
 #!/usr/bin/env python3
 """
 Pololu Maestro servo controller board library
+
+### Pololu Protocol
+
+This protocol is compatible with the serial protocol used by our other serial motor and servo controllers. 
+As such, you can daisy-chain a Maestro on a single serial line along with our other serial controllers (including additional Maestros) and, using this protocol, 
+send commands specifically to the desired Maestro without confusing the other devices on the line.
+
+To use the Pololu protocol, you transmit 0xAA (170 in decimal) as the first (command) byte, followed by a Device Number data byte. 
+The default Device Number for the Maestro is **12**, but this is a configuration parameter you can change. 
+Any Maestro on the line whose device number matches the specified device number accepts the command that follows; all other Pololu devices ignore the command. 
+The remaining bytes in the command packet are the same as the compact protocol command packet you would send, with one key difference: 
+the compact protocol command byte is now a data byte for the command 0xAA and hence **must have its most significant bit cleared**. -> & 0x7F
+Therefore, the command packet is:
+
+**0xAA, device number byte, command byte with MSB cleared, any necessary data bytes**
+
+For example, if we want to set the target of servo 0 to 1500 µs for a Maestro with device number 12, we could send the following byte sequence:
+
+in hex: **0xAA, 0x0C, 0x04, 0x00, 0x70, 0x2E**  
+in decimal: **170, 12, 4, 0, 112, 46**
+
+Note that 0x04 is the command 0x84 with its most significant bit cleared.
 """
 import serial
 
