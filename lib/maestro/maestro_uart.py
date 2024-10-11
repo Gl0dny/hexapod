@@ -61,10 +61,10 @@ class MaestroUART(object):
 		n = 0
 		while n != 2:
 			data[n] = self.ser.read(1)
-			if not data[n]: continue
+			if data[n] is None or data[n] == b'': continue
 			n = n + 1
 
-		return int.from_bytes(data[0], byteorder='big') & 0x7F + (int.from_bytes(data[1], byteorder='big') & 0x7F) << 7
+		return int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
 
 	def get_position(self, channel):
 		"""Gets the position of a servo from a Maestro channel.
@@ -170,6 +170,8 @@ class MaestroUART(object):
 				Example: If you want to move it to 2000us then pass 
 				8000us (4 x 2000us).
 
+				A target value of 0 tells the Maestro to stop sending pulses to the servo.
+				
 		Returns:
 			none
 		"""
