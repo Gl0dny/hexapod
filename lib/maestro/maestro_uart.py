@@ -25,6 +25,7 @@ in decimal: **170, 12, 4, 0, 112, 46**
 Note that 0x04 is the command 0x84 with its most significant bit cleared.
 """
 import serial
+import time
 
 class MaestroUART(object):
 	def __init__(self, device='/dev/ttyS0', baudrate=9600):
@@ -198,6 +199,27 @@ class MaestroUART(object):
 		command = bytes([0xAA, 0x0C, 0xAA & 0x7F])
 		self.ser.write(command)
 
+	def get_moving_state(self):
+		"""
+		Checks if any servos are still moving.
+
+		Args:
+			none
+
+		Returns:
+			0x00: if no servos are moving
+			0x01: if at least one servo is still moving
+		"""
+		# The command is: 0xAA, device number (0x0C for default), 0x13
+		command = bytes([0xAA, 0x0C, 0x93 & 0x7F])
+		self.ser.write(command)
+
+		# Read a single byte response indicating the moving state
+		response = self.ser.read(1)
+		if response == b'':
+			return None 
+		return ord(response)
+
 	def close(self):
 		"""
 		Close the serial port.
@@ -246,6 +268,29 @@ if __name__ == '__main__':
 
 	mu.set_target(channel, target)
 
-	# mu.go_home()
+	
+	first_iteration = True
+	while True:
+		moving_state = mu.get_moving_state()
+
+		if first_iteration and moving_state is None:
+			first_iteration = False
+			time.sleep(0.1)
+			continue
+
+		if moving_state is not None:
+			if moving_state == 0x00:
+				print("All servos have stopped moving.")
+				break
+			else:
+				print("Servos are still moving...")
+		else:
+			print("Failed to get the moving state.")
+			break
+
+		time.sleep(0.1)
+
+	mu.go_home()
+	print("Servos set to home positions.")
 
 	mu.close()
