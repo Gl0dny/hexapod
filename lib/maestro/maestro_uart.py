@@ -47,12 +47,41 @@ class MaestroUART(object):
 		self.ser.timeout = 0 # makes the read non-blocking
 
 	def get_error(self):
-		"""Check if there was an error.
+		"""Check if there was an error and print the corresponding error messages.
+
+		• Serial signal error (bit 0)
+			A hardware-level error that occurs when a byte’s stop bit is not detected at the expected
+			place. This can occur if you are communicating at a baud rate that differs from the Maestro’s
+			baud rate.
+		• Serial overrun error (bit 1)
+			A hardware-level error that occurs when the UART’s internal buffer fills up. This should not
+			occur during normal operation.
+		• Serial buffer full (bit 2)
+			A firmware-level error that occurs when the firmware’s buffer for bytes received on the RX
+			line is full and a byte from RX has been lost as a result. This error should not occur during
+			normal operation.
+		• Serial CRC error (bit 3)
+			This error occurs when the Maestro is running in CRC-enabled mode and the cyclic
+			redundancy check (CRC) byte at the end of the command packet does not match what the
+			Maestro has computed as that packet’s CRC.
+		• Serial protocol error (bit 4)
+			This error occurs when the Maestro receives an incorrectly formatted or illogal
+			command packet.
+		• Serial timeout (bit 5)
+			When the serial timeout is enabled, this error occurs whenever the timeout period has
+			elapsed without the Maestro receiving any valid serial commands.
+		• Script stack error (bit 6)
+			This error occurs when a bug in the user script has caused the stack to overflow or underflow.
+		• Script call stack error (bit 7)
+			This error occurs when a bug in the user script has caused the call stack to overflow or
+			underflow.
+		• Script program counter error (bit 8)
+			This error occurs when a bug in the user script has caused the program counter to go out
+			of bounds.
 
 		Returns:
 			>0: error, see the Maestro manual for the error values
-			0: no error, or error getting the position, check the connections,
-			could also be low power
+			0: no error, or error getting the position, check the connections, could also be low power
 		"""
 		command = bytes([0xAA, 0x0C, 0xA1 & 0x7F])
 
@@ -65,7 +94,32 @@ class MaestroUART(object):
 			if data[n] == b'': continue
 			n = n + 1
 
-		return int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
+		error_code = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
+
+		if error_code == 0:
+			print("No error detected.")
+		else:
+			print("Error detected with code:", error_code)
+			if error_code & (1 << 0):
+				print("Serial signal error: Stop bit not detected at the expected place.")
+			if error_code & (1 << 1):
+				print("Serial overrun error: UART's internal buffer filled up.")
+			if error_code & (1 << 2):
+				print("Serial buffer full: Firmware buffer for received bytes is full.")
+			if error_code & (1 << 3):
+				print("Serial CRC error: CRC byte does not match the computed CRC.")
+			if error_code & (1 << 4):
+				print("Serial protocol error: Incorrectly formatted or nonsensical command packet.")
+			if error_code & (1 << 5):
+				print("Serial timeout: Timeout period elapsed without receiving valid serial commands.")
+			if error_code & (1 << 6):
+				print("Script stack error: Stack overflow or underflow.")
+			if error_code & (1 << 7):
+				print("Script call stack error: Call stack overflow or underflow.")
+			if error_code & (1 << 8):
+				print("Script program counter error: Program counter went out of bounds.")
+
+		return error_code
 
 	def get_position(self, channel):
 		"""Gets the position of a servo from a Maestro channel.
@@ -196,7 +250,7 @@ class MaestroUART(object):
 			none
 		"""
 
-		command = bytes([0xAA, 0x0C, 0xAA & 0x7F])
+		command = bytes([0xAA, 0x0C, 0x22 & 0x7F])
 		self.ser.write(command)
 
 	def get_moving_state(self):
