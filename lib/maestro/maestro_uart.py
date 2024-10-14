@@ -178,6 +178,26 @@ class MaestroUART(object):
 		command = bytes([0xAA, 0x0C, 0x84 & 0x7F, channel, target & 0x7F, (target >> 7) & 0x7F])
 		self.ser.write(command)
 
+	def go_home(self):
+		"""
+		Sends a command to set all servos and outputs to their home positions.
+		For servos marked "Ignore", the position will remain unchanged.
+		For servos marked “Off”, if you execute a Set Target command immediately after
+		Go Home, it will appear that the servo is not obeying speed and acceleration limits. In
+		fact, as soon as the servo is turned off, the Maestro has no way of knowing where it is,
+		so it will immediately move to any new target. Subsequent target commands will function
+		normally
+
+		Args:
+			none
+
+		Returns:
+			none
+		"""
+
+		command = bytes([0xAA, 0x0C, 0xAA & 0x7F])
+		self.ser.write(command)
+
 	def close(self):
 		"""
 		Close the serial port.
@@ -197,11 +217,11 @@ if __name__ == '__main__':
 	# Allowing quarter-microseconds gives you more resolution to work with.
 	# e.g. If you want a maximum of 2000us then use 8000us (4 x 2000us).
 
-	min_pos = 992*4
-	max_pos = 2000*4
+	min_pos = 1100*4
+	max_pos = 1800*4
 
 	mu = MaestroUART('/dev/ttyS0', 9600)
-	channel = 0
+	channel = 8
 
 	error = mu.get_error()
 	if error:
@@ -225,5 +245,7 @@ if __name__ == '__main__':
 	print('Moving to: %d quarter-microseconds' % target)
 
 	mu.set_target(channel, target)
+
+	# mu.go_home()
 
 	mu.close()
