@@ -1,8 +1,31 @@
 #!/usr/bin/env python3
 """
 Pololu Maestro servo controller board library
+
+### Pololu Protocol
+
+This protocol is compatible with the serial protocol used by our other serial motor and servo controllers. 
+As such, you can daisy-chain a Maestro on a single serial line along with our other serial controllers (including additional Maestros) and, using this protocol, 
+send commands specifically to the desired Maestro without confusing the other devices on the line.
+
+To use the Pololu protocol, you transmit 0xAA (170 in decimal) as the first (command) byte, followed by a Device Number data byte. 
+The default Device Number for the Maestro is **12**, but this is a configuration parameter you can change. 
+Any Maestro on the line whose device number matches the specified device number accepts the command that follows; all other Pololu devices ignore the command. 
+The remaining bytes in the command packet are the same as the compact protocol command packet you would send, with one key difference: 
+the compact protocol command byte is now a data byte for the command 0xAA and hence **must have its most significant bit cleared**. -> & 0x7F
+Therefore, the command packet is:
+
+**0xAA, device number byte, command byte with MSB cleared, any necessary data bytes**
+
+For example, if we want to set the target of servo 0 to 1500 µs for a Maestro with device number 12, we could send the following byte sequence:
+
+in hex: **0xAA, 0x0C, 0x04, 0x00, 0x70, 0x2E**  
+in decimal: **170, 12, 4, 0, 112, 46**
+
+Note that 0x04 is the command 0x84 with its most significant bit cleared.
 """
 import serial
+import time
 
 class MaestroUART(object):
 	def __init__(self, device='/dev/ttyS0', baudrate=9600):
@@ -24,12 +47,41 @@ class MaestroUART(object):
 		self.ser.timeout = 0 # makes the read non-blocking
 
 	def get_error(self):
-		"""Check if there was an error.
+		"""Check if there was an error and print the corresponding error messages.
+
+		• Serial signal error (bit 0)
+			A hardware-level error that occurs when a byte’s stop bit is not detected at the expected
+			place. This can occur if you are communicating at a baud rate that differs from the Maestro’s
+			baud rate.
+		• Serial overrun error (bit 1)
+			A hardware-level error that occurs when the UART’s internal buffer fills up. This should not
+			occur during normal operation.
+		• Serial buffer full (bit 2)
+			A firmware-level error that occurs when the firmware’s buffer for bytes received on the RX
+			line is full and a byte from RX has been lost as a result. This error should not occur during
+			normal operation.
+		• Serial CRC error (bit 3)
+			This error occurs when the Maestro is running in CRC-enabled mode and the cyclic
+			redundancy check (CRC) byte at the end of the command packet does not match what the
+			Maestro has computed as that packet’s CRC.
+		• Serial protocol error (bit 4)
+			This error occurs when the Maestro receives an incorrectly formatted or illogal
+			command packet.
+		• Serial timeout (bit 5)
+			When the serial timeout is enabled, this error occurs whenever the timeout period has
+			elapsed without the Maestro receiving any valid serial commands.
+		• Script stack error (bit 6)
+			This error occurs when a bug in the user script has caused the stack to overflow or underflow.
+		• Script call stack error (bit 7)
+			This error occurs when a bug in the user script has caused the call stack to overflow or
+			underflow.
+		• Script program counter error (bit 8)
+			This error occurs when a bug in the user script has caused the program counter to go out
+			of bounds.
 
 		Returns:
 			>0: error, see the Maestro manual for the error values
-			0: no error, or error getting the position, check the connections,
-			could also be low power
+			0: no error, or error getting the position, check the connections, could also be low power
 		"""
 		command = bytes([0xAA, 0x0C, 0xA1 & 0x7F])
 
@@ -39,10 +91,35 @@ class MaestroUART(object):
 		n = 0
 		while n != 2:
 			data[n] = self.ser.read(1)
-			if not data[n]: continue
+			if data[n] == b'': continue
 			n = n + 1
 
-		return int.from_bytes(data[0], byteorder='big') & 0x7F + (int.from_bytes(data[1], byteorder='big') & 0x7F) << 7
+		error_code = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
+
+		if error_code == 0:
+			print("No error detected.")
+		else:
+			print("Error detected with code:", error_code)
+			if error_code & (1 << 0):
+				print("Serial signal error: Stop bit not detected at the expected place.")
+			if error_code & (1 << 1):
+				print("Serial overrun error: UART's internal buffer filled up.")
+			if error_code & (1 << 2):
+				print("Serial buffer full: Firmware buffer for received bytes is full.")
+			if error_code & (1 << 3):
+				print("Serial CRC error: CRC byte does not match the computed CRC.")
+			if error_code & (1 << 4):
+				print("Serial protocol error: Incorrectly formatted or nonsensical command packet.")
+			if error_code & (1 << 5):
+				print("Serial timeout: Timeout period elapsed without receiving valid serial commands.")
+			if error_code & (1 << 6):
+				print("Script stack error: Stack overflow or underflow.")
+			if error_code & (1 << 7):
+				print("Script call stack error: Call stack overflow or underflow.")
+			if error_code & (1 << 8):
+				print("Script program counter error: Program counter went out of bounds.")
+
+		return error_code
 
 	def get_position(self, channel):
 		"""Gets the position of a servo from a Maestro channel.
@@ -63,10 +140,10 @@ class MaestroUART(object):
 		n = 0
 		while n != 2:
 			data[n] = self.ser.read(1)
-			if not data[n]: continue
+			if data[n] == b'': continue
 			n = n + 1
 
-		return int.from_bytes(data[0], byteorder='big') + 256 * int.from_bytes(data[1], byteorder='big')
+		return int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
 
 	def set_speed(self, channel, speed):
 		"""Sets the speed of a Maestro channel.
@@ -148,11 +225,54 @@ class MaestroUART(object):
 				Example: If you want to move it to 2000us then pass 
 				8000us (4 x 2000us).
 
+				A target value of 0 tells the Maestro to stop sending pulses to the servo.
+				
 		Returns:
 			none
 		"""
 		command = bytes([0xAA, 0x0C, 0x84 & 0x7F, channel, target & 0x7F, (target >> 7) & 0x7F])
 		self.ser.write(command)
+
+	def go_home(self):
+		"""
+		Sends a command to set all servos and outputs to their home positions.
+		For servos marked "Ignore", the position will remain unchanged.
+		For servos marked “Off”, if you execute a Set Target command immediately after
+		Go Home, it will appear that the servo is not obeying speed and acceleration limits. In
+		fact, as soon as the servo is turned off, the Maestro has no way of knowing where it is,
+		so it will immediately move to any new target. Subsequent target commands will function
+		normally
+
+		Args:
+			none
+
+		Returns:
+			none
+		"""
+
+		command = bytes([0xAA, 0x0C, 0x22 & 0x7F])
+		self.ser.write(command)
+
+	def get_moving_state(self):
+		"""
+		Checks if any servos are still moving.
+
+		Args:
+			none
+
+		Returns:
+			0x00: if no servos are moving
+			0x01: if at least one servo is still moving
+		"""
+		# The command is: 0xAA, device number (0x0C for default), 0x13
+		command = bytes([0xAA, 0x0C, 0x93 & 0x7F])
+		self.ser.write(command)
+
+		# Read a single byte response indicating the moving state
+		response = self.ser.read(1)
+		if response == b'':
+			return None 
+		return ord(response)
 
 	def close(self):
 		"""
@@ -173,11 +293,11 @@ if __name__ == '__main__':
 	# Allowing quarter-microseconds gives you more resolution to work with.
 	# e.g. If you want a maximum of 2000us then use 8000us (4 x 2000us).
 
-	min_pos = 992*4
-	max_pos = 2000*4
+	min_pos = 1100*4
+	max_pos = 1800*4
 
 	mu = MaestroUART('/dev/ttyS0', 9600)
-	channel = 0
+	channel = 8
 
 	error = mu.get_error()
 	if error:
@@ -201,5 +321,30 @@ if __name__ == '__main__':
 	print('Moving to: %d quarter-microseconds' % target)
 
 	mu.set_target(channel, target)
+
+	
+	first_iteration = True
+	while True:
+		moving_state = mu.get_moving_state()
+
+		if first_iteration and moving_state is None:
+			first_iteration = False
+			time.sleep(0.1)
+			continue
+
+		if moving_state is not None:
+			if moving_state == 0x00:
+				print("All servos have stopped moving.")
+				break
+			else:
+				print("Servos are still moving...")
+		else:
+			print("Failed to get the moving state.")
+			break
+
+		time.sleep(0.1)
+
+	mu.go_home()
+	print("Servos set to home positions.")
 
 	mu.close()
