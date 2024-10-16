@@ -17,3 +17,5 @@ pip install dist/*.whl
 cd ~/voice-engine/examples/respeaker_6mic_array_for_pi/
 python kws_doa.py
 ```
+
+Works well - seems like mic 2 is the point 0 here - angle increases clockwise
