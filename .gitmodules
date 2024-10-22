@@ -24,12 +24,4 @@
 [submodule "lib/respeaker6/kws/snowboy_old"]
 	path = lib/respeaker6/kws/snowboy_old
 	url = https://github.com/Kitt-AI/snowboy.git
-[submodule "lib/respeaker6/mic_array"]
-	path = lib/respeaker6/mic_array
-	url = https://github.com/respeaker/mic_array.git
-[submodule "lib/respeaker6/voice-engine"]
-	path = lib/respeaker6/voice-engine
-	url = https://github.com/voice-engine/voice-engine.git
-[submodule "lib/respeaker6/ec"]
-	path = lib/respeaker6/ec
-	url = https://github.com/voice-engine/ec.git
+
