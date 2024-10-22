@@ -21,6 +21,7 @@
 [submodule "lib/maestro/raestro"]
 	path = lib/maestro/raestro
 	url = git@github.com:Gl0dny/raestro.git
+	branch = maestro24
 [submodule "lib/respeaker6/kws/snowboy_old"]
 	path = lib/respeaker6/kws/snowboy_old
 	url = https://github.com/Kitt-AI/snowboy.git
