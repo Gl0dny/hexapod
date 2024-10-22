@@ -24,4 +24,11 @@
 [submodule "lib/respeaker6/kws/snowboy_old"]
 	path = lib/respeaker6/kws/snowboy_old
 	url = https://github.com/Kitt-AI/snowboy.git
-
+[submodule "lib/respeaker6/ec"]
+	path = lib/respeaker6/ec
+	url = git@github.com:Gl0dny/ec.git
+	branch = hexapod
+[submodule "lib/respeaker6/voice-engine"]
+	path = lib/respeaker6/voice-engine
+	url = git@github.com:Gl0dny/voice-engine.git
+	branch = hexapod
