@@ -33,3 +33,7 @@
 	path = lib/respeaker6/voice-engine
 	url = git@github.com:Gl0dny/voice-engine.git
 	branch = hexapod
+[submodule "lib/respeaker6/mic_array"]
+	path = lib/respeaker6/mic_array
+	url = git@github.com:Gl0dny/mic_array.git
+	branch = hexapod
