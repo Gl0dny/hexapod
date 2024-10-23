@@ -3,3 +3,4 @@ dist
 pvrespeakerdemo.egg-info
 pvrespeakerdemo/LICENSE
 # pvrespeakerdemo/picovoice_raspberry-pi.ppn
+__pycache__/
