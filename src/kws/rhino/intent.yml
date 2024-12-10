@@ -92,16 +92,9 @@ context:
       - white
       - yellow
       - brown
-      - cyan
       - gray
-      - lime
       - teal
-      - coral
-      - gold
       - indigo
-      - violet
-      - beige
-      - mint
     angle:
       - minus three hundred sixty
       - minus three hundred fifty

@@ -13,23 +13,16 @@ from apa102 import APA102
 COLORS_RGB = dict(
     blue=(0, 0, 255),
     green=(0, 255, 0),
-    orange=(255, 128, 0),
-    pink=(255, 51, 153),
+    orange=(255, 50, 0),
+    pink=(255, 51, 183),
     purple=(128, 0, 128),
     red=(255, 0, 0),
     white=(255, 255, 255),
-    yellow=(255, 255, 51),
+    yellow=(255, 215, 0),
     brown=(139, 69, 19),
-    cyan=(0, 255, 255),
     gray=(128, 128, 128),
-    lime=(0, 255, 0),
     teal=(0, 128, 128),
-    coral=(255, 127, 80),
-    gold=(255, 215, 0),
     indigo=(75, 0, 130),
-    violet=(238, 130, 238),
-    beige=(245, 245, 220),
-    mint=(189, 252, 201),
 )
 
 driver = APA102(num_led=12)
@@ -61,7 +54,7 @@ class PicovoiceDemo(Thread):
 
         self._context = self._picovoice.context_info
 
-        self._color = 'blue'
+        self._color = 'indigo'
         self._device_index = device_index
 
     @staticmethod
@@ -87,12 +80,12 @@ class PicovoiceDemo(Thread):
         print('}\n')
 
         if inference.is_understood:
-            if inference.intent == 'turnLights':
-                if inference.slots['state'] == 'off':
+            if inference.intent == 'turn_lights':
+                if inference.slots['switch_state'] == 'off':
                     self._set_color((0, 0, 0))
                 else:
                     self._set_color(COLORS_RGB[self._color])
-            elif inference.intent == 'changeColor':
+            elif inference.intent == 'change_color':
                 self._color = inference.slots['color']
                 self._set_color(COLORS_RGB[self._color])
             else:
@@ -136,7 +129,7 @@ def main():
 
     o = PicovoiceDemo(
         os.path.join(os.path.dirname(__file__), 'hexapod_en_raspberry-pi_v3_0_0.ppn'),
-        os.path.join(os.path.dirname(__file__), 'respeaker_raspberry-pi.rhn'),
+        os.path.join(os.path.dirname(__file__), 'hexapod_en_raspberry-pi_v3_0_0.rhn'),
         args.access_key,
         args.audio_device_index
     )
