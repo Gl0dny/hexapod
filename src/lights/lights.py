@@ -24,8 +24,10 @@ class Lights:
         self.power.on()
         self.led_color = initial_color
 
-    def set_color(self, color):
+    def set_color(self, color, num_led=None):
+        if num_led is None:
+            num_led = self.driver.num_led
         rgb = self.COLORS_RGB.get(color.lower(), (0, 0, 0))
-        for i in range(self.driver.num_led):
+        for i in range(num_led):
             self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
         self.driver.show()
