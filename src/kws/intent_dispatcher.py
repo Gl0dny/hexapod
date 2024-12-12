@@ -9,7 +9,7 @@ class IntentDispatcher:
             'move': self.handle_move,
             'stop': self.handle_stop,
             'idle_stance': self.handle_idle_stance,
-            'rotate': self.handle_turn,
+            'rotate': self.handle_rotate,
             'turn_lights': self.handle_turn_lights,
             'change_color': self.handle_change_color,
             'repeat': self.handle_repeat,
