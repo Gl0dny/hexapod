@@ -84,17 +84,19 @@ context:
       - on
     color:
       - blue
+      - teal
+      - golden
       - green
+      - lime
+      - yellow
       - orange
       - pink
       - purple
-      - red
-      - white
-      - yellow
-      - brown
-      - gray
-      - teal
       - indigo
+      - red
+      - gray
+      - white
+
     angle:
       - minus three hundred sixty
       - minus three hundred fifty
