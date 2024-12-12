@@ -1,13 +1,15 @@
-import argparse
 import os
-import struct
+import argparse
+import threading
 import sys
-from threading import Thread
 
-from gpiozero import LED
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
+from intent_dispatcher import IntentDispatcher
+from state_manager import StateManager
+from control_module import ControlModule
 
+from gpiozero import LED
 from apa102 import APA102
 
 COLORS_RGB = dict(
@@ -29,7 +31,7 @@ driver = APA102(num_led=12)
 power = LED(5)
 power.on()
 
-class PicovoiceDemo(Thread):
+class VoiceControl(threading.Thread):
     def __init__(
             self,
             keyword_path,
@@ -38,7 +40,7 @@ class PicovoiceDemo(Thread):
             device_index,
             porcupine_sensitivity=0.75,
             rhino_sensitivity=0.25):
-        super(PicovoiceDemo, self).__init__()
+        super(VoiceControl, self).__init__()
 
         def inference_callback(inference):
             return self._inference_callback(inference)
@@ -53,9 +55,13 @@ class PicovoiceDemo(Thread):
             rhino_sensitivity=rhino_sensitivity)
 
         self._context = self._picovoice.context_info
+        self._device_index = device_index
+
+        self.control = ControlModule()
+        self.dispatcher = IntentDispatcher(self.control)
+        self.state_manager = StateManager()
 
         self._color = 'indigo'
-        self._device_index = device_index
 
     @staticmethod
     def _set_color(color):
@@ -116,24 +122,30 @@ class PicovoiceDemo(Thread):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-
+    parser = argparse.ArgumentParser(description="Hexapod Voice Control Interface")
     parser.add_argument(
         '--access_key',
         help='AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)',
-        required=True)
-
-    parser.add_argument('--audio_device_index', help='Index of input audio device.', type=int, default=-1)
-
+        required=True
+    )
+    parser.add_argument(
+        '--audio_device_index',
+        help='Index of input audio device.',
+        type=int,
+        default=-1
+    )
     args = parser.parse_args()
 
-    o = PicovoiceDemo(
-        os.path.join(os.path.dirname(__file__), 'hexapod_en_raspberry-pi_v3_0_0.ppn'),
-        os.path.join(os.path.dirname(__file__), 'hexapod_en_raspberry-pi_v3_0_0.rhn'),
-        args.access_key,
-        args.audio_device_index
+    keyword_path = os.path.join(os.path.dirname(__file__), 'porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
+    context_path = os.path.join(os.path.dirname(__file__), 'rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
+
+    voice_control = VoiceControl(
+        keyword_path=keyword_path,
+        context_path=context_path,
+        access_key=args.access_key,
+        device_index=args.audio_device_index
     )
-    o.run()
+    voice_control.run()
 
 
 if __name__ == '__main__':
