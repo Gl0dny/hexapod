@@ -2,7 +2,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class CentralDispatcher:
+class IntentDispatcher:
     def __init__(self, control_module):
         self.control = control_module
         self.intent_handlers = {

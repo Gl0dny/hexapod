@@ -4,7 +4,7 @@ import threading
 import logging
 
 from picovoice import Picovoice
-from central_dispatcher import CentralDispatcher
+from intent_dispatcher import IntentDispatcher
 from state_manager import StateManager
 from control_module import ControlModule
 
@@ -18,7 +18,7 @@ class VoiceControl:
         self.control = ControlModule()
 
         # Initialize Dispatcher and State Manager
-        self.dispatcher = CentralDispatcher(self.control)
+        self.dispatcher = IntentDispatcher(self.control)
         self.state_manager = StateManager()
 
         # Initialize Picovoice
