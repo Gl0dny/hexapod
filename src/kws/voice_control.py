@@ -66,10 +66,6 @@ class VoiceControl(threading.Thread):
             # else:
             #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
 
-            # elif inference.intent == 'change_color':
-            #     self._color = inference.slots['color']
-            #     self._set_color(COLORS_RGB[self._color])
-
     def run(self):
         recorder = None
 

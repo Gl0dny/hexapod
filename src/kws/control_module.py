@@ -24,7 +24,7 @@ driver = APA102(num_led=12)
 power = LED(5)
 power.on()
 
-color='indigo'
+led_color='indigo'
 
 def set_color(color):
     for i in range(12):
@@ -57,4 +57,9 @@ class ControlModule:
             set_color((0, 0, 0))
         else:
             logger.info(f"Turning lights on")
-            set_color(COLORS_RGB[color])
+            set_color(COLORS_RGB[led_color])
+
+    def change_color(self, color):
+        logger.info(f"Switching color of the lights to {color}")
+        led_color = color
+        set_color(COLORS_RGB[led_color])

@@ -11,7 +11,7 @@ class IntentDispatcher:
             'stop': self.handle_stop,
             'mode': self.handle_mode,
             'turn_lights': self.handle_turn_lights,
-            # 'change_color': self.handle_change_color
+            'change_color': self.handle_change_color
         }
 
     def dispatch(self, intent, slots):
@@ -54,7 +54,7 @@ class IntentDispatcher:
         logger.info(f"Handling turn_lights command: {switch_state}")
         self.control.turn_lights(switch_state)
 
-    # def handle_change_color(self, slots):
-    #     switch_state = slots.get('switch_state')
-        # logger.info(f"Handling turn_lights command: {switch_state}")
-        # self.control.turn_lights(switch_state)
+    def handle_change_color(self, slots):
+        color = slots.get('color')
+        logger.info(f"Handling change_color command: {color}")
+        self.control.change_color(color)
