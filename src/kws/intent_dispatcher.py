@@ -10,7 +10,8 @@ class IntentDispatcher:
             'turn': self.handle_turn,
             'stop': self.handle_stop,
             'mode': self.handle_mode,
-            # Add other intents here
+            'turn_lights': self.handle_turn_lights,
+            # 'change_color': self.handle_change_color
         }
 
     def dispatch(self, intent, slots):
@@ -18,7 +19,7 @@ class IntentDispatcher:
         if handler:
             handler(slots)
         else:
-            logger.warning(f"No handler for intent: {intent}")
+            raise NotImplementedError(f"No handler for intent: {intent}")
 
     def handle_move(self, slots):
         direction = slots.get('direction')
@@ -48,4 +49,12 @@ class IntentDispatcher:
         else:
             logger.error("No mode provided for mode command.")
 
-    # Define additional handlers as needed
+    def handle_turn_lights(self, slots):
+        switch_state = slots.get('switch_state')
+        logger.info(f"Handling turn_lights command: {switch_state}")
+        self.control.turn_lights(switch_state)
+
+    # def handle_change_color(self, slots):
+    #     switch_state = slots.get('switch_state')
+        # logger.info(f"Handling turn_lights command: {switch_state}")
+        # self.control.turn_lights(switch_state)

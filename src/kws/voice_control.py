@@ -2,6 +2,7 @@ import os
 import argparse
 import threading
 import sys
+import logging
 
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
@@ -9,27 +10,8 @@ from intent_dispatcher import IntentDispatcher
 from state_manager import StateManager
 from control_module import ControlModule
 
-from gpiozero import LED
-from apa102 import APA102
-
-COLORS_RGB = dict(
-    blue=(0, 0, 255),
-    green=(0, 255, 0),
-    orange=(255, 50, 0),
-    pink=(255, 51, 183),
-    purple=(128, 0, 128),
-    red=(255, 0, 0),
-    white=(255, 255, 255),
-    yellow=(255, 215, 0),
-    brown=(139, 69, 19),
-    gray=(128, 128, 128),
-    teal=(0, 128, 128),
-    indigo=(75, 0, 130),
-)
-
-driver = APA102(num_led=12)
-power = LED(5)
-power.on()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class VoiceControl(threading.Thread):
     def __init__(
@@ -42,6 +24,7 @@ class VoiceControl(threading.Thread):
             rhino_sensitivity=0.25):
         super(VoiceControl, self).__init__()
 
+        # Picovoice API callback
         def inference_callback(inference):
             return self._inference_callback(inference)
 
@@ -57,17 +40,9 @@ class VoiceControl(threading.Thread):
         self._context = self._picovoice.context_info
         self._device_index = device_index
 
-        self.control = ControlModule()
-        self.dispatcher = IntentDispatcher(self.control)
-        self.state_manager = StateManager()
-
-        self._color = 'indigo'
-
-    @staticmethod
-    def _set_color(color):
-        for i in range(12):
-            driver.set_pixel(i, color[0], color[1], color[2])
-        driver.show()
+        self._control = ControlModule()
+        self._dispatcher = IntentDispatcher(self._control)
+        self._state_manager = StateManager()
 
     @staticmethod
     def _wake_word_callback():
@@ -86,16 +61,14 @@ class VoiceControl(threading.Thread):
         print('}\n')
 
         if inference.is_understood:
-            if inference.intent == 'turn_lights':
-                if inference.slots['switch_state'] == 'off':
-                    self._set_color((0, 0, 0))
-                else:
-                    self._set_color(COLORS_RGB[self._color])
-            elif inference.intent == 'change_color':
-                self._color = inference.slots['color']
-                self._set_color(COLORS_RGB[self._color])
-            else:
-                raise NotImplementedError()
+            # if self.state_manager.can_execute(inference.intent):
+                self._dispatcher.dispatch(inference.intent, inference.slots)
+            # else:
+            #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
+
+            # elif inference.intent == 'change_color':
+            #     self._color = inference.slots['color']
+            #     self._set_color(COLORS_RGB[self._color])
 
     def run(self):
         recorder = None
