@@ -1,5 +1,10 @@
 import logging
-from src.kws.lights import Lights
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from lights import Lights
 
 logger = logging.getLogger(__name__)
 

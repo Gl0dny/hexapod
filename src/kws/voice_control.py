@@ -4,11 +4,12 @@ import threading
 import sys
 import logging
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
 from intent_dispatcher import IntentDispatcher
-from state_manager import StateManager
-from control_module import ControlModule
+from control import ControlModule, StateManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
