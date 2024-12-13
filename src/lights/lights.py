@@ -212,5 +212,5 @@ class Lights:
         """Stop any ongoing LED animations."""
         self.running = False
         if self.thread and self.thread.is_alive():
-            self.thread.join()
+            self.thread.join(timeout=0.01)
         self.thread = None
