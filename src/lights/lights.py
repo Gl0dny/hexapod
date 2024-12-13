@@ -1,5 +1,5 @@
 from gpiozero import LED
-from .apa102 import APA102
+from ,apa102 import APA102
 import threading
 import time
 
@@ -41,21 +41,35 @@ class Lights:
         self.brightness = brightness
         self.driver.global_brightness = int(0b11111 * self.brightness / 100)
 
-    def set_color(self, color, num_led=None):
-        """Set all LEDs to a specific color."""
-        if num_led is None:
-            num_led = self.driver.num_led
+    def set_color(self, color, num_led=None, led_index=None):
+        """Set all LEDs to a specific color or a specific LED's color."""
         rgb = self.COLORS_RGB.get(color.lower(), (0, 0, 0))
-        for i in range(num_led):
-            self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
+        
+        if led_index is not None:
+            if 0 <= led_index < self.driver.num_led:
+                self.driver.set_pixel(led_index, rgb[0], rgb[1], rgb[2])
+            else:
+                raise ValueError(f"LED index {led_index} is out of range.")
+        else:
+            if num_led is None:
+                num_led = self.driver.num_led
+            for i in range(num_led):
+                self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
+        
         self.driver.show()
 
-    def set_color_rgb(self, rgb_tuple, num_led=None):
-        """Set all LEDs to a specific RGB color."""
-        if num_led is None:
-            num_led = self.driver.num_led
-        for i in range(self.num_led):
-            self.driver.set_pixel(i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+    def set_color_rgb(self, rgb_tuple, num_led=None, led_index=None):
+        """Set all LEDs to a specific RGB color or a specific LED's color."""
+        if led_index is not None:
+            if 0 <= led_index < self.driver.num_led:
+                self.driver.set_pixel(led_index, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+            else:
+                raise ValueError(f"LED index {led_index} is out of range.")
+        else:
+            if num_led is None:
+                num_led = self.driver.num_led
+            for i in range(num_led):
+                self.driver.set_pixel(i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
         self.driver.show()
 
     def _get_wheel_color(self, wheel_pos):
@@ -71,7 +85,7 @@ class Lights:
             return (0, wheel_pos * 3, 255 - wheel_pos * 3)
 
 
-    def wheel_clear(self, use_rainbow=True, color='white', interval=0.2):
+    def wheel(self, use_rainbow=True, color='white', interval=0.2):
         self.stop_animation()
         self.running = True
 
@@ -118,26 +132,26 @@ class Lights:
     #     """Illuminate all LEDs with the specified color."""
     #     self.set_color(color)
 
-    # def think(self, colors=['blue', 'green', 'red', 'yellow'], delay=0.2):
-    #     """Create a rotating animation with specified colors."""
-    #     self.stop_animation()
-    #     self.running = True
+    def think(self, colors=['blue', 'green', 'red', 'yellow'], delay=0.2):
+        """Create a rotating animation with specified colors."""
+        self.stop_animation()
+        self.running = True
 
-    #     def run():
-    #         color_indices = [self.COLORS_RGB.get(c.lower(), (0, 0, 0)) for c in colors]
-    #         index = 0
-    #         while self.running:
-    #             rgb = color_indices[index % len(color_indices)]
-    #             self.clear()
-    #             for i in range(self.num_led):
-    #                 self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
-    #                 self.driver.show()
-    #                 time.sleep(delay)
-    #                 self.clear()
-    #             index += 1
+        def run():
+            color_indices = [self.COLORS_RGB.get(c.lower(), (0, 0, 0)) for c in colors]
+            index = 0
+            while self.running:
+                rgb = color_indices[index % len(color_indices)]
+                self.clear()
+                for i in range(self.num_led):
+                    self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
+                    self.driver.show()
+                    time.sleep(delay)
+                    self.clear()
+                index += 1
 
-    #     self.thread = threading.Thread(target=run)
-    #     self.thread.start()
+        self.thread = threading.Thread(target=run)
+        self.thread.start()
 
     def pulse(self, base_color='blue', pulse_color='red', pulse_speed=0.3):
         """Pulse the LEDs between base color and pulse color to simulate speaking."""
