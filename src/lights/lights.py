@@ -85,7 +85,7 @@ class Lights:
         self.thread = threading.Thread(target=_run)
         self.thread.start()
 
-    def wheel_fill(self, use_rainbow=True, color='white', interval=0.5):
+    def wheel_fill(self, use_rainbow=True, color='white', interval=0.2):
         self.stop_animation()
         self.running = True
 
@@ -131,12 +131,27 @@ class Lights:
     #     self.thread = threading.Thread(target=run)
     #     self.thread.start()
 
+    def pulse(self, base_color='blue', pulse_color='red', pulse_speed=0.3):
+        """Pulse the LEDs between base color and pulse color to simulate speaking."""
+        self.stop_animation()
+        self.running = True
+
+        def _run():
+            while self.running:
+                self.set_color(base_color)
+                time.sleep(pulse_speed)
+                self.set_color(pulse_color)
+                time.sleep(pulse_speed)
+
+        self.thread = threading.Thread(target=_run)
+        self.thread.start()
+
     # def speak(self, base_color='blue', pulse_color='white', pulse_speed=0.05):
     #     """Pulse the LEDs between base color and pulse color to simulate speaking."""
     #     self.stop_animation()
     #     self.running = True
 
-    #     def run():
+    #     def _run():
     #         base_rgb = self.COLORS_RGB.get(base_color.lower(), (0, 0, 0))
     #         pulse_rgb = self.COLORS_RGB.get(pulse_color.lower(), (0, 0, 0))
     #         while self.running:
@@ -157,7 +172,7 @@ class Lights:
     #                 self.set_color_rgb(interp_rgb)
     #                 time.sleep(pulse_speed)
 
-    #     self.thread = threading.Thread(target=run)
+    #     self.thread = threading.Thread(target=_run)
     #     self.thread.start()
 
     def clear(self):
@@ -171,8 +186,3 @@ class Lights:
         if self.thread and self.thread.is_alive():
             self.thread.join()
         self.thread = None
-
-    def off(self):
-        """Turn off all LEDs."""
-        self.stop_animation()
-        self.clear()
