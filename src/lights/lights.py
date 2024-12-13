@@ -50,6 +50,14 @@ class Lights:
             self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
         self.driver.show()
 
+    def set_color_rgb(self, rgb_tuple, num_led=None):
+        """Set all LEDs to a specific RGB color."""
+        if num_led is None:
+            num_led = self.driver.num_led
+        for i in range(self.num_led):
+            self.driver.set_pixel(i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+        self.driver.show()
+
     def _get_wheel_color(self, wheel_pos):
         """Get a color from a color wheel; Green -> Red -> Blue -> Green."""
         wheel_pos = wheel_pos % 256
@@ -146,34 +154,34 @@ class Lights:
         self.thread = threading.Thread(target=_run)
         self.thread.start()
 
-    # def speak(self, base_color='blue', pulse_color='white', pulse_speed=0.05):
-    #     """Pulse the LEDs between base color and pulse color to simulate speaking."""
-    #     self.stop_animation()
-    #     self.running = True
+    def pulse_smoothly(self, base_color='blue', pulse_color='green', pulse_speed=0.05):
+        """Pulse the LEDs smoothly between base color and pulse color."""
+        self.stop_animation()
+        self.running = True
 
-    #     def _run():
-    #         base_rgb = self.COLORS_RGB.get(base_color.lower(), (0, 0, 0))
-    #         pulse_rgb = self.COLORS_RGB.get(pulse_color.lower(), (0, 0, 0))
-    #         while self.running:
-    #             for i in range(0, 100, 5):
-    #                 interp_rgb = (
-    #                     int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
-    #                     int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
-    #                     int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
-    #                 )
-    #                 self.set_color_rgb(interp_rgb)
-    #                 time.sleep(pulse_speed)
-    #             for i in range(100, 0, -5):
-    #                 interp_rgb = (
-    #                     int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
-    #                     int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
-    #                     int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
-    #                 )
-    #                 self.set_color_rgb(interp_rgb)
-    #                 time.sleep(pulse_speed)
+        def _run():
+            base_rgb = self.COLORS_RGB.get(base_color.lower(), (0, 0, 0))
+            pulse_rgb = self.COLORS_RGB.get(pulse_color.lower(), (0, 0, 0))
+            while self.running:
+                for i in range(0, 100, 5):
+                    interp_rgb = (
+                        int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
+                        int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
+                        int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
+                    )
+                    self.set_color_rgb(interp_rgb)
+                    time.sleep(pulse_speed)
+                for i in range(100, 0, -5):
+                    interp_rgb = (
+                        int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
+                        int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
+                        int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
+                    )
+                    self.set_color_rgb(interp_rgb)
+                    time.sleep(pulse_speed)
 
-    #     self.thread = threading.Thread(target=_run)
-    #     self.thread.start()
+        self.thread = threading.Thread(target=_run)
+        self.thread.start()
 
     def clear(self):
         """Clear all LEDs without turning them off."""
