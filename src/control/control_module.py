@@ -41,7 +41,7 @@ class ControlModule:
     def turn_lights(self, switch_state):
         if switch_state == 'off':
             logger.info(f"Turning lights off")
-            self.lights.set_color((0, 0, 0))
+            self.lights.clear()
         else:
             logger.info(f"Turning lights on")
             self.lights.set_color('indigo')

@@ -1,5 +1,4 @@
 """
-from https://github.com/tinue/APA102_Pi
 This is the main driver module for APA102 LEDs
 """
 import spidev
@@ -11,10 +10,6 @@ RGB_MAP = { 'rgb': [3, 2, 1], 'rbg': [3, 1, 2], 'grb': [2, 3, 1],
 class APA102:
     """
     Driver for APA102 LEDS (aka "DotStar").
-
-    (c) Martin Erzberger 2016-2017
-
-    My very first Python code, so I am sure there is a lot to be optimized ;)
 
     Public methods are:
      - set_pixel
