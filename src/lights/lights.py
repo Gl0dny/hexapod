@@ -1,5 +1,5 @@
 from gpiozero import LED
-from ,apa102 import APA102
+from .apa102 import APA102
 import threading
 import time
 
@@ -72,6 +72,21 @@ class Lights:
                 self.driver.set_pixel(i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
         self.driver.show()
 
+    def rotate(self, positions=1):
+        """
+        Rotate the LEDs by the specified number of positions.
+
+        Treating the LED strip as a circular buffer, this method rotates the LEDs
+        by the given number of positions. A positive value rotates the LEDs forward,
+        while a negative value rotates them backward.
+
+        Args:
+            positions (int): Number of positions to rotate. Positive values rotate
+                            forward, negative values rotate backward.
+        """
+        self.driver.rotate(positions)
+        self.driver.show()
+
     def _get_wheel_color(self, wheel_pos):
         """Get a color from a color wheel; Green -> Red -> Blue -> Green."""
         wheel_pos = wheel_pos % 256
@@ -128,29 +143,23 @@ class Lights:
         self.thread = threading.Thread(target=_run)
         self.thread.start()
 
-    # def listen(self, color='blue'):
-    #     """Illuminate all LEDs with the specified color."""
-    #     self.set_color(color)
-
-    def think(self, colors=['blue', 'green', 'red', 'yellow'], delay=0.2):
-        """Create a rotating animation with specified colors."""
+    def alternate_rotate(self, color_even='indigo', color_odd='golden', delay=0.25, positions=12):
         self.stop_animation()
         self.running = True
 
-        def run():
-            color_indices = [self.COLORS_RGB.get(c.lower(), (0, 0, 0)) for c in colors]
-            index = 0
+        def _run():
             while self.running:
-                rgb = color_indices[index % len(color_indices)]
-                self.clear()
+                # Set even and odd LEDs to the specified colors
                 for i in range(self.num_led):
-                    self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
-                    self.driver.show()
-                    time.sleep(delay)
-                    self.clear()
-                index += 1
+                    color = color_even if i % 2 == 0 else color_odd
+                    self.set_color(color, led_index=i)
+                self.driver.show()
 
-        self.thread = threading.Thread(target=run)
+                for i in range(positions):
+                    time.sleep(delay)
+                    self.rotate(1)
+
+        self.thread = threading.Thread(target=_run)
         self.thread.start()
 
     def pulse(self, base_color='blue', pulse_color='red', pulse_speed=0.3):
