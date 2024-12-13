@@ -26,7 +26,10 @@ class LightsInteractionHandler:
 
     def off(self):
         """Turn off the lights."""
-        self.lights.clear()
         self.lights.stop_animation()
+        self.lights.clear()
         self.is_listening = False
         self.is_speaking = False
+
+    def set_color(self, color, num_led=None, led_index=None):
+        self.lights.set_color(color, num_led, led_index)

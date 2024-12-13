@@ -4,13 +4,13 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from lights import Lights
+from lights import LightsInteractionHandler
 
 logger = logging.getLogger(__name__)
 
 class ControlModule:
     def __init__(self):
-        self.lights = Lights()
+        self.lights_handler = LightsInteractionHandler()
         logger.info("ControlModule initialized with Lights.")
 
     def move(self, direction):
@@ -41,15 +41,15 @@ class ControlModule:
     def turn_lights(self, switch_state):
         if switch_state == 'off':
             logger.info(f"Turning lights off")
-            self.lights.clear()
+            self.lights_handler.off()
         else:
             logger.info(f"Turning lights on")
-            self.lights.set_color('indigo')
+            self.lights_handler.wakeup()
 
     def change_color(self, color):
-        if color in self.lights.COLORS_RGB:
+        if color in self.lights_handler.lights.COLORS_RGB:
             logger.info(f"Switching color of the lights to {color}")
-            self.lights.set_color(color)
+            self.lights_handler.lights.set_color(color)
         else:
             logger.error(f"Color '{color}' is not supported.")
 

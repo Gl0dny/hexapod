@@ -1,5 +1,5 @@
 from gpiozero import LED
-from apa102 import APA102
+from .apa102 import APA102
 import threading
 import time
 
@@ -124,10 +124,8 @@ class Lights:
 
     def wheel_fill(self, use_rainbow=True, color='white', interval=0.2):
         self.stop_animation()
-        self.running = True
 
         def _run():
-            while self.running:
                 for i in range(self.num_led):
                     if use_rainbow:
                         rgb = self._get_wheel_color(int(256 / self.num_led * i))
@@ -137,8 +135,6 @@ class Lights:
                     self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])  # Does not clear LEDs
                     self.driver.show()
                     time.sleep(interval)
-            self.clear()
-            self.running = False
 
         self.thread = threading.Thread(target=_run)
         self.thread.start()
@@ -210,6 +206,7 @@ class Lights:
         """Clear all LEDs without turning them off."""
         for i in range(self.num_led):
             self.driver.set_pixel(i, 0, 0, 0)
+        self.driver.show()
 
     def stop_animation(self):
         """Stop any ongoing LED animations."""
