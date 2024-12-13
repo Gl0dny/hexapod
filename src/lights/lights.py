@@ -1,5 +1,5 @@
 from gpiozero import LED
-from .apa102 import APA102
+from apa102 import APA102
 import threading
 import time
 
