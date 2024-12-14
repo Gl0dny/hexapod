@@ -3,6 +3,18 @@ from lights.apa102 import APA102
 
 
 class Lights:
+    """
+    A class to control the LED lights based on APA102.
+
+    Attributes:
+        COLORS_RGB (dict): A dictionary mapping color names to their RGB values.
+        num_led (int): The number of LEDs.
+        driver (APA102): The driver for the APA102 LEDs.
+        power (LED): The power control for the LEDs.
+        led_color (str): The initial color of the LEDs.
+        brightness (int): The brightness of the LEDs (0-100).
+    """
+
     COLORS_RGB = {
         'blue': (0, 0, 255),
         'teal': (0, 128, 128),
@@ -20,6 +32,15 @@ class Lights:
     }
 
     def __init__(self, num_led=12, power_pin=5, brightness=50, initial_color='indigo'):
+        """
+        Initialize the Lights object.
+
+        Args:
+            num_led (int): The number of LEDs.
+            power_pin (int): The GPIO pin used to control the power.
+            brightness (int): The initial brightness of the LEDs (0-100).
+            initial_color (str): The initial color of the LEDs.
+        """
         self.num_led = num_led
         self.driver = APA102(num_led=self.num_led)
         self.power = LED(power_pin)
@@ -32,7 +53,12 @@ class Lights:
         self.set_brightness(self.brightness)
 
     def set_brightness(self, brightness):
-        """Set the global brightness of the LEDs (0-100%)."""
+        """
+        Set the brightness of the LEDs.
+
+        Args:
+            brightness (int): The brightness level (0-100).
+        """
         if brightness > 100:
             brightness = 100
         elif brightness < 0:
@@ -41,7 +67,17 @@ class Lights:
         self.driver.global_brightness = int(0b11111 * self.brightness / 100)
 
     def set_color(self, color, num_led=None, led_index=None):
-        """Set all LEDs to a specific color or a specific LED's color."""
+        """
+        Set the color of the LEDs using COLORS_RGB dictionary.
+
+        Args:
+            color (str): The color name.
+            num_led (int, optional): The number of LEDs to set.
+            led_index (int, optional): The index of the LED to set.
+        
+        Raises:
+            ValueError: If the color is unknown or the LED index is out of range.
+        """
         if color.lower() not in self.COLORS_RGB:
             raise ValueError(f"Unknown color '{color}'. Please use a valid color name.")
         rgb = self.COLORS_RGB[color.lower()]
@@ -60,7 +96,17 @@ class Lights:
         self.driver.show()
 
     def set_color_rgb(self, rgb_tuple, num_led=None, led_index=None):
-        """Set all LEDs to a specific RGB color or a specific LED's color."""
+        """
+        Set the color of the LEDs using an RGB tuple.
+
+        Args:
+            rgb_tuple (tuple): The RGB values.
+            num_led (int, optional): The number of LEDs to set.
+            led_index (int, optional): The index of the LED to set.
+        
+        Raises:
+            ValueError: If the LED index is out of range.
+        """
         if led_index is not None:
             if 0 <= led_index < self.driver.num_led:
                 self.driver.set_pixel(
@@ -119,7 +165,9 @@ class Lights:
             return (0, wheel_pos * 3, 255 - wheel_pos * 3)
 
     def clear(self):
-        """Clear all LEDs without turning them off."""
+        """
+        Clear all the LEDs, turning them off.
+        """
         for i in range(self.num_led):
             self.driver.set_pixel(i, 0, 0, 0)
         self.driver.show()
