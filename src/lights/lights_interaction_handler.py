@@ -1,5 +1,5 @@
 from lights import Lights
-from .animation import AlternateRotateAnimation
+from .animation import AlternateRotateAnimation, WheelFillAnimation
 
 class LightsInteractionHandler:
     def __init__(self):
@@ -21,13 +21,24 @@ class LightsInteractionHandler:
         self.is_speaking = False
 
     def wakeup(self):
-        """Simulate wakeup behavior with an optional direction."""
-        self.lights.wheel_fill()
+        self.stop_animation()
+        self.animation = WheelFillAnimation(
+            lights=self.lights,
+            use_rainbow=True,
+            color='white',
+            interval=0.2,
+        )
+        self.animation.start()
 
     def listen(self):
         """Simulate listening behavior."""
         self.is_listening = True
-        self.lights.pulse_smoothly(base_color='blue', pulse_color='green')
+
+        self.stop_animation()
+        self.animation = PulseSmoothlyAnimation(
+
+        )
+        self.animation.start()
 
     def think(self, color_even='indigo', color_odd='golden', delay=0.25, positions=12):
         """Simulate thinking behavior.

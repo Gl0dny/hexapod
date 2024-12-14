@@ -87,7 +87,7 @@ class Lights:
         self.driver.rotate(positions)
         self.driver.show()
 
-    def _get_wheel_color(self, wheel_pos):
+    def get_wheel_color(self, wheel_pos):
         """Get a color from a color wheel; Green -> Red -> Blue -> Green."""
         wheel_pos = wheel_pos % 256
         if wheel_pos < 85:
@@ -113,7 +113,7 @@ class Lights:
             while self.running:
                 for i in range(self.num_led):
                     if use_rainbow:
-                        rgb = self._get_wheel_color(int(256 / self.num_led * i))
+                        rgb = self.get_wheel_color(int(256 / self.num_led * i))
                     else:
                         rgb = self.COLORS_RGB.get(color.lower(), (0, 0, 0))
                     
@@ -123,23 +123,6 @@ class Lights:
                     time.sleep(interval)
             self.clear()
             self.running = False
-
-        self.thread = threading.Thread(target=_run)
-        self.thread.start()
-
-    def wheel_fill(self, use_rainbow=True, color='white', interval=0.2):
-        self.stop_animation()
-
-        def _run():
-                for i in range(self.num_led):
-                    if use_rainbow:
-                        rgb = self._get_wheel_color(int(256 / self.num_led * i))
-                    else:
-                        rgb = self.COLORS_RGB.get(color.lower(), (0, 0, 0))
-                    
-                    self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])  # Does not clear LEDs
-                    self.driver.show()
-                    time.sleep(interval)
 
         self.thread = threading.Thread(target=_run)
         self.thread.start()

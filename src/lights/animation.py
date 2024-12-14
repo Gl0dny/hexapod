@@ -39,3 +39,23 @@ class AlternateRotateAnimation(Animation):
                 self.lights.rotate(1)
                 if self.stop_event.wait(self.delay):
                     return
+                
+class WheelFillAnimation(Animation):
+    def __init__(self, lights, use_rainbow=True, color='white', interval=0.2):
+        super().__init__(lights)
+        self.use_rainbow = use_rainbow
+        self.color = color
+        self.interval = interval
+
+    def run(self):
+        while not self.stop_event.is_set():
+            for i in range(self.lights.num_led):
+                if self.use_rainbow:
+                    rgb = self.lights.get_wheel_color(int(256 / self.lights.num_led * i))
+                else:
+                    rgb = self.lights.COLORS_RGB.get(self.color.lower(), (0, 0, 0))
+                
+                self.lights.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
+                self.lights.driver.show()
+                if self.stop_event.wait(self.interval):
+                    return
