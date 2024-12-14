@@ -55,7 +55,7 @@ class WheelFillAnimation(Animation):
                 else:
                     rgb = self.lights.COLORS_RGB.get(self.color.lower(), (0, 0, 0))
                 
-                self.lights.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
-                self.lights.driver.show()
+                self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)
+
                 if self.stop_event.wait(self.interval):
                     return
