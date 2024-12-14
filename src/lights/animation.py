@@ -89,3 +89,40 @@ class PulseSmoothlyAnimation(Animation):
                 self.lights.set_color_rgb(interp_rgb)
                 if self.stop_event.wait(self.pulse_speed):
                     return
+                
+class PulseAnimation(Animation):
+    def __init__(self, lights, base_color='blue', pulse_color='red', pulse_speed=0.3):
+        super().__init__(lights)
+        self.base_color = base_color
+        self.pulse_color = pulse_color
+        self.pulse_speed = pulse_speed
+
+    def run(self):
+        while not self.stop_event.is_set():
+            self.lights.set_color(self.base_color)
+            if self.stop_event.wait(self.pulse_speed):
+                return
+            self.lights.set_color(self.pulse_color)
+            if self.stop_event.wait(self.pulse_speed):
+                return
+
+class WheelAnimation(Animation):
+    def __init__(self, lights, use_rainbow=True, color='white', interval=0.2):
+        super().__init__(lights)
+        self.use_rainbow = use_rainbow
+        self.color = color
+        self.interval = interval
+
+    def run(self):
+        while not self.stop_event.is_set():
+            for i in range(self.lights.num_led):
+                if self.use_rainbow:
+                    rgb = self.lights.get_wheel_color(int(256 / self.lights.num_led * i))
+                else:
+                    rgb = self.lights.COLORS_RGB.get(self.color.lower(), (0, 0, 0))
+                
+                self.lights.clear()
+                self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)
+                
+                if self.stop_event.wait(self.interval):
+                    return
