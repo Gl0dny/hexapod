@@ -99,6 +99,11 @@ class Lights:
             wheel_pos -= 170
             return (0, wheel_pos * 3, 255 - wheel_pos * 3)
 
+    def clear(self):
+        """Clear all LEDs without turning them off."""
+        for i in range(self.num_led):
+            self.driver.set_pixel(i, 0, 0, 0)
+        self.driver.show()
 
     def wheel(self, use_rainbow=True, color='white', interval=0.2):
         self.stop_animation()
@@ -135,25 +140,6 @@ class Lights:
                     self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])  # Does not clear LEDs
                     self.driver.show()
                     time.sleep(interval)
-
-        self.thread = threading.Thread(target=_run)
-        self.thread.start()
-
-    def alternate_rotate(self, color_even='indigo', color_odd='golden', delay=0.25, positions=12):
-        self.stop_animation()
-        self.running = True
-
-        def _run():
-            while self.running:
-                # Set even and odd LEDs to the specified colors
-                for i in range(self.num_led):
-                    color = color_even if i % 2 == 0 else color_odd
-                    self.set_color(color, led_index=i)
-                self.driver.show()
-
-                for i in range(positions):
-                    time.sleep(delay)
-                    self.rotate(1)
 
         self.thread = threading.Thread(target=_run)
         self.thread.start()
@@ -202,15 +188,3 @@ class Lights:
         self.thread = threading.Thread(target=_run)
         self.thread.start()
 
-    def clear(self):
-        """Clear all LEDs without turning them off."""
-        for i in range(self.num_led):
-            self.driver.set_pixel(i, 0, 0, 0)
-        self.driver.show()
-
-    def stop_animation(self):
-        """Stop any ongoing LED animations."""
-        self.running = False
-        if self.thread and self.thread.is_alive():
-            self.thread.join(timeout=0.01)
-        self.thread = None
