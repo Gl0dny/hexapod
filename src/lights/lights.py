@@ -142,32 +142,3 @@ class Lights:
         self.thread = threading.Thread(target=_run)
         self.thread.start()
 
-    def pulse_smoothly(self, base_color='blue', pulse_color='green', pulse_speed=0.05):
-        """Pulse the LEDs smoothly between base color and pulse color."""
-        self.stop_animation()
-        self.running = True
-
-        def _run():
-            base_rgb = self.COLORS_RGB.get(base_color.lower(), (0, 0, 0))
-            pulse_rgb = self.COLORS_RGB.get(pulse_color.lower(), (0, 0, 0))
-            while self.running:
-                for i in range(0, 100, 5):
-                    interp_rgb = (
-                        int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
-                        int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
-                        int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
-                    )
-                    self.set_color_rgb(interp_rgb)
-                    time.sleep(pulse_speed)
-                for i in range(100, 0, -5):
-                    interp_rgb = (
-                        int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
-                        int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
-                        int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
-                    )
-                    self.set_color_rgb(interp_rgb)
-                    time.sleep(pulse_speed)
-
-        self.thread = threading.Thread(target=_run)
-        self.thread.start()
-

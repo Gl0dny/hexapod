@@ -59,3 +59,33 @@ class WheelFillAnimation(Animation):
 
                 if self.stop_event.wait(self.interval):
                     return
+                
+class PulseSmoothlyAnimation(Animation):
+    def __init__(self, lights, base_color='blue', pulse_color='green', pulse_speed=0.05):
+        super().__init__(lights)
+        self.base_color = base_color
+        self.pulse_color = pulse_color
+        self.pulse_speed = pulse_speed
+
+    def run(self):
+        base_rgb = self.lights.COLORS_RGB.get(self.base_color.lower(), (0, 0, 0))
+        pulse_rgb = self.lights.COLORS_RGB.get(self.pulse_color.lower(), (0, 0, 0))
+        while not self.stop_event.is_set():
+            for i in range(0, 100, 5):
+                interp_rgb = (
+                    int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
+                    int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
+                    int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
+                )
+                self.lights.set_color_rgb(interp_rgb)
+                if self.stop_event.wait(self.pulse_speed):
+                    return
+            for i in range(100, 0, -5):
+                interp_rgb = (
+                    int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
+                    int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
+                    int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
+                )
+                self.lights.set_color_rgb(interp_rgb)
+                if self.stop_event.wait(self.pulse_speed):
+                    return

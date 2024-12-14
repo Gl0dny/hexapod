@@ -1,5 +1,5 @@
 from lights import Lights
-from .animation import AlternateRotateAnimation, WheelFillAnimation
+from .animation import AlternateRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
 
 class LightsInteractionHandler:
     def __init__(self):
@@ -36,7 +36,10 @@ class LightsInteractionHandler:
 
         self.stop_animation()
         self.animation = PulseSmoothlyAnimation(
-
+            lights=self.lights,
+            base_color='blue',
+            pulse_color='green',
+            pulse_speed=0.05
         )
         self.animation.start()
 
