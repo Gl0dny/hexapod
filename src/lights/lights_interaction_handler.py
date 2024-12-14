@@ -4,6 +4,7 @@ import logging
 class LightsInteractionHandler:
     def __init__(self):
         self.lights = Lights()
+        self.animation = None 
         self.is_listening = False
         self.is_speaking = False
 
@@ -12,14 +13,12 @@ class LightsInteractionHandler:
         if hasattr(self, 'animation') and self.animation:
             self.animation.stop_animation()
             self.animation = None
-        else:
-            logging.warning("stop_animation called, but no 'animation' attribute found.")
-
+            
     def animation(method):
         def wrapper(self, *args, **kwargs):
-            if not hasattr(self, 'animation') or self.animation is None:
-                raise AttributeError(f"{method.__name__} must set 'self.animation'")
             method(self, *args, **kwargs)
+            if not hasattr(self, 'animation') or self.animation is None:
+                raise AttributeError(f"{method.__name__} must set 'self.animation' attribute")
         return wrapper
 
     def off(self):
