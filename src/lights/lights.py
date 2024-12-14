@@ -1,7 +1,6 @@
 from gpiozero import LED
-from .apa102 import APA102
-import threading
-import time
+from lights.apa102 import APA102
+
 
 class Lights:
     COLORS_RGB = {
@@ -43,8 +42,10 @@ class Lights:
 
     def set_color(self, color, num_led=None, led_index=None):
         """Set all LEDs to a specific color or a specific LED's color."""
-        rgb = self.COLORS_RGB.get(color.lower(), (0, 0, 0))
-        
+        if color.lower() not in self.COLORS_RGB:
+            raise ValueError(f"Unknown color '{color}'. Please use a valid color name.")
+        rgb = self.COLORS_RGB[color.lower()]
+
         if led_index is not None:
             if 0 <= led_index < self.driver.num_led:
                 self.driver.set_pixel(led_index, rgb[0], rgb[1], rgb[2])
@@ -55,21 +56,23 @@ class Lights:
                 num_led = self.driver.num_led
             for i in range(num_led):
                 self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
-        
+
         self.driver.show()
 
     def set_color_rgb(self, rgb_tuple, num_led=None, led_index=None):
         """Set all LEDs to a specific RGB color or a specific LED's color."""
         if led_index is not None:
             if 0 <= led_index < self.driver.num_led:
-                self.driver.set_pixel(led_index, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+                self.driver.set_pixel(
+                    led_index, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
             else:
                 raise ValueError(f"LED index {led_index} is out of range.")
         else:
             if num_led is None:
                 num_led = self.driver.num_led
             for i in range(num_led):
-                self.driver.set_pixel(i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+                self.driver.set_pixel(
+                    i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
         self.driver.show()
 
     def rotate(self, positions=1):
@@ -88,14 +91,30 @@ class Lights:
         self.driver.show()
 
     def get_wheel_color(self, wheel_pos):
-        """Get a color from a color wheel; Green -> Red -> Blue -> Green."""
+        """
+        Get a color from a color wheel; Green -> Red -> Blue -> Green.
+
+        The color wheel is divided into three main sections:
+        - From 0 to 84: Green to Red transition.
+        - From 85 to 169: Red to Blue transition.
+        - From 170 to 255: Blue to Green transition.
+
+        Args:
+            wheel_pos (int): Position on the color wheel (0-255).
+
+        Returns:
+            tuple: (R, G, B) color values.
+        """
         wheel_pos = wheel_pos % 256
         if wheel_pos < 85:
+            # Green to Red transition
             return (wheel_pos * 3, 255 - wheel_pos * 3, 0)
         elif wheel_pos < 170:
+            # Red to Blue transition
             wheel_pos -= 85
             return (255 - wheel_pos * 3, 0, wheel_pos * 3)
         else:
+            # Blue to Green transition
             wheel_pos -= 170
             return (0, wheel_pos * 3, 255 - wheel_pos * 3)
 
