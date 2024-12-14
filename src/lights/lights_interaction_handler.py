@@ -1,6 +1,6 @@
 from lights import Lights
 from .animation import AlternateRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
-
+import logging
 class LightsInteractionHandler:
     def __init__(self):
         self.lights = Lights()
@@ -12,6 +12,15 @@ class LightsInteractionHandler:
         if hasattr(self, 'animation') and self.animation:
             self.animation.stop_animation()
             self.animation = None
+        else:
+            logging.warning("stop_animation called, but no 'animation' attribute found.")
+
+    def animation(method):
+        def wrapper(self, *args, **kwargs):
+            if not hasattr(self, 'animation') or self.animation is None:
+                raise AttributeError(f"{method.__name__} must set 'self.animation'")
+            method(self, *args, **kwargs)
+        return wrapper
 
     def off(self):
         """Turn off the lights."""
@@ -20,6 +29,7 @@ class LightsInteractionHandler:
         self.is_listening = False
         self.is_speaking = False
 
+    @animation
     def wakeup(self):
         self.stop_animation()
         self.animation = WheelFillAnimation(
@@ -30,6 +40,7 @@ class LightsInteractionHandler:
         )
         self.animation.start()
 
+    @animation
     def listen(self):
         """Simulate listening behavior."""
         self.is_listening = True
@@ -43,6 +54,7 @@ class LightsInteractionHandler:
         )
         self.animation.start()
 
+    @animation
     def think(self, color_even='indigo', color_odd='golden', delay=0.25, positions=12):
         """Simulate thinking behavior.
             Alternate colors in a rotating pattern."""
@@ -56,6 +68,7 @@ class LightsInteractionHandler:
         )
         self.animation.start()
 
+    @animation
     def speak(self):
         """Simulate speaking behavior."""
         self.is_speaking = True
