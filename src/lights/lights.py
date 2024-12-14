@@ -164,10 +164,21 @@ class Lights:
             wheel_pos -= 170
             return (0, wheel_pos * 3, 255 - wheel_pos * 3)
 
-    def clear(self):
+    def clear(self, led_indices=None, count=None):
         """
-        Clear all the LEDs, turning them off.
+        Clear specified LEDs, turning them off. If no indices are provided, clear all LEDs.
+        If count is provided, clear the specified number of LEDs from the start.
+        
+        Args:
+            led_indices (list, optional): List of LED indices to clear.
+            count (int, optional): Number of LEDs to clear from the start.
         """
-        for i in range(self.num_led):
+        if led_indices is not None:
+            leds_to_clear = led_indices
+        elif count is not None:
+            leds_to_clear = range(count)
+        else:
+            leds_to_clear = range(self.num_led)
+        for i in leds_to_clear:
             self.driver.set_pixel(i, 0, 0, 0)
         self.driver.show()
