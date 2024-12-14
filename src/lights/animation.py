@@ -256,3 +256,33 @@ class WheelAnimation(Animation):
                 
                 if self.stop_event.wait(self.interval):
                     return
+                
+class OppositeRotateAnimation(Animation):
+    def __init__(self, lights, interval=0.1, color='white'):
+        super().__init__(lights)
+        self.interval = interval
+        self.color = color
+        self.position1 = 0
+        self.position2 = self.lights.num_led - 1
+        self.forward = True
+
+    def run(self):
+        while not self.stop_event.is_set():
+            self.lights.clear()
+            self.lights.set_color(self.color, led_index=self.position1)
+            self.lights.set_color(self.color, led_index=self.position2)
+            if self.stop_event.wait(self.interval):
+                return
+
+            if self.forward:
+                if self.position1 < self.position2:
+                    self.position1 += 1
+                    self.position2 -= 1
+                else:
+                    self.forward = False
+            else:
+                if self.position1 > 0:
+                    self.position1 -= 1
+                    self.position2 += 1
+                else:
+                    self.forward = True

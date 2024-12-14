@@ -1,7 +1,5 @@
 from lights import Lights
-from .animation import AlternateRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
-import logging
-
+from .animation import OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
 
 class LightsInteractionHandler:
     """
@@ -91,23 +89,19 @@ class LightsInteractionHandler:
         self.animation.start()
 
     @animation
-    def think(self, color_even='indigo', color_odd='golden', delay=0.25, positions=12):
+    def think(self, color='white', interval=0.1):
         """
         Start the think animation.
 
         Args:
-            color_even (str): The color for even indexed LEDs.
-            color_odd (str): The color for odd indexed LEDs.
-            delay (float): The delay between rotations.
-            positions (int): The number of positions to rotate.
+            color (str): The color of the LEDs.
+            interval (float): The delay between updates.
         """
         self.stop_animation()
-        self.animation = AlternateRotateAnimation(
+        self.animation = OppositeRotateAnimation(
             lights=self.lights,
-            color_even=color_even,
-            color_odd=color_odd,
-            delay=delay,
-            positions=positions,
+            interval=interval,
+            color=color,
         )
         self.animation.start()
 
