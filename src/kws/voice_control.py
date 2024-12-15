@@ -48,11 +48,14 @@ class VoiceControl(threading.Thread):
     def print_context(self):
         print(self._context)
 
-    @staticmethod
-    def _wake_word_callback():
+    def _wake_word_callback(self):
         print('[wake word]\n')
+        self._control.lights_handler.listen()
 
     def _inference_callback(self, inference):
+
+        self._control.lights_handler.off()
+
         print('{')
         print("  is_understood : '%s'," % ('true' if inference.is_understood else 'false'))
         if inference.is_understood:
