@@ -3,7 +3,6 @@ import argparse
 import threading
 import sys
 import logging
-import time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -46,6 +45,9 @@ class VoiceControl(threading.Thread):
         self._dispatcher = IntentDispatcher(self._control)
         self._state_manager = StateManager()
 
+    def print_context(self):
+        print(self._context)
+
     @staticmethod
     def _wake_word_callback():
         print('[wake word]\n')
@@ -75,15 +77,12 @@ class VoiceControl(threading.Thread):
             recorder = PvRecorder(device_index=self._device_index, frame_length=self._picovoice.frame_length)
             recorder.start()
 
-            print(self._context)
             print('[Listening ...]')
-
-            last_print_time = time.time()
 
             while True:
                 pcm = recorder.read()
                 self._picovoice.process(pcm)
-                
+
         except KeyboardInterrupt:
             sys.stdout.write('\b' * 2)
             print('Stopping ...')
@@ -107,6 +106,11 @@ def main():
         type=int,
         default=-1
     )
+    parser.add_argument(
+        '--print_context',
+        action='store_true',
+        help='Print the context information.'
+    )
     args = parser.parse_args()
 
     keyword_path = os.path.join(os.path.dirname(__file__), 'porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
@@ -118,6 +122,9 @@ def main():
         access_key=args.access_key,
         device_index=args.audio_device_index
     )
+    
+    if args.print_context:
+        voice_control.print_context()
     voice_control.run()
 
 
