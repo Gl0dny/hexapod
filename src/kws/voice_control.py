@@ -69,10 +69,12 @@ class VoiceControl(threading.Thread):
 
         if inference.is_understood:
             # if self.state_manager.can_execute(inference.intent):
+                # self._control.lights_handler.think()
                 self._dispatcher.dispatch(inference.intent, inference.slots)
             # else:
             #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
 
+                # self._control.lights_handler.off()
                 print('\n[Listening ...]')
 
     def run(self):
