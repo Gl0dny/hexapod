@@ -45,11 +45,17 @@ class VoiceControl(threading.Thread):
         self._dispatcher = IntentDispatcher(self._control)
         self._state_manager = StateManager()
 
-    @staticmethod
-    def _wake_word_callback():
+    def print_context(self):
+        print(self._context)
+
+    def _wake_word_callback(self):
         print('[wake word]\n')
+        self._control.lights_handler.listen()
 
     def _inference_callback(self, inference):
+
+        self._control.lights_handler.off()
+
         print('{')
         print("  is_understood : '%s'," % ('true' if inference.is_understood else 'false'))
         if inference.is_understood:
@@ -63,9 +69,13 @@ class VoiceControl(threading.Thread):
 
         if inference.is_understood:
             # if self.state_manager.can_execute(inference.intent):
+                # self._control.lights_handler.think()
                 self._dispatcher.dispatch(inference.intent, inference.slots)
             # else:
             #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
+
+                # self._control.lights_handler.off()
+                print('\n[Listening ...]')
 
     def run(self):
         recorder = None
@@ -74,13 +84,12 @@ class VoiceControl(threading.Thread):
             recorder = PvRecorder(device_index=self._device_index, frame_length=self._picovoice.frame_length)
             recorder.start()
 
-            print(self._context)
-
             print('[Listening ...]')
 
             while True:
                 pcm = recorder.read()
                 self._picovoice.process(pcm)
+
         except KeyboardInterrupt:
             sys.stdout.write('\b' * 2)
             print('Stopping ...')
@@ -104,6 +113,11 @@ def main():
         type=int,
         default=-1
     )
+    parser.add_argument(
+        '--print_context',
+        action='store_true',
+        help='Print the context information.'
+    )
     args = parser.parse_args()
 
     keyword_path = os.path.join(os.path.dirname(__file__), 'porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
@@ -115,6 +129,9 @@ def main():
         access_key=args.access_key,
         device_index=args.audio_device_index
     )
+    
+    if args.print_context:
+        voice_control.print_context()
     voice_control.run()
 
 
