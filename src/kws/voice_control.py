@@ -83,10 +83,7 @@ class VoiceControl(threading.Thread):
             while True:
                 pcm = recorder.read()
                 self._picovoice.process(pcm)
-                current_time = time.time()
-                if current_time - last_print_time >= 5:  # Adjust the interval as needed
-                    print('[Listening ...]')
-                    last_print_time = current_time
+                
         except KeyboardInterrupt:
             sys.stdout.write('\b' * 2)
             print('Stopping ...')
