@@ -70,6 +70,8 @@ class VoiceControl(threading.Thread):
             # else:
             #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
 
+                print('\n[Listening ...]')
+
     def run(self):
         recorder = None
 
