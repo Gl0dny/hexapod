@@ -1,9 +1,20 @@
 from gpiozero import LED
-from apa102 import APA102
-import threading
-import time
+from lights.apa102 import APA102
+
 
 class Lights:
+    """
+    A class to control the LED lights based on APA102.
+
+    Attributes:
+        COLORS_RGB (dict): A dictionary mapping color names to their RGB values.
+        num_led (int): The number of LEDs.
+        driver (APA102): The driver for the APA102 LEDs.
+        power (LED): The power control for the LEDs.
+        led_color (str): The initial color of the LEDs.
+        brightness (int): The brightness of the LEDs (0-100).
+    """
+
     COLORS_RGB = {
         'blue': (0, 0, 255),
         'teal': (0, 128, 128),
@@ -21,6 +32,15 @@ class Lights:
     }
 
     def __init__(self, num_led=12, power_pin=5, brightness=50, initial_color='indigo'):
+        """
+        Initialize the Lights object.
+
+        Args:
+            num_led (int): The number of LEDs.
+            power_pin (int): The GPIO pin used to control the power.
+            brightness (int): The initial brightness of the LEDs (0-100).
+            initial_color (str): The initial color of the LEDs.
+        """
         self.num_led = num_led
         self.driver = APA102(num_led=self.num_led)
         self.power = LED(power_pin)
@@ -33,7 +53,12 @@ class Lights:
         self.set_brightness(self.brightness)
 
     def set_brightness(self, brightness):
-        """Set the global brightness of the LEDs (0-100%)."""
+        """
+        Set the brightness of the LEDs.
+
+        Args:
+            brightness (int): The brightness level (0-100).
+        """
         if brightness > 100:
             brightness = 100
         elif brightness < 0:
@@ -42,9 +67,21 @@ class Lights:
         self.driver.global_brightness = int(0b11111 * self.brightness / 100)
 
     def set_color(self, color, num_led=None, led_index=None):
-        """Set all LEDs to a specific color or a specific LED's color."""
-        rgb = self.COLORS_RGB.get(color.lower(), (0, 0, 0))
+        """
+        Set the color of the LEDs using COLORS_RGB dictionary.
+
+        Args:
+            color (str): The color name.
+            num_led (int, optional): The number of LEDs to set.
+            led_index (int, optional): The index of the LED to set.
         
+        Raises:
+            ValueError: If the color is unknown or the LED index is out of range.
+        """
+        if color.lower() not in self.COLORS_RGB:
+            raise ValueError(f"Unknown color '{color}'. Please use a valid color name.")
+        rgb = self.COLORS_RGB[color.lower()]
+
         if led_index is not None:
             if 0 <= led_index < self.driver.num_led:
                 self.driver.set_pixel(led_index, rgb[0], rgb[1], rgb[2])
@@ -55,21 +92,33 @@ class Lights:
                 num_led = self.driver.num_led
             for i in range(num_led):
                 self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
-        
+
         self.driver.show()
 
     def set_color_rgb(self, rgb_tuple, num_led=None, led_index=None):
-        """Set all LEDs to a specific RGB color or a specific LED's color."""
+        """
+        Set the color of the LEDs using an RGB tuple.
+
+        Args:
+            rgb_tuple (tuple): The RGB values.
+            num_led (int, optional): The number of LEDs to set.
+            led_index (int, optional): The index of the LED to set.
+        
+        Raises:
+            ValueError: If the LED index is out of range.
+        """
         if led_index is not None:
             if 0 <= led_index < self.driver.num_led:
-                self.driver.set_pixel(led_index, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+                self.driver.set_pixel(
+                    led_index, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
             else:
                 raise ValueError(f"LED index {led_index} is out of range.")
         else:
             if num_led is None:
                 num_led = self.driver.num_led
             for i in range(num_led):
-                self.driver.set_pixel(i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+                self.driver.set_pixel(
+                    i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
         self.driver.show()
 
     def rotate(self, positions=1):
@@ -87,133 +136,49 @@ class Lights:
         self.driver.rotate(positions)
         self.driver.show()
 
-    def _get_wheel_color(self, wheel_pos):
-        """Get a color from a color wheel; Green -> Red -> Blue -> Green."""
+    def get_wheel_color(self, wheel_pos):
+        """
+        Get a color from a color wheel; Green -> Red -> Blue -> Green.
+
+        The color wheel is divided into three main sections:
+        - From 0 to 84: Green to Red transition.
+        - From 85 to 169: Red to Blue transition.
+        - From 170 to 255: Blue to Green transition.
+
+        Args:
+            wheel_pos (int): Position on the color wheel (0-255).
+
+        Returns:
+            tuple: (R, G, B) color values.
+        """
         wheel_pos = wheel_pos % 256
         if wheel_pos < 85:
+            # Green to Red transition
             return (wheel_pos * 3, 255 - wheel_pos * 3, 0)
         elif wheel_pos < 170:
+            # Red to Blue transition
             wheel_pos -= 85
             return (255 - wheel_pos * 3, 0, wheel_pos * 3)
         else:
+            # Blue to Green transition
             wheel_pos -= 170
             return (0, wheel_pos * 3, 255 - wheel_pos * 3)
 
-
-    def wheel(self, use_rainbow=True, color='white', interval=0.2):
-        self.stop_animation()
-        self.running = True
-
-        def _run():
-            while self.running:
-                for i in range(self.num_led):
-                    if use_rainbow:
-                        rgb = self._get_wheel_color(int(256 / self.num_led * i))
-                    else:
-                        rgb = self.COLORS_RGB.get(color.lower(), (0, 0, 0))
-                    
-                    self.clear()  # Clears all LEDs before lighting up the next one
-                    self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
-                    self.driver.show()
-                    time.sleep(interval)
-            self.clear()
-            self.running = False
-
-        self.thread = threading.Thread(target=_run)
-        self.thread.start()
-
-    def wheel_fill(self, use_rainbow=True, color='white', interval=0.2):
-        self.stop_animation()
-        self.running = True
-
-        def _run():
-            while self.running:
-                for i in range(self.num_led):
-                    if use_rainbow:
-                        rgb = self._get_wheel_color(int(256 / self.num_led * i))
-                    else:
-                        rgb = self.COLORS_RGB.get(color.lower(), (0, 0, 0))
-                    
-                    self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])  # Does not clear LEDs
-                    self.driver.show()
-                    time.sleep(interval)
-            self.clear()
-            self.running = False
-
-        self.thread = threading.Thread(target=_run)
-        self.thread.start()
-
-    def alternate_rotate(self, color_even='indigo', color_odd='golden', delay=0.25, positions=12):
-        self.stop_animation()
-        self.running = True
-
-        def _run():
-            while self.running:
-                # Set even and odd LEDs to the specified colors
-                for i in range(self.num_led):
-                    color = color_even if i % 2 == 0 else color_odd
-                    self.set_color(color, led_index=i)
-                self.driver.show()
-
-                for i in range(positions):
-                    time.sleep(delay)
-                    self.rotate(1)
-
-        self.thread = threading.Thread(target=_run)
-        self.thread.start()
-
-    def pulse(self, base_color='blue', pulse_color='red', pulse_speed=0.3):
-        """Pulse the LEDs between base color and pulse color to simulate speaking."""
-        self.stop_animation()
-        self.running = True
-
-        def _run():
-            while self.running:
-                self.set_color(base_color)
-                time.sleep(pulse_speed)
-                self.set_color(pulse_color)
-                time.sleep(pulse_speed)
-
-        self.thread = threading.Thread(target=_run)
-        self.thread.start()
-
-    def pulse_smoothly(self, base_color='blue', pulse_color='green', pulse_speed=0.05):
-        """Pulse the LEDs smoothly between base color and pulse color."""
-        self.stop_animation()
-        self.running = True
-
-        def _run():
-            base_rgb = self.COLORS_RGB.get(base_color.lower(), (0, 0, 0))
-            pulse_rgb = self.COLORS_RGB.get(pulse_color.lower(), (0, 0, 0))
-            while self.running:
-                for i in range(0, 100, 5):
-                    interp_rgb = (
-                        int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
-                        int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
-                        int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
-                    )
-                    self.set_color_rgb(interp_rgb)
-                    time.sleep(pulse_speed)
-                for i in range(100, 0, -5):
-                    interp_rgb = (
-                        int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
-                        int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
-                        int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
-                    )
-                    self.set_color_rgb(interp_rgb)
-                    time.sleep(pulse_speed)
-
-        self.thread = threading.Thread(target=_run)
-        self.thread.start()
-
-    def clear(self):
-        """Clear all LEDs without turning them off."""
-        for i in range(self.num_led):
+    def clear(self, led_indices=None, count=None):
+        """
+        Clear specified LEDs, turning them off. If no indices are provided, clear all LEDs.
+        If count is provided, clear the specified number of LEDs from the start.
+        
+        Args:
+            led_indices (list, optional): List of LED indices to clear.
+            count (int, optional): Number of LEDs to clear from the start.
+        """
+        if led_indices is not None:
+            leds_to_clear = led_indices
+        elif count is not None:
+            leds_to_clear = range(count)
+        else:
+            leds_to_clear = range(self.num_led)
+        for i in leds_to_clear:
             self.driver.set_pixel(i, 0, 0, 0)
-
-    def stop_animation(self):
-        """Stop any ongoing LED animations."""
-        self.running = False
-        if self.thread and self.thread.is_alive():
-            self.thread.join()
-        self.thread = None
+        self.driver.show()

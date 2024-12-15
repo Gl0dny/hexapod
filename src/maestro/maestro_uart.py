@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Pololu Maestro servo controller board library
 
