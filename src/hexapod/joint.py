@@ -1,14 +1,11 @@
-# src/hexapod/joint.py
-
-from maestro.maestro_uart import MaestroUART
-
 class Joint:
-    def __init__(self, controller, channel, angle_min, angle_max, servo_min=992*4, servo_max=2000*4):
+    def __init__(self, length, controller, channel, angle_min, angle_max, servo_min=992*4, servo_max=2000*4):
         """
         Represents a single joint controlled by a servo.
 
         Args:
             controller (MaestroUART): Shared MaestroUART instance.
+            length (float): Length of the joint segment.
             channel (int): Servo channel for the joint.
             angle_min (float): Minimum joint angle in degrees - joint limitation ( should be defined by user ).
             angle_max (float): Maximum joint angle in degrees - joint limitation ( should be defined by user ).
@@ -19,6 +16,7 @@ class Joint:
         self.channel = channel
         self.angle_min = angle_min
         self.angle_max = angle_max
+        self.length = length
         self.servo_min = servo_min
         self.servo_max = servo_max
 

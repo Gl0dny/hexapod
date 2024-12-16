@@ -1,7 +1,4 @@
-# src/control/leg.py
-
 import math
-from maestro.maestro_uart import MaestroUART
 from hexapod.joint import Joint
 
 class Leg:
@@ -19,10 +16,6 @@ class Leg:
         self.femur = Joint(controller, **femur_params)
         self.tibia = Joint(controller, **tibia_params)
 
-        self.coxa_length = coxa_params.get('length', 30.0)
-        self.femur_length = femur_params.get('length', 50.0)
-        self.tibia_length = tibia_params.get('length', 80.0)
-
     def compute_inverse_kinematics(self, x, y, z):
         """
         Compute the joint angles for the desired foot position.
@@ -35,22 +28,22 @@ class Leg:
         Returns:
             tuple: (theta1, theta2, theta3) in degrees.
         """
-        # Calculate the horizontal distance to the target
-        horizontal_distance = math.hypot(x, y) - self.coxa_length
+        # Calculate the horizontal distance to the target using coxa length
+        horizontal_distance = math.hypot(x, y) - self.coxa.length
 
         # Angle for the coxa joint
         theta1 = math.atan2(y, x)
 
-        # Distance from femur joint to foot position
+        # Distance from femur joint to foot position using femur length
         r = math.hypot(horizontal_distance, z)
-        if r > (self.femur_length + self.tibia_length):
+        if r > (self.femur.length + self.tibia.length):
             raise ValueError("Target is out of reach.")
 
         # Inverse kinematics calculations
-        cos_theta3 = (self.femur_length**2 + self.tibia_length**2 - r**2) / (2 * self.femur_length * self.tibia_length)
+        cos_theta3 = (self.femur.length**2 + self.tibia.length**2 - r**2) / (2 * self.femur.length * self.tibia.length)
         theta3 = math.acos(cos_theta3)
 
-        cos_theta2 = (self.femur_length**2 + r**2 - self.tibia_length**2) / (2 * self.femur_length * r)
+        cos_theta2 = (self.femur.length**2 + r**2 - self.tibia.length**2) / (2 * self.femur.length * r)
         theta2 = math.atan2(z, horizontal_distance) - math.acos(cos_theta2)
 
         theta1_deg = math.degrees(theta1)
