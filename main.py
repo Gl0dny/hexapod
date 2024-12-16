@@ -1,6 +1,10 @@
 import argparse
 import os
-from src.kws.voice_control import VoiceControl
+from src.kws import VoiceControl
+from src.control.control_module import ControlModule
+from src.control.state_manager import StateManager
+from src.hexapod.hexapod import Hexapod
+from src.control.gait_generator import GaitGenerator
 
 def main():
     parser = argparse.ArgumentParser(description="Hexapod Voice Control Interface")
@@ -25,11 +29,18 @@ def main():
     keyword_path = os.path.join(os.path.dirname(__file__), 'porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = os.path.join(os.path.dirname(__file__), 'rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
 
+    hexapod = Hexapod()
+    gait_generator = GaitGenerator(hexapod)
+    control = ControlModule(gait_generator)
+    state_manager = StateManager()
+
     voice_control = VoiceControl(
         keyword_path=keyword_path,
         context_path=context_path,
         access_key=args.access_key,
-        device_index=args.audio_device_index
+        device_index=args.audio_device_index,
+        control_module=control,
+        state_manager=state_manager
     )
     
     if args.print_context:

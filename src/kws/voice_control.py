@@ -1,14 +1,9 @@
-import os
 import threading
 import sys
 import logging
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
 from intent_dispatcher import IntentDispatcher
-from control import ControlModule, StateManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,6 +15,8 @@ class VoiceControl(threading.Thread):
             context_path,
             access_key,
             device_index,
+            control_module,
+            state_manager,
             porcupine_sensitivity=0.75,
             rhino_sensitivity=0.25):
         super(VoiceControl, self).__init__()
@@ -40,20 +37,21 @@ class VoiceControl(threading.Thread):
         self._context = self._picovoice.context_info
         self._device_index = device_index
 
-        self._control = ControlModule()
-        self._dispatcher = IntentDispatcher(self._control)
-        self._state_manager = StateManager()
+        self._control_module = control_module
+        self._state_manager = state_manager
+
+        self._dispatcher = IntentDispatcher(self._control_module)
 
     def print_context(self):
         print(self._context)
 
     def _wake_word_callback(self):
         print('[wake word]\n')
-        self._control.lights_handler.listen()
+        self._control_module.lights_handler.listen()
 
     def _inference_callback(self, inference):
 
-        self._control.lights_handler.off()
+        self._control_module.lights_handler.off()
 
         print('{')
         print("  is_understood : '%s'," % ('true' if inference.is_understood else 'false'))
@@ -68,12 +66,12 @@ class VoiceControl(threading.Thread):
 
         if inference.is_understood:
             # if self.state_manager.can_execute(inference.intent):
-                # self._control.lights_handler.think()
+                # self._control_module.lights_handler.think()
                 self._dispatcher.dispatch(inference.intent, inference.slots)
             # else:
             #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
 
-                # self._control.lights_handler.off()
+                # self._control_module.lights_handler.off()
                 print('\n[Listening ...]')
 
     def run(self):
