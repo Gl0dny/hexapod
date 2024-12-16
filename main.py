@@ -1,5 +1,6 @@
 import argparse
 import os
+import asyncio
 from src.kws import VoiceControl
 from src.control.control_module import ControlModule
 from src.control.state_manager import StateManager
@@ -45,8 +46,8 @@ def main():
     
     if args.print_context:
         voice_control.print_context()
-    voice_control.run()
-
+    
+    asyncio.run(voice_control.run())
 
 if __name__ == '__main__':
     main()
