@@ -26,6 +26,17 @@ Note that 0x04 is the command 0x84 with its most significant bit cleared.
 import serial
 import time
 
+# Define constants for command bytes and device numbers
+COMMAND_START = 0xAA
+DEFAULT_DEVICE_NUMBER = 0x0C
+COMMAND_GET_ERROR = 0xA1 & 0x7F
+COMMAND_GET_POSITION = 0x90 & 0x7F
+COMMAND_SET_SPEED = 0x87 & 0x7F
+COMMAND_SET_ACCELERATION = 0x89 & 0x7F
+COMMAND_SET_TARGET = 0x84 & 0x7F
+COMMAND_GO_HOME = 0x22 & 0x7F
+COMMAND_GET_MOVING_STATE = 0x93 & 0x7F
+
 class MaestroUART(object):
 	def __init__(self, device='/dev/ttyS0', baudrate=9600):
 		"""Open the given serial port and do any setup for the serial port.
@@ -82,7 +93,7 @@ class MaestroUART(object):
 			>0: error, see the Maestro manual for the error values
 			0: no error, or error getting the position, check the connections, could also be low power
 		"""
-		command = bytes([0xAA, 0x0C, 0xA1 & 0x7F])
+		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_ERROR])
 
 		self.ser.write(command)
 
@@ -131,7 +142,7 @@ class MaestroUART(object):
 			0: error getting the position, check the connections, could also be
 			low power
 		""" 
-		command = bytes([0xAA, 0x0C, 0x90 & 0x7F, channel])
+		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_POSITION, channel])
 
 		self.ser.write(command)
 
@@ -169,7 +180,7 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		command = bytes([0xAA, 0x0C, 0x87 & 0x7F, channel, speed & 0x7F, (speed >> 7) & 0x7F])
+		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_SPEED, channel, speed & 0x7F, (speed >> 7) & 0x7F])
 		self.ser.write(command)
 
 	def set_acceleration(self, channel, accel):
@@ -210,7 +221,7 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		command = bytes([0xAA, 0x0C, 0x89 & 0x7F, channel, accel & 0x7F, (accel >> 7) & 0x7F])
+		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_ACCELERATION, channel, accel & 0x7F, (accel >> 7) & 0x7F])
 		self.ser.write(command)
 
 	def set_target(self, channel, target):
@@ -229,7 +240,7 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		command = bytes([0xAA, 0x0C, 0x84 & 0x7F, channel, target & 0x7F, (target >> 7) & 0x7F])
+		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_TARGET, channel, target & 0x7F, (target >> 7) & 0x7F])
 		self.ser.write(command)
 
 	def go_home(self):
@@ -249,7 +260,7 @@ class MaestroUART(object):
 			none
 		"""
 
-		command = bytes([0xAA, 0x0C, 0x22 & 0x7F])
+		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GO_HOME])
 		self.ser.write(command)
 
 	def get_moving_state(self):
@@ -264,7 +275,7 @@ class MaestroUART(object):
 			0x01: if at least one servo is still moving
 		"""
 		# The command is: 0xAA, device number (0x0C for default), 0x13
-		command = bytes([0xAA, 0x0C, 0x93 & 0x7F])
+		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_MOVING_STATE])
 		self.ser.write(command)
 
 		# Read a single byte response indicating the moving state
