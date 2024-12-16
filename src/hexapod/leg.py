@@ -1,5 +1,5 @@
 import math
-from hexapod.joint import Joint
+from hexapod import Joint
 
 class Leg:
     def __init__(self, coxa_params, femur_params, tibia_params, controller):

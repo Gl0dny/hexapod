@@ -1,5 +1,5 @@
 class Joint:
-    def __init__(self, length, controller, channel, angle_min, angle_max, servo_min=992*4, servo_max=2000*4):
+    def __init__(self, controller, length, channel, angle_min, angle_max, servo_min=992*4, servo_max=2000*4):
         """
         Represents a single joint controlled by a servo.
 
@@ -13,10 +13,10 @@ class Joint:
             servo_max (int): Maximum servo target value - hardware related.
         """
         self.controller = controller
+        self.length = length
         self.channel = channel
         self.angle_min = angle_min
         self.angle_max = angle_max
-        self.length = length
         self.servo_min = servo_min
         self.servo_max = servo_max
 
