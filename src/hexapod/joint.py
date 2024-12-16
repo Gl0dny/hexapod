@@ -29,18 +29,14 @@ class Joint:
             speed (int): Speed setting for the servo.
             accel (int): Acceleration setting for the servo.
         """
-        # Ensure the angle is within limits
         if angle < self.angle_min or angle > self.angle_max:
             raise ValueError(f"Angle {angle}° is out of limits ({self.angle_min}° to {self.angle_max}°).")
 
-        # Convert angle to servo target
         target = self.angle_to_servo_target(angle)
 
-        # Set speed and acceleration
         self.controller.set_speed(self.channel, speed)
         self.controller.set_acceleration(self.channel, accel)
 
-        # Move the servo to the target position
         self.controller.set_target(self.channel, target)
 
     def angle_to_servo_target(self, angle):
@@ -53,7 +49,6 @@ class Joint:
         Returns:
             int: Servo target value in quarter-microseconds.
         """
-        # Map the angle to the servo's range
         angle_range = self.angle_max - self.angle_min
         servo_range = self.servo_max - self.servo_min
         target = self.servo_min + servo_range * ((angle - self.angle_min) / angle_range)

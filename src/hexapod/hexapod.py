@@ -1,6 +1,14 @@
-from maestro.maestro_uart import MaestroUART
-from hexapod.leg import Leg
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from maestro_uart import MaestroUART
+from hexapod import Leg
+import asyncio
 
+def movement_task(func):
+    async def wrapper(self, *args, **kwargs):
+        await self._movement_queue.put((func, args, kwargs))
+    return wrapper
 class Hexapod:
     def __init__(self):
         """
@@ -41,15 +49,26 @@ class Hexapod:
             tibia_params = {
                 'length': 80.0,
                 'channel': i * 3 + 2,
-                'angle_min': -45,
+                'angle_min': -30,
                 'angle_max': 45,
                 'servo_min': 992 * 4,
                 'servo_max': 2000 * 4
             }
             leg = Leg(coxa_params, femur_params, tibia_params, self.controller)
             self.legs.append(leg)
+            self._movement_queue = asyncio.Queue()
+            asyncio.create_task(self._process_movement_queue())
 
+    async def _process_movement_queue(self):
+        while True:
+            func, args, kwargs = await self._movement_queue.get()
+            func(self, *args, **kwargs)
+            # Non-blocking wait until all servos have stopped moving
+            while self.maestro.get_moving_state() == 0x01:
+                await asyncio.sleep(0.1)
+            self._movement_queue.task_done()
 
+    @movement_task
     def move_leg(self, leg_index, x, y, z, speed=None, accel=None):
         """
         Command a leg to move to a position.
@@ -65,7 +84,8 @@ class Hexapod:
         if accel is None:
             accel = self.accel
         self.legs[leg_index].move_to(x, y, z, speed, accel)
-
+    
+    @movement_task
     def move_all_legs(self, positions, speed=None, accel=None):
         """
         Command all legs to move to specified positions.
@@ -82,8 +102,6 @@ class Hexapod:
         for i, pos in enumerate(positions):
             x, y, z = pos
             self.move_leg(i, x, y, z, speed, accel)
-
-    # Implement gait algorithms here
 
 # Example usage
 if __name__ == '__main__':
