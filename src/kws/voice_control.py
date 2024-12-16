@@ -3,7 +3,7 @@ import sys
 import logging
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
-from intent_dispatcher import IntentDispatcher
+from .intent_dispatcher import IntentDispatcher
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from maestro_uart import MaestroUART
+from maestro import MaestroUART
 from hexapod import Leg
 import asyncio
 

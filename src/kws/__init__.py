@@ -1,1 +1,1 @@
-from voice_control import VoiceControl
+from .voice_control import VoiceControl
