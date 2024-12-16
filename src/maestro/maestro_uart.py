@@ -26,7 +26,6 @@ Note that 0x04 is the command 0x84 with its most significant bit cleared.
 import serial
 import time
 
-# Define constants for command bytes and device numbers
 COMMAND_START = 0xAA
 DEFAULT_DEVICE_NUMBER = 0x0C
 COMMAND_GET_ERROR = 0xA1 & 0x7F

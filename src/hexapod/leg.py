@@ -2,92 +2,74 @@
 
 import math
 from maestro.maestro_uart import MaestroUART
+from hexapod.joint import Joint
 
 class Leg:
-    def __init__(self, coxa_length, femur_length, tibia_length,
-                 coxa_channel, femur_channel, tibia_channel,
-                 servo_min=992*4, servo_max=2000*4, angle_min=-90, angle_max=90):
+    def __init__(self, coxa_params, femur_params, tibia_params, controller):
         """
         Represents a single leg of the hexapod.
 
         Args:
-            coxa_length (float): Length of the coxa segment.
-            femur_length (float): Length of the femur segment.
-            tibia_length (float): Length of the tibia segment.
-            coxa_channel (int): Servo channel for the coxa joint.
-            femur_channel (int): Servo channel for the femur joint.
-            tibia_channel (int): Servo channel for the tibia joint.
-            servo_min (int): Minimum servo target value - hardware related.
-            servo_max (int): Maximum servo target value - hardware related.
-            angle_min (float): Minimum joint angle in degrees - specific joint limitation ( should be defined by user ).
-            angle_max (float): Maximum joint angle in degrees - specific joint limitation ( should be defined by user ).
+            coxa_params (dict): Parameters for the coxa joint.
+            femur_params (dict): Parameters for the femur joint.
+            tibia_params (dict): Parameters for the tibia joint.
+            controller (MaestroUART): Shared MaestroUART instance.
         """
-        self.coxa_length = coxa_length
-        self.femur_length = femur_length
-        self.tibia_length = tibia_length
-        self.coxa_channel = coxa_channel
-        self.femur_channel = femur_channel
-        self.tibia_channel = tibia_channel
-        self.servo_min = servo_min
-        self.servo_max = servo_max
-        self.angle_min = angle_min
-        self.angle_max = angle_max
-        self.mu = MaestroUART('/dev/ttyS0', 9600)
+        self.coxa = Joint(controller, **coxa_params)
+        self.femur = Joint(controller, **femur_params)
+        self.tibia = Joint(controller, **tibia_params)
+
+        self.coxa_length = coxa_params.get('length', 30.0)
+        self.femur_length = femur_params.get('length', 50.0)
+        self.tibia_length = tibia_params.get('length', 80.0)
 
     def compute_inverse_kinematics(self, x, y, z):
-        pass
-
-    def angle_to_servo_target(self, angle):
         """
-        Map a joint angle to the servo target value.
-
-        Args:
-            angle (float): Joint angle in degrees.
-
-        Returns:
-            int: Servo target value in quarter-microseconds.
-
-        Example:
-        angle = max(min(-90, 90), -90)  # angle = -90
-        target = 1000 + (2000 - 1000) * ((-90 - (-90)) / (90 - (-90)))
-                = 1000 + 1000 * (0 / 180)
-                = 1000 + 0
-                = 1000
-        """
-        # Ensure the angle is within the specified range
-        angle = max(min(angle, self.angle_max), self.angle_min)
-        # Map the angle to the servo's range
-        target = self.servo_min + (self.servo_max - self.servo_min) * ((angle - self.angle_min) / (self.angle_max - self.angle_min))
-        return int(target)
-
-    def move_to(self, x, y, z, speed=32, accel=5):
-        """
-        Move the leg to the desired foot position.
+        Compute the joint angles for the desired foot position.
 
         Args:
             x (float): X coordinate of the foot position.
             y (float): Y coordinate of the foot position.
             z (float): Z coordinate of the foot position.
-            speed (int): Speed setting for the servos.
-            accel (int): Acceleration setting for the servos.
+
+        Returns:
+            tuple: (theta1, theta2, theta3) in degrees.
         """
-        # Compute joint angles
+        # Calculate the horizontal distance to the target
+        horizontal_distance = math.hypot(x, y) - self.coxa_length
+
+        # Angle for the coxa joint
+        theta1 = math.atan2(y, x)
+
+        # Distance from femur joint to foot position
+        r = math.hypot(horizontal_distance, z)
+        if r > (self.femur_length + self.tibia_length):
+            raise ValueError("Target is out of reach.")
+
+        # Inverse kinematics calculations
+        cos_theta3 = (self.femur_length**2 + self.tibia_length**2 - r**2) / (2 * self.femur_length * self.tibia_length)
+        theta3 = math.acos(cos_theta3)
+
+        cos_theta2 = (self.femur_length**2 + r**2 - self.tibia_length**2) / (2 * self.femur_length * r)
+        theta2 = math.atan2(z, horizontal_distance) - math.acos(cos_theta2)
+
+        theta1_deg = math.degrees(theta1)
+        theta2_deg = math.degrees(theta2)
+        theta3_deg = math.degrees(theta3)
+
+        return theta1_deg, theta2_deg, theta3_deg
+
+    def move_to(self, x, y, z, speed=32, accel=5):
+        """
+        Move the leg to the desired position.
+
+        Args:
+            x, y, z (float): Target coordinates.
+            speed (int): Servo speed.
+            accel (int): Servo acceleration.
+        """
         theta1, theta2, theta3 = self.compute_inverse_kinematics(x, y, z)
 
-        # Convert angles to servo targets
-        coxa_target = self.angle_to_servo_target(theta1)
-        femur_target = self.angle_to_servo_target(theta2)
-        tibia_target = self.angle_to_servo_target(theta3)
-
-        # Set speed and acceleration
-        self.mu.set_speed(self.coxa_channel, speed)
-        self.mu.set_acceleration(self.coxa_channel, accel)
-        self.mu.set_speed(self.femur_channel, speed)
-        self.mu.set_acceleration(self.femur_channel, accel)
-        self.mu.set_speed(self.tibia_channel, speed)
-        self.mu.set_acceleration(self.tibia_channel, accel)
-
-        # Move the servos to the calculated positions
-        self.mu.set_target(self.coxa_channel, coxa_target)
-        self.mu.set_target(self.femur_channel, femur_target)
-        self.mu.set_target(self.tibia_channel, tibia_target)
+        self.coxa.set_angle(theta1, speed, accel)
+        self.femur.set_angle(theta2, speed, accel)
+        self.tibia.set_angle(theta3, speed, accel)
