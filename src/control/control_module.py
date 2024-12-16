@@ -9,9 +9,16 @@ from lights import LightsInteractionHandler
 logger = logging.getLogger(__name__)
 
 class ControlModule:
-    def __init__(self):
+    def __init__(self, gait_generator):
         self.lights_handler = LightsInteractionHandler()
-        logger.info("ControlModule initialized with Lights.")
+        self.gait_generator = gait_generator
+        logger.info("ControlModule initialized with Lights and GaitGenerator.")
+
+    async def move_forward(self):
+        await self.gait_generator.walk_forward()
+
+    async def turn_left(self):
+        await self.gait_generator.turn_left()
 
     def move(self, direction):
         logger.info(f"Executing move: {direction}")
