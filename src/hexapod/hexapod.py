@@ -1,5 +1,8 @@
-from maestro.maestro_uart import MaestroUART
-from hexapod.leg import Leg
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from maestro import MaestroUART
+from hexapod import Leg
 
 class Hexapod:
     def __init__(self):
