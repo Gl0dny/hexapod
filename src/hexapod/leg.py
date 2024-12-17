@@ -64,5 +64,5 @@ class Leg:
         theta1, theta2, theta3 = self.compute_inverse_kinematics(x, y, z)
 
         self.coxa.set_angle(theta1, speed, accel)
-        self.femur.set_angle(theta2, speed, accel)
+        self.femur.set_angle(-theta2, speed, accel)
         self.tibia.set_angle(theta3, speed, accel)
