@@ -1,15 +1,9 @@
-import os
-import argparse
 import threading
 import sys
 import logging
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
-from intent_dispatcher import IntentDispatcher
-from control import ControlModule, StateManager
+from .intent_dispatcher import IntentDispatcher
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,6 +15,8 @@ class VoiceControl(threading.Thread):
             context_path,
             access_key,
             device_index,
+            control_module,
+            state_manager,
             porcupine_sensitivity=0.75,
             rhino_sensitivity=0.25):
         super(VoiceControl, self).__init__()
@@ -41,20 +37,21 @@ class VoiceControl(threading.Thread):
         self._context = self._picovoice.context_info
         self._device_index = device_index
 
-        self._control = ControlModule()
-        self._dispatcher = IntentDispatcher(self._control)
-        self._state_manager = StateManager()
+        self._control_module = control_module
+        self._state_manager = state_manager
+
+        self._dispatcher = IntentDispatcher(self._control_module)
 
     def print_context(self):
         print(self._context)
 
     def _wake_word_callback(self):
         print('[wake word]\n')
-        self._control.lights_handler.listen()
+        self._control_module.lights_handler.listen()
 
     def _inference_callback(self, inference):
 
-        self._control.lights_handler.off()
+        self._control_module.lights_handler.off()
 
         print('{')
         print("  is_understood : '%s'," % ('true' if inference.is_understood else 'false'))
@@ -69,12 +66,12 @@ class VoiceControl(threading.Thread):
 
         if inference.is_understood:
             # if self.state_manager.can_execute(inference.intent):
-                # self._control.lights_handler.think()
+                # self._control_module.lights_handler.think()
                 self._dispatcher.dispatch(inference.intent, inference.slots)
             # else:
             #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
 
-                # self._control.lights_handler.off()
+                # self._control_module.lights_handler.off()
                 print('\n[Listening ...]')
 
     def run(self):
@@ -99,41 +96,3 @@ class VoiceControl(threading.Thread):
 
             self._picovoice.delete()
 
-
-def main():
-    parser = argparse.ArgumentParser(description="Hexapod Voice Control Interface")
-    parser.add_argument(
-        '--access_key',
-        help='AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)',
-        required=True
-    )
-    parser.add_argument(
-        '--audio_device_index',
-        help='Index of input audio device.',
-        type=int,
-        default=-1
-    )
-    parser.add_argument(
-        '--print_context',
-        action='store_true',
-        help='Print the context information.'
-    )
-    args = parser.parse_args()
-
-    keyword_path = os.path.join(os.path.dirname(__file__), 'porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
-    context_path = os.path.join(os.path.dirname(__file__), 'rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
-
-    voice_control = VoiceControl(
-        keyword_path=keyword_path,
-        context_path=context_path,
-        access_key=args.access_key,
-        device_index=args.audio_device_index
-    )
-    
-    if args.print_context:
-        voice_control.print_context()
-    voice_control.run()
-
-
-if __name__ == '__main__':
-    main()
