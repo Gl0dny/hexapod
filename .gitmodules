@@ -1,31 +1,31 @@
-[submodule "firmware/maestro-linux"]
+[submodule "maestro-linux"]
 	path = firmware/maestro-linux
 	url = git@github.com:Gl0dny/maestro-linux.git
 	branch = hexapod
-[submodule "firmware/seeed-voicecard"]
+[submodule "seeed-voicecard"]
 	path = firmware/seeed-voicecard
 	url = git@github.com:Gl0dny/seeed-voicecard.git
 	branch = hexapod
-[submodule "lib/odas"]
-	path = lib/odas
+[submodule "odas"]
+	path = odas
 	url = git@github.com:Gl0dny/odas.git
 	branch = hexapod
-[submodule "lib/odas_web"]
-	path = lib/odas_web
+[submodule "odas_web"]
+	path = odas_web
 	url = git@github.com:Gl0dny/odas_web.git
 	branch = hexapod
 [submodule "_archive/raestro"]
 	path = _archive/raestro
 	url = git@github.com:Gl0dny/raestro.git
 	branch = maestro24
-[submodule "lib/respeaker6/kws/snowboy_old"]
-	path = lib/respeaker6/kws/snowboy_old
+[submodule "snowboy_old"]
+	path = _archive/respeaker6/kws/snowboy_old
 	url = https://github.com/Kitt-AI/snowboy.git
-[submodule "lib/respeaker6/ec"]
-	path = lib/respeaker6/ec
+[submodule "ec"]
+	path = _archive/respeaker6/ec
 	url = git@github.com:Gl0dny/ec.git
 	branch = hexapod
-[submodule "lib/respeaker6/voice-engine"]
-	path = lib/respeaker6/voice-engine
+[submodule "voice-engine"]
+	path = _archive/respeaker6/voice-engine
 	url = git@github.com:Gl0dny/voice-engine.git
 	branch = hexapod
