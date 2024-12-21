@@ -14,8 +14,8 @@
 	path = lib/odas_web
 	url = git@github.com:Gl0dny/odas_web.git
 	branch = hexapod
-[submodule "lib/maestro/raestro"]
-	path = lib/maestro/raestro
+[submodule "_archive/raestro"]
+	path = _archive/raestro
 	url = git@github.com:Gl0dny/raestro.git
 	branch = maestro24
 [submodule "lib/respeaker6/kws/snowboy_old"]
