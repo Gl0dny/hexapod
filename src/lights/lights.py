@@ -31,7 +31,10 @@ class Lights:
         'white': (255, 255, 255)
     }
 
-    def __init__(self, num_led=12, power_pin=5, brightness=50, initial_color='indigo'):
+    DEFAULT_NUM_LED = 12
+    DEFAULT_POWER_PIN = 5
+
+    def __init__(self, num_led=DEFAULT_NUM_LED, power_pin=DEFAULT_POWER_PIN, brightness=50, initial_color='indigo'):
         """
         Initialize the Lights object.
 
@@ -76,8 +79,12 @@ class Lights:
             led_index (int, optional): The index of the LED to set.
         
         Raises:
-            ValueError: If the color is unknown or the LED index is out of range.
+            ValueError: If the color is unknown, not a string, or the LED index is out of range.
         """
+        # Validate color
+        if not isinstance(color, str):
+            raise ValueError("Variable color must be a string representing a valid color name.")
+
         if color.lower() not in self.COLORS_RGB:
             raise ValueError(f"Unknown color '{color}'. Please use a valid color name.")
         rgb = self.COLORS_RGB[color.lower()]
@@ -105,8 +112,13 @@ class Lights:
             led_index (int, optional): The index of the LED to set.
         
         Raises:
-            ValueError: If the LED index is out of range.
+            ValueError: If the LED index is out of range or RGB values are invalid.
         """
+        # Validate rgb_tuple
+        if not (isinstance(rgb_tuple, tuple) and len(rgb_tuple) == 3 and
+                all(isinstance(val, int) and 0 <= val <= 255 for val in rgb_tuple)):
+            raise ValueError("rgb_tuple must be a tuple of three integers between 0 and 255.")
+        
         if led_index is not None:
             if 0 <= led_index < self.driver.num_led:
                 self.driver.set_pixel(
