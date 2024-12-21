@@ -79,13 +79,18 @@ class AlternateRotateAnimation(Animation):
         """
         while not self.stop_event.is_set():
             for i in range(self.lights.num_led):
+                if self.stop_event.wait(self.delay):
+                    return
+                
                 color = self.color_even if i % 2 == 0 else self.color_odd
                 self.lights.set_color(color, led_index=i)
 
+
             for _ in range(self.positions):
-                self.lights.rotate(1)
                 if self.stop_event.wait(self.delay):
                     return
+                
+                self.lights.rotate(1)
                 
 class WheelFillAnimation(Animation):
     """
@@ -117,6 +122,9 @@ class WheelFillAnimation(Animation):
         Run the animation logic.
         """
         for i in range(self.lights.num_led):
+            if self.stop_event.wait(self.interval):
+                return
+            
             if self.use_rainbow:
                 rgb = self.lights.get_wheel_color(int(256 / self.lights.num_led * i))
             else:
@@ -124,8 +132,6 @@ class WheelFillAnimation(Animation):
             
             self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)
 
-            if self.stop_event.wait(self.interval):
-                return
                 
 class PulseSmoothlyAnimation(Animation):
     """
@@ -160,23 +166,26 @@ class PulseSmoothlyAnimation(Animation):
         pulse_rgb = self.lights.COLORS_RGB.get(self.pulse_color.lower(), (0, 0, 0))
         while not self.stop_event.is_set():
             for i in range(0, 100, 5):
+                if self.stop_event.wait(self.pulse_speed):
+                    return
+        
                 interp_rgb = (
                     int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
                     int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
                     int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
                 )
                 self.lights.set_color_rgb(interp_rgb)
-                if self.stop_event.wait(self.pulse_speed):
-                    return
+
             for i in range(100, 0, -5):
+                if self.stop_event.wait(self.pulse_speed):
+                    return
+                
                 interp_rgb = (
                     int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
                     int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
                     int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
                 )
                 self.lights.set_color_rgb(interp_rgb)
-                if self.stop_event.wait(self.pulse_speed):
-                    return
                 
 class PulseAnimation(Animation):
     """
@@ -208,12 +217,15 @@ class PulseAnimation(Animation):
         Run the animation logic.
         """
         while not self.stop_event.is_set():
+            if self.stop_event.wait(self.pulse_speed):
+                return
+    
             self.lights.set_color(self.base_color)
+
             if self.stop_event.wait(self.pulse_speed):
                 return
+            
             self.lights.set_color(self.pulse_color)
-            if self.stop_event.wait(self.pulse_speed):
-                return
 
 class WheelAnimation(Animation):
     """
@@ -246,6 +258,9 @@ class WheelAnimation(Animation):
         """
         while not self.stop_event.is_set():
             for i in range(self.lights.num_led):
+                if self.stop_event.wait(self.interval):
+                    return
+        
                 if self.use_rainbow:
                     rgb = self.lights.get_wheel_color(int(256 / self.lights.num_led * i))
                 else:
@@ -254,8 +269,6 @@ class WheelAnimation(Animation):
                 self.lights.clear()
                 self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)
                 
-                if self.stop_event.wait(self.interval):
-                    return
                 
 class OppositeRotateAnimation(Animation):
     """
@@ -296,22 +309,24 @@ class OppositeRotateAnimation(Animation):
         start_index = 0
         while not self.stop_event.is_set():
             # Light up the starting LED
-            self.lights.clear()
-            self.lights.set_color(self.color, led_index=start_index)
             if self.stop_event.wait(self.interval):
                 return
+    
+            self.lights.clear()
+            self.lights.set_color(self.color, led_index=start_index)
 
             # Fork into two LEDs moving in opposite directions
             max_offset = (num_leds + 1) // 2  # Handles even and odd numbers of LEDs
             for offset in range(1, max_offset):
+                if self.stop_event.wait(self.interval):
+                    return
+        
                 index1 = (start_index + offset * self.direction) % num_leds
                 index2 = (start_index - offset * self.direction) % num_leds
 
                 self.lights.clear()
                 self.lights.set_color(self.color, led_index=index1)
                 self.lights.set_color(self.color, led_index=index2)
-                if self.stop_event.wait(self.interval):
-                    return
 
             # Merge back into one LED at the opposite end
             end_index = (start_index + max_offset * self.direction) % num_leds
