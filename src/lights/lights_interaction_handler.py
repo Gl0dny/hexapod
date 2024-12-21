@@ -110,4 +110,6 @@ class LightsInteractionHandler:
         """
         Start the speak animation.
         """
-        pass
+        self.stop_animation()
+        self.animation = None  # Ensure animation is set to avoid AttributeError
+        raise NotImplementedError("The 'speak' method is not implemented yet.")
