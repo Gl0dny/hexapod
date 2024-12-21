@@ -146,6 +146,9 @@ class APA102:
         written to the pixel buffer. Colors are passed individually.
         If brightness is not set the global brightness setting is used.
         """
+        if not all(isinstance(val, int) and 0 <= val <= 255 for val in [red, green, blue]):
+            raise ValueError("red, green, and blue must be integers between 0 and 255.")
+
         if led_num < 0:
             return  # Pixel is invisible, so ignore
         if led_num >= self.num_led:
@@ -174,9 +177,12 @@ class APA102:
         Colors are passed combined (3 bytes concatenated)
         If brightness is not set the global brightness setting is used.
         """
+        if rgb_color < 0 or rgb_color > 0xFFFFFF:
+            raise ValueError("rgb_color must be a 24-bit integer (0x000000 to 0xFFFFFF).")
+
         self.set_pixel(led_num, (rgb_color & 0xFF0000) >> 16,
                        (rgb_color & 0x00FF00) >> 8, rgb_color & 0x0000FF,
-                        bright_percent)
+                       bright_percent)
 
 
     def rotate(self, positions=1):
