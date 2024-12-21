@@ -59,18 +59,17 @@ def test_set_color_invalid_input(mocker):
     mock_led = mocker.patch("lights.lights.LED", autospec=True)
     lights = Lights()
     
-    # Test with non-string input
     with pytest.raises(ValueError):
-        lights.set_color(123)  # Integer instead of string
+        lights.set_color(123)
     
     with pytest.raises(ValueError):
-        lights.set_color(None)  # NoneType instead of string
+        lights.set_color(None)
     
     with pytest.raises(ValueError):
-        lights.set_color(['red'])  # List instead of string
+        lights.set_color(['red'])
     
     with pytest.raises(ValueError):
-        lights.set_color({'color': 'red'})  # Dict instead of string
+        lights.set_color({'color': 'red'})
 
 def test_set_color_rgb(mocker):
     mock_apa102 = mocker.patch("lights.lights.APA102", autospec=True)
@@ -87,24 +86,20 @@ def test_set_color_rgb_invalid(mocker):
     mock_led = mocker.patch("lights.lights.LED", autospec=True)
     lights = Lights()
     
-    # Test with a tuple of incorrect length
     with pytest.raises(ValueError):
-        lights.set_color_rgb((255, 255))  # Only two values
-
-    # Test with non-integer values
-    with pytest.raises(ValueError):
-        lights.set_color_rgb((255, '255', 255))  # String in tuple
-
-    # Test with values out of range
-    with pytest.raises(ValueError):
-        lights.set_color_rgb((256, 255, 255))  # Value exceeds 255
+        lights.set_color_rgb((255, 255))
 
     with pytest.raises(ValueError):
-        lights.set_color_rgb((-1, 255, 255))  # Negative value
+        lights.set_color_rgb((255, '255', 255))
 
-    # Test with non-tuple input
     with pytest.raises(ValueError):
-        lights.set_color_rgb([255, 255, 255])  # List instead of tuple
+        lights.set_color_rgb((256, 255, 255))
+
+    with pytest.raises(ValueError):
+        lights.set_color_rgb((-1, 255, 255))
+
+    with pytest.raises(ValueError):
+        lights.set_color_rgb([255, 255, 255])
 
 def test_rotate(mocker):
     mocker.patch("lights.lights.APA102", autospec=True)
