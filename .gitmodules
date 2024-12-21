@@ -14,7 +14,7 @@
 	path = odas_web
 	url = git@github.com:Gl0dny/odas_web.git
 	branch = hexapod
-[submodule "_archive/raestro"]
+[submodule "raestro"]
 	path = _archive/raestro
 	url = git@github.com:Gl0dny/raestro.git
 	branch = maestro24
