@@ -2,7 +2,7 @@ import math
 from hexapod import Joint
 
 class Leg:
-    def __init__(self, coxa_params, femur_params, tibia_params, controller):
+    def __init__(self, coxa_params, femur_params, tibia_params, controller, end_effector_offset):
         """
         Represents a single leg of the hexapod.
 
@@ -11,10 +11,12 @@ class Leg:
             femur_params (dict): Parameters for the femur joint.
             tibia_params (dict): Parameters for the tibia joint.
             controller (MaestroUART): Shared MaestroUART instance.
+            end_effector_offset (tuple): Offset for the end effector position (x,y,z).
         """
         self.coxa = Joint(controller, **coxa_params)
         self.femur = Joint(controller, **femur_params)
         self.tibia = Joint(controller, **tibia_params)
+        self.end_effector_offset = end_effector_offset
 
     def compute_inverse_kinematics(self, x, y, z):
         """
@@ -32,7 +34,7 @@ class Leg:
         horizontal_distance = math.hypot(x, y) - self.coxa.length
 
         # Angle for the coxa joint
-        theta1 = math.atan2(y, x)
+        theta1 = math.atan2(x, y)
 
         # Distance from femur joint to foot position using femur length
         r = math.hypot(horizontal_distance, z)
@@ -50,7 +52,11 @@ class Leg:
         theta2_deg = math.degrees(theta2)
         theta3_deg = math.degrees(theta3)
 
-        return theta1_deg, theta2_deg, theta3_deg
+        # Shift femur and tibia by 90 degrees
+        theta2_user = theta2_deg - 90
+        theta3_user = theta3_deg - 90
+
+        return theta1_deg, theta2_user, theta3_user
 
     def move_to(self, x, y, z, speed=32, accel=5):
         """
@@ -61,6 +67,11 @@ class Leg:
             speed (int): Servo speed.
             accel (int): Servo acceleration.
         """
+        ox, oy, oz = self.end_effector_offset
+        x += ox
+        y += oy
+        z += oz
+
         theta1, theta2, theta3 = self.compute_inverse_kinematics(x, y, z)
 
         self.coxa.set_angle(theta1, speed, accel)

@@ -16,11 +16,14 @@ class Hexapod:
             coxa_params (dict): Parameters for the coxa joint, including length, channel, angle limits, and servo settings.
             femur_params (dict): Parameters for the femur joint, including length, channel, angle limits, and servo settings.
             tibia_params (dict): Parameters for the tibia joint, including length, channel, angle limits, and servo settings.
+            end_effector_offset (tuple): Default offset for the end effector position - (x,y,z).
         """
         self.controller = MaestroUART('/dev/ttyS0', 9600)
         
         self.speed = 32
         self.accel = 5
+
+        self.end_effector_offset = (0.0, 0.0, 0.0)
 
         self.legs = []
         for i in range(6):
@@ -49,7 +52,7 @@ class Hexapod:
                 'servo_min': 992 * 4,
                 'servo_max': 2000 * 4
             }
-            leg = Leg(coxa_params, femur_params, tibia_params, self.controller)
+            leg = Leg(coxa_params, femur_params, tibia_params, self.controller, self.end_effector_offset)
             self.legs.append(leg)
 
 
