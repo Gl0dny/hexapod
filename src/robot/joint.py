@@ -1,4 +1,7 @@
 class Joint:
+    DEFAULT_SPEED = 32
+    DEFAULT_ACCEL = 5
+
     def __init__(self, controller, length, channel, angle_min, angle_max, servo_min=992*4, servo_max=2000*4):
         """
         Represents a single joint controlled by a servo.
@@ -20,7 +23,7 @@ class Joint:
         self.servo_min = servo_min
         self.servo_max = servo_max
 
-    def set_angle(self, angle, speed=32, accel=5):
+    def set_angle(self, angle, speed=DEFAULT_SPEED, accel=DEFAULT_ACCEL):
         """
         Set the joint to a specific angle.
 
