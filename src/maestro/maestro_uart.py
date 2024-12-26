@@ -25,19 +25,20 @@ Note that 0x04 is the command 0x84 with its most significant bit cleared.
 """
 import serial
 import time
+from typing import Optional
 
-COMMAND_START = 0xAA
-DEFAULT_DEVICE_NUMBER = 0x0C
-COMMAND_GET_ERROR = 0xA1 & 0x7F
-COMMAND_GET_POSITION = 0x90 & 0x7F
-COMMAND_SET_SPEED = 0x87 & 0x7F
-COMMAND_SET_ACCELERATION = 0x89 & 0x7F
-COMMAND_SET_TARGET = 0x84 & 0x7F
-COMMAND_GO_HOME = 0x22 & 0x7F
-COMMAND_GET_MOVING_STATE = 0x93 & 0x7F
+COMMAND_START: int = 0xAA
+DEFAULT_DEVICE_NUMBER: int = 0x0C
+COMMAND_GET_ERROR: int = 0xA1 & 0x7F
+COMMAND_GET_POSITION: int = 0x90 & 0x7F
+COMMAND_SET_SPEED: int = 0x87 & 0x7F
+COMMAND_SET_ACCELERATION: int = 0x89 & 0x7F
+COMMAND_SET_TARGET: int = 0x84 & 0x7F
+COMMAND_GO_HOME: int = 0x22 & 0x7F
+COMMAND_GET_MOVING_STATE: int = 0x93 & 0x7F
 
 class MaestroUART(object):
-	def __init__(self, device='/dev/ttyS0', baudrate=9600):
+	def __init__(self, device: str = '/dev/ttyS0', baudrate: int = 9600) -> None:
 		"""Open the given serial port and do any setup for the serial port.
 
 		Args:
@@ -47,7 +48,7 @@ class MaestroUART(object):
 				Raspberry Pi 3.
 			baudrate: Default is 9600.
 		"""
-		self.ser = serial.Serial(device)
+		self.ser: serial.Serial = serial.Serial(device)
 		self.ser.baudrate = baudrate
 		self.ser.bytesize = serial.EIGHTBITS
 		self.ser.parity = serial.PARITY_NONE
@@ -55,7 +56,7 @@ class MaestroUART(object):
 		self.ser.xonxoff = False
 		self.ser.timeout = 0 # makes the read non-blocking
 
-	def get_error(self):
+	def get_error(self) -> int:
 		"""Check if there was an error and print the corresponding error messages.
 
 		• Serial signal error (bit 0)
@@ -130,7 +131,7 @@ class MaestroUART(object):
 
 		return error_code
 
-	def get_position(self, channel):
+	def get_position(self, channel: int) -> int:
 		"""Gets the position of a servo from a Maestro channel.
 	
 		Args:
@@ -154,7 +155,7 @@ class MaestroUART(object):
 
 		return int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
 
-	def set_speed(self, channel, speed):
+	def set_speed(self, channel: int, speed: int) -> None:
 		"""Sets the speed of a Maestro channel.
 
 		Args:
@@ -182,7 +183,7 @@ class MaestroUART(object):
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_SPEED, channel, speed & 0x7F, (speed >> 7) & 0x7F])
 		self.ser.write(command)
 
-	def set_acceleration(self, channel, accel):
+	def set_acceleration(self, channel: int, accel: int) -> None:
 		"""Sets the acceleration of a Maestro channel. Note that once you set
 		the acceleration, it will still be in effect for all your movements
 		of that servo motor until you change it to something else.
@@ -223,7 +224,7 @@ class MaestroUART(object):
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_ACCELERATION, channel, accel & 0x7F, (accel >> 7) & 0x7F])
 		self.ser.write(command)
 
-	def set_target(self, channel, target):
+	def set_target(self, channel: int, target: int) -> None:
 		"""Sets the target of a Maestro channel. 
 
 		Args:
@@ -242,7 +243,7 @@ class MaestroUART(object):
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_TARGET, channel, target & 0x7F, (target >> 7) & 0x7F])
 		self.ser.write(command)
 
-	def go_home(self):
+	def go_home(self) -> None:
 		"""
 		Sends a command to set all servos and outputs to their home positions.
 		For servos marked "Ignore", the position will remain unchanged.
@@ -262,7 +263,7 @@ class MaestroUART(object):
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GO_HOME])
 		self.ser.write(command)
 
-	def get_moving_state(self):
+	def get_moving_state(self) -> Optional[int]:
 		"""
 		Checks if any servos are still moving.
 
@@ -272,6 +273,9 @@ class MaestroUART(object):
 		Returns:
 			0x00: if no servos are moving
 			0x01: if at least one servo is still moving
+
+		Raises:
+			RuntimeError: If no response is received from the serial port.
 		"""
 		# The command is: 0xAA, device number (0x0C for default), 0x13
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_MOVING_STATE])
@@ -280,10 +284,10 @@ class MaestroUART(object):
 		# Read a single byte response indicating the moving state
 		response = self.ser.read(1)
 		if response == b'':
-			return None 
+			raise RuntimeError("Failed to read moving state: No response received.")
 		return ord(response)
 
-	def close(self):
+	def close(self) -> None:
 		"""
 		Close the serial port.
 
