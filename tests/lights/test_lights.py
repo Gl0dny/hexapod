@@ -2,7 +2,7 @@ import pytest
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/')))
-from lights.lights import Lights
+from lights.lights import Lights, ColorRGB
 
 @pytest.fixture
 def lights_fixture(mocker):
@@ -42,18 +42,17 @@ class TestLights:
 
     def test_set_color_valid(self, lights_fixture):
         _, _, lights = lights_fixture
-        lights.set_color('red')
+        lights.set_color(ColorRGB.RED)
         for i in range(Lights.DEFAULT_NUM_LED):
-            lights.driver.set_pixel.assert_any_call(i, 255, 0, 0)
+            rgb = ColorRGB.RED.value
+            lights.driver.set_pixel.assert_any_call(i, rgb[0], rgb[1], rgb[2])
         lights.driver.show.assert_called_once()
 
     def test_set_color_invalid(self, lights_fixture):
         _, _, lights = lights_fixture
         with pytest.raises(ValueError):
-            lights.set_color("magenta")
+            lights.set_color("MAGENTA")
 
-    def test_set_color_invalid_input(self, lights_fixture):
-        _, _, lights = lights_fixture
         with pytest.raises(ValueError):
             lights.set_color(123)
         

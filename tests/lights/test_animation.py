@@ -2,6 +2,7 @@ import pytest
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/')))
+from lights.lights import ColorRGB
 from lights.animation import (
     AlternateRotateAnimation,
     WheelFillAnimation,
@@ -16,14 +17,6 @@ def mock_lights(mocker):
     mock = mocker.Mock()
     mock.num_led = 12
     mock.rotate_positions = 12
-    mock.COLORS_RGB = {
-        'indigo': (75, 0, 130),
-        'golden': (255, 215, 0),
-        'blue': (0, 0, 255),
-        'green': (0, 255, 0),
-        'red': (255, 0, 0),
-        'white': (255, 255, 255)
-    }
     return mock
 
 @pytest.fixture
@@ -101,27 +94,27 @@ class TestAnimations:
         assert animation.positions == 10
 
     def test_wheel_fill_animation_init(self, mock_lights):
-        animation = WheelFillAnimation(mock_lights, use_rainbow=False, color='green', interval=0.3)
+        animation = WheelFillAnimation(mock_lights, use_rainbow=False, color=ColorRGB.GREEN, interval=0.3)
         assert not animation.use_rainbow
-        assert animation.color == 'green'
+        assert animation.color == ColorRGB.GREEN
         assert animation.interval == 0.3
 
     def test_pulse_smoothly_animation_init(self, mock_lights):
-        animation = PulseSmoothlyAnimation(mock_lights, base_color='yellow', pulse_color='purple', pulse_speed=0.1)
-        assert animation.base_color == 'yellow'
-        assert animation.pulse_color == 'purple'
+        animation = PulseSmoothlyAnimation(mock_lights, base_color=ColorRGB.YELLOW, pulse_color=ColorRGB.PURPLE, pulse_speed=0.1)
+        assert animation.base_color == ColorRGB.YELLOW
+        assert animation.pulse_color == ColorRGB.PURPLE
         assert animation.pulse_speed == 0.1
 
     def test_pulse_animation_init(self, mock_lights):
-        animation = PulseAnimation(mock_lights, base_color='white', pulse_color='black', pulse_speed=0.2)
-        assert animation.base_color == 'white'
-        assert animation.pulse_color == 'black'
+        animation = PulseAnimation(mock_lights, base_color=ColorRGB.WHITE, pulse_color=ColorRGB.BLUE, pulse_speed=0.2)
+        assert animation.base_color == ColorRGB.WHITE
+        assert animation.pulse_color == ColorRGB.BLUE
         assert animation.pulse_speed == 0.2
 
     def test_wheel_animation_init(self, mock_lights):
-        animation = WheelAnimation(mock_lights, use_rainbow=True, color='orange', interval=0.25)
+        animation = WheelAnimation(mock_lights, use_rainbow=True, color=ColorRGB.ORANGE, interval=0.25)
         assert animation.use_rainbow
-        assert animation.color == 'orange'
+        assert animation.color == ColorRGB.ORANGE
         assert animation.interval == 0.25
 
     def test_opposite_rotate_animation_init(self, mock_lights):
