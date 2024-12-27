@@ -23,12 +23,12 @@ class Hexapod:
         self.speed = 32
         self.accel = 5
 
-        self.end_effector_offset = (0.0, 0.0, 0.0)
+        self.end_effector_offset = (-25.0, 80.0, -162.5)
 
         self.legs = []
         for i in range(6):
             coxa_params = {
-                'length': 30.0,
+                'length': 27.5,
                 'channel': i * 3,
                 'angle_min': -45,
                 'angle_max': 45,
@@ -37,7 +37,7 @@ class Hexapod:
                 
             }
             femur_params = {
-                'length': 50.0,
+                'length': 52.5,
                 'channel': i * 3 + 1,
                 'angle_min': -45,
                 'angle_max': 45,
@@ -45,7 +45,7 @@ class Hexapod:
                 'servo_max': 2000 * 4
             }
             tibia_params = {
-                'length': 80.0,
+                'length': 140.0,
                 'channel': i * 3 + 2,
                 'angle_min': -45,
                 'angle_max': 45,

@@ -103,7 +103,7 @@ class LightsInteractionHandler:
     @animation
     def think(
         self,
-        color: ColorRGB = ColorRGB.WHITE,
+        color: ColorRGB = ColorRGB.LIME,
         interval: float = 0.1
     ) -> None:
         """
