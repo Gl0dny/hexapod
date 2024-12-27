@@ -23,37 +23,73 @@ class Hexapod:
         self.speed = 32
         self.accel = 5
 
-        self.end_effector_offset = (-25.0, 80.0, -162.5)
+        coxa_params = {
+            'length': 27.5,
+            'angle_min': -45,
+            'angle_max': 45,
+            'servo_min': 992 * 4,
+            'servo_max': 2000 * 4,
+            'z_offset': 22.5
+        }
+        femur_params = {
+            'length': 52.5,
+            'angle_min': -45,
+            'angle_max': 45,
+            'servo_min': 992 * 4,
+            'servo_max': 2000 * 4
+        }
+        tibia_params = {
+            'length': 140.0,
+            'angle_min': -45,
+            'angle_max': 45,
+            'servo_min': 992 * 4,
+            'servo_max': 2000 * 4,
+            'x_offset': 22.5
+        }
+
+        self.end_effector_offset = (
+            tibia_params['x_offset'],
+            femur_params['length']+coxa_params['length'],
+            tibia_params['length']+coxa_params['z_offset']
+        )
 
         self.legs = []
         for i in range(6):
-            coxa_params = {
-                'length': 27.5,
-                'channel': i * 3,
-                'angle_min': -45,
-                'angle_max': 45,
-                'servo_min': 992 * 4,
-                'servo_max': 2000 * 4
-                
-            }
-            femur_params = {
-                'length': 52.5,
-                'channel': i * 3 + 1,
-                'angle_min': -45,
-                'angle_max': 45,
-                'servo_min': 992 * 4,
-                'servo_max': 2000 * 4
-            }
-            tibia_params = {
-                'length': 140.0,
-                'channel': i * 3 + 2,
-                'angle_min': -45,
-                'angle_max': 45,
-                'servo_min': 992 * 4,
-                'servo_max': 2000 * 4
-            }
-            leg = Leg(coxa_params, femur_params, tibia_params, self.controller, self.end_effector_offset)
+            coxa = coxa_params.copy()
+            coxa['channel'] = i * 3
+            femur = femur_params.copy()
+            femur['channel'] = i * 3 + 1
+            tibia = tibia_params.copy()
+            tibia['channel'] = i * 3 + 2
+
+            leg = Leg(coxa, femur, tibia, self.controller, self.end_effector_offset)
             self.legs.append(leg)
+
+    def calibrate_servo(self, leg_index, joint, servo_min, servo_max):
+        """
+        Calibrate servo_min and servo_max for a specific joint of a leg.
+
+        Args:
+            leg_index (int): Index of the leg (0-5).
+            joint (str): The joint to calibrate ('coxa', 'femur', or 'tibia').
+            servo_min (int): New minimum servo value.
+            servo_max (int): New maximum servo value.
+        """
+        if 0 <= leg_index < len(self.legs):
+            leg = self.legs[leg_index]
+            if joint == 'coxa':
+                leg.coxa_params['servo_min'] = servo_min
+                leg.coxa_params['servo_max'] = servo_max
+            elif joint == 'femur':
+                leg.femur_params['servo_min'] = servo_min
+                leg.femur_params['servo_max'] = servo_max
+            elif joint == 'tibia':
+                leg.tibia_params['servo_min'] = servo_min
+                leg.tibia_params['servo_max'] = servo_max
+            else:
+                print("Invalid joint name. Choose 'coxa', 'femur', or 'tibia'.")
+        else:
+            print("Invalid leg index. Must be between 0 and 5.")
 
 
     def move_leg(self, leg_index, x, y, z, speed=None, accel=None):
