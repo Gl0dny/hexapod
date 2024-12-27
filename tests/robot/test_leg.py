@@ -1,10 +1,11 @@
 import math
 
 class RobotLeg:
-    def __init__(self, coxa_length, femur_length, tibia_length):
+    def __init__(self, coxa_length, femur_length, tibia_length, end_effector_offset):
         self.coxa = self.Joint(coxa_length)
         self.femur = self.Joint(femur_length)
         self.tibia = self.Joint(tibia_length)
+        self.end_effector_offset = end_effector_offset
 
     class Joint:
         def __init__(self, length):
@@ -59,8 +60,15 @@ def test_inverse_kinematics():
     femur_length = 10.0
     tibia_length = 15.0
 
+    # Define end effector offset
+    end_effector_offset = {
+        'x': 0,  # Set appropriate values
+        'y': 0,
+        'z': 0
+    }
+
     # Initialize the robot leg
-    leg = RobotLeg(coxa_length, femur_length, tibia_length)
+    leg = RobotLeg(coxa_length, femur_length, tibia_length, end_effector_offset)
 
     # Test cases
     test_cases = [
