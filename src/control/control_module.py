@@ -47,7 +47,7 @@ class ControlModule:
             self.lights_handler.wakeup()
 
     def change_color(self, color):
-        if color in self.lights_handler.lights.COLORS:
+        if color in self.lights_handler.lights.colors:
             logger.info(f"Switching color of the lights to {color}")
             self.lights_handler.lights.set_color(color)
         else:
