@@ -5,6 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from lights import LightsInteractionHandler
+from lights.lights import ColorRGB
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +48,11 @@ class ControlModule:
             self.lights_handler.wakeup()
 
     def change_color(self, color):
-        if color in self.lights_handler.lights.colors:
+        try:
+            enum_color = ColorRGB[color.upper()]
             logger.info(f"Switching color of the lights to {color}")
-            self.lights_handler.lights.set_color(color)
-        else:
+            self.lights_handler.lights.set_color(enum_color)
+        except KeyError:
             logger.error(f"Color '{color}' is not supported.")
 
     def repeat_last_command(self):
