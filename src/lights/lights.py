@@ -32,7 +32,7 @@ class Lights:
     A class to control the LED lights based on APA102.
 
     Attributes:
-        COLORS (Enum): An enumeration of ColorRGB enum members.
+        colors (Enum): An enumeration of ColorRGB enum members.
         num_led (int): The number of LEDs.
         driver (APA102): The driver for the APA102 LEDs.
         power (LED): The power control for the LEDs.
@@ -59,6 +59,7 @@ class Lights:
             brightness (int): The initial brightness of the LEDs (0-100).
             initial_color (ColorRGB): The initial color of the LEDs.
         """
+        self.colors = ColorRGB
         self.num_led: int = num_led
         self.driver: APA102 = APA102(num_led=self.num_led)
         self.power: LED = LED(power_pin)
