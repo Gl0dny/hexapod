@@ -1,5 +1,7 @@
+from typing import Callable, Any, Optional
 from lights import Lights
-from .animation import OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
+from .animation import Animation, OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
+from .lights import ColorRGB
 
 class LightsInteractionHandler:
     """
@@ -10,14 +12,14 @@ class LightsInteractionHandler:
         animation (Animation): The current animation being played.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the LightsInteractionHandler object.
         """
-        self.lights = Lights()
-        self.animation = None
+        self.lights: Lights = Lights()
+        self.animation: Animation = None
 
-    def stop_animation(self):
+    def stop_animation(self) -> None:
         """
         Stop the current animation if one is running.
         """
@@ -25,7 +27,7 @@ class LightsInteractionHandler:
             self.animation.stop_animation()
             self.animation = None
 
-    def animation(method):
+    def animation(method: Callable[..., Any]) -> Callable[..., Any]:
         """
         Decorator to ensure that a method sets the 'self.animation' attribute.
 
@@ -43,7 +45,7 @@ class LightsInteractionHandler:
                     f"{method.__name__} must set 'self.animation' attribute")
         return wrapper
 
-    def off(self):
+    def off(self) -> None:
         """
         Turn off the lights and stop any running animation.
         """
@@ -51,32 +53,42 @@ class LightsInteractionHandler:
         self.lights.clear()
 
     @animation
-    def wakeup(self, use_rainbow=True, color='white', interval=0.2):
+    def wakeup(
+        self,
+        use_rainbow: bool = True,
+        color: Optional[ColorRGB] = None,
+        interval: float = 0.2
+    ) -> None:
         """
         Start the wakeup animation.
 
         Args:
             use_rainbow (bool): Whether to use rainbow colors.
-            color (str): The color to use if not using rainbow colors.
+            color (ColorRGB, optional): The color to use if not using rainbow colors.
             interval (float): The interval between filling LEDs.
         """
         self.stop_animation()
         self.animation = WheelFillAnimation(
             lights=self.lights,
             use_rainbow=use_rainbow,
-            color=color,
+            color=color if color else ColorRGB.WHITE,
             interval=interval,
         )
         self.animation.start()
 
     @animation
-    def listen(self, base_color='blue', pulse_color='green', pulse_speed=0.05):
+    def listen(
+        self,
+        base_color: ColorRGB = ColorRGB.BLUE,
+        pulse_color: ColorRGB = ColorRGB.GREEN,
+        pulse_speed: float = 0.05
+    ) -> None:
         """
         Start the listen animation.
 
         Args:
-            base_color (str): The base color of the LEDs.
-            pulse_color (str): The color to pulse.
+            base_color (ColorRGB): The base color of the LEDs.
+            pulse_color (ColorRGB): The color to pulse.
             pulse_speed (float): The speed of the pulse.
         """
         self.stop_animation()
@@ -89,12 +101,16 @@ class LightsInteractionHandler:
         self.animation.start()
 
     @animation
-    def think(self, color='white', interval=0.1):
+    def think(
+        self,
+        color: ColorRGB = ColorRGB.LIME,
+        interval: float = 0.1
+    ) -> None:
         """
         Start the think animation.
 
         Args:
-            color (str): The color of the LEDs.
+            color (ColorRGB): The color of the LEDs.
             interval (float): The delay between updates.
         """
         self.stop_animation()
@@ -106,7 +122,7 @@ class LightsInteractionHandler:
         self.animation.start()
 
     @animation
-    def speak(self):
+    def speak(self) -> None:
         """
         Start the speak animation.
         """
