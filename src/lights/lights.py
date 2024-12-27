@@ -40,8 +40,6 @@ class Lights:
         brightness (int): The brightness of the LEDs (0-100).
     """
 
-    COLORS = ColorRGB
-
     DEFAULT_NUM_LED: int = 12
     DEFAULT_POWER_PIN: int = 5
 
