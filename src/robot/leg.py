@@ -4,15 +4,14 @@ from robot import Joint
 class Leg:
     def __init__(self, coxa_params, femur_params, tibia_params, controller, end_effector_offset):
         """
-        Represents a single leg of the hexapod.
+        Initialize a single leg of the hexapod robot.
 
-        Args:
-            coxa_params (dict): Parameters for the coxa joint, including 'z_offset' to define
-                the vertical offset of the coxa relative to the base plane.
-            femur_params (dict): Parameters for the femur joint.
-            tibia_params (dict): Parameters for the tibia joint.
-            controller (MaestroUART): Shared MaestroUART instance.
-            end_effector_offset (tuple): Offset for the end effector position (x,y,z).
+        Parameters:
+            coxa_params (dict): Configuration parameters for the coxa joint, including 'z_offset' to define the vertical offset of the coxa relative to the base.
+            femur_params (dict): Configuration parameters for the femur joint.
+            tibia_params (dict): Configuration parameters for the tibia joint, including 'x_offset' - horizontal offset of the tibia relative to the base.
+            controller (MaestroUART): The shared MaestroUART controller instance for servo communication.
+            end_effector_offset (tuple): (x, y, z) offset for the end effector's position relative to the leg's base.
         """
         coxa_params_copy = dict(coxa_params)
         self.coxa_z_offset = coxa_params_copy.pop('z_offset', 0.0)
@@ -26,15 +25,18 @@ class Leg:
 
     def compute_inverse_kinematics(self, x, y, z):
         """
-        Compute the joint angles for the desired foot position.
+        Calculate the necessary joint angles to position the foot at the specified coordinates.
 
         Args:
-            x (float): X coordinate of the foot position.
-            y (float): Y coordinate of the foot position.
-            z (float): Z coordinate of the foot position.
+            x (float): Desired X position of the foot.
+            y (float): Desired Y position of the foot.
+            z (float): Desired Z position of the foot.
 
         Returns:
-            tuple: (theta1, theta2, theta3) in degrees.
+            tuple: A tuple containing the angles for the coxa, femur, and tibia joints in degrees.
+
+        Raises:
+            ValueError: If the target position is beyond the leg's maximum reach.
         """
         print(f"Computing inverse kinematics for position x: {x}, y: {y}, z: {z}")
         # Compensate for end effector offset
@@ -45,7 +47,8 @@ class Leg:
         print(f"Adjusted position for IK - x: {x}, y: {y}, z: {z}")
 
         # Angle for the coxa joint
-        theta1 = math.atan2(x, y)
+        coxa_angle = math.atan2(x, y)
+        print(f"coxa_angle (radians): {coxa_angle}")
 
         # Calculate the horizontal distance to the target
         R = math.hypot(x, y)
@@ -62,50 +65,45 @@ class Leg:
             raise ValueError("Target is out of reach.")
 
         # Inverse kinematics calculations
-        # cos_theta3 = (self.femur.length**2 + self.tibia.length**2 - r**2) / (2 * self.femur.length * self.tibia.length)
-        # print(f"cos_theta3: {cos_theta3}")
-        # theta3 = math.acos(cos_theta3)
+        alpha1_tan = (R - self.coxa.length) / (z - self.coxa_z_offset)
+        alpha2_cos = (self.tibia.length**2 - self.femur.length**2 - F**2) / (-2 * self.femur.length * F)
+        alpha1 = math.atan(alpha1_tan)
+        alpha2 = math.acos(alpha2_cos)
+        print(f"alpha1 (radians): {alpha1}")
+        print(f"alpha2 (radians): {alpha2}")
 
-        # cos_theta2 = (self.femur.length**2 + r**2 - self.tibia.length**2) / (2 * self.femur.length * r)
-        # print(f"cos_theta2: {cos_theta2}")
-        # theta2 = math.atan2(z, R - self.coxa.length) - math.acos(cos_theta2)
+        beta_cos = (F**2 - self.femur.length**2 - self.tibia.length**2) / (-2 * self.femur.length * self.tibia.length)
+        beta = math.acos(beta_cos)
+        print(f"beta (radians): {beta}")
 
-        theta3 = 0
-        theta2 = 0
+        coxa_angle_deg = math.degrees(coxa_angle)
+        print(f"coxa_angle_deg: {coxa_angle_deg}")
 
-        theta1_deg = math.degrees(theta1)
-        print(f"theta1 (radians): {theta1}")
-        print(f"theta1_deg: {theta1_deg}")
+        femur_angle_deg = math.degrees(alpha1) + math.degrees(alpha2) - 90
+        print(f"femur_angle_deg: {femur_angle_deg}")
 
-        theta2_deg = math.degrees(theta2)
-        print(f"theta2 (radians): {theta2}")
-        print(f"theta2_deg: {theta2_deg}")
+        tibia_angle_deg = math.degrees(beta) - 90
+        print(f"tibia_angle_deg: {tibia_angle_deg}")
 
-        theta3_deg = math.degrees(theta3)
-        print(f"theta3 (radians): {theta3}")
-        print(f"theta3_deg: {theta3_deg}")
-
-        # Shift femur and tibia by 90 degrees
-        theta2_user = theta2_deg
-        theta3_user = theta3_deg
-
-        print(f"Calculated angles - theta1_deg: {theta1_deg}, theta2_user: {theta2_user}, theta3_user: {theta3_user}")
-        return theta1_deg, theta2_user, theta3_user
+        print(f"Calculated angles - coxa_angle_deg: {coxa_angle_deg}, femur_angle_deg: {femur_angle_deg}, tibia_angle_deg: {tibia_angle_deg}")
+        return coxa_angle_deg, femur_angle_deg, tibia_angle_deg
 
     def move_to(self, x, y, z, speed=32, accel=5):
         """
-        Move the leg to the desired position.
+        Move the leg's end effector to the specified (x, y, z) coordinates.
 
         Args:
-            x, y, z (float): Target coordinates.
-            speed (int): Servo speed.
-            accel (int): Servo acceleration.
+            x (float): Target X coordinate.
+            y (float): Target Y coordinate.
+            z (float): Target Z coordinate.
+            speed (int, optional): Speed setting for servo movement. Defaults to 32.
+            accel (int, optional): Acceleration setting for servo movement. Defaults to 5.
         """
         print(f"Moving to x: {x}, y: {y}, z: {z} with speed: {speed}, accel: {accel}")
 
-        theta1, theta2, theta3 = self.compute_inverse_kinematics(x, y, z)
+        coxa_angle, femur_angle, tibia_angle = self.compute_inverse_kinematics(x, y, z)
 
-        self.coxa.set_angle(theta1, speed, accel)
-        self.femur.set_angle(theta2, speed, accel)
-        self.tibia.set_angle(theta3, speed, accel)
-        print(f"Set angles - coxa: {theta1}, femur: {theta2}, tibia: {theta3}")
+        self.coxa.set_angle(coxa_angle, speed, accel)
+        self.femur.set_angle(femur_angle, speed, accel)
+        self.tibia.set_angle(tibia_angle, speed, accel)
+        print(f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
