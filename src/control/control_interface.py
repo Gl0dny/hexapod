@@ -1,3 +1,4 @@
+from typing import Callable, Any
 import logging
 import sys
 import os
@@ -7,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
-from control.control_tasks  import RunCalibrationTask, MonitorCalibrationStatusTask
+from control.control_tasks import ControlTask, RunCalibrationTask, MonitorCalibrationStatusTask
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class ControlInterface:
     def __init__(self):
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
+        self.control_task: ControlTask = None
         logger.info("ControlInterface initialized with Lights and Hexapod.")
 
     # def inject_hexapod(func):
@@ -32,6 +34,31 @@ class ControlInterface:
     #     def wrapper(self, *args, **kwargs):
     #         return func(self, self.lights_handler, *args, **kwargs)
     #     return wrapper
+
+    def stop_control_task(self) -> None:
+        """
+        Stop any running control_task and reset the control_task attribute.
+        """
+        if hasattr(self, 'control_task') and self.control_task:
+            self.control_task.stop_task()
+            self.control_task = None
+
+    def control_task(method: Callable[..., Any]) -> Callable[..., Any]:
+        """
+        Decorator to ensure that a method sets the 'self.control_task' attribute.
+
+        Args:
+            method (function): The method to wrap.
+
+        Returns:
+            function: Wrapped method.
+        """
+        def wrapper(self, *args, **kwargs):
+            method(self, *args, **kwargs)
+            if not hasattr(self, 'control_task') or self.control_task is None:
+                raise AttributeError(
+                    f"{method.__name__} must set 'self.control_task' attribute")
+        return wrapper
 
     # def move(self, direction):
     #     logger.info(f"Executing move: {direction}")
@@ -166,14 +193,16 @@ class ControlInterface:
     # #     logger.info(f"Changing mode to: {mode}")
     # #     # Implement mode change logic here
 
-    def calibrate(self):
+    @control_task
+    def calibrate(self) -> None:
         """
         Initiates the calibration process in a separate thread to avoid blocking other activities.
         """
         try:
             logger.info("Starting calibration.")
-            calibration_task = RunCalibrationTask(self.hexapod)
-            calibration_task.start()
+            self.control_task.stop_task()
+            self.control_task = RunCalibrationTask(self.hexapod)
+            self.control_task.start()
 
             monitor_task = MonitorCalibrationStatusTask(self.hexapod, self.lights_handler)
             monitor_task.start()

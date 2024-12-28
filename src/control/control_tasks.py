@@ -1,7 +1,7 @@
 import threading
 import abc
 
-class Task(abc.ABC):
+class ControlTask(abc.ABC):
     """
     Abstract base class for tasks.
 
@@ -40,7 +40,7 @@ class Task(abc.ABC):
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=0.01)
 
-class MonitorCalibrationStatusTask(Task):
+class MonitorCalibrationStatusTask(ControlTask):
     def __init__(self, hexapod, lights_handler):
         super().__init__()
         self.hexapod = hexapod
@@ -61,7 +61,7 @@ class MonitorCalibrationStatusTask(Task):
         except Exception as e:
             print(f"Error in calibration status monitoring thread: {e}")
 
-class RunCalibrationTask(Task):
+class RunCalibrationTask(ControlTask):
     def __init__(self, hexapod):
         super().__init__()
         self.hexapod = hexapod
