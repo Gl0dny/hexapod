@@ -6,13 +6,15 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
+from robot.hexapod import Hexapod
 
 logger = logging.getLogger(__name__)
 
 class ControlModule:
     def __init__(self):
+        self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler()
-        logger.info("ControlModule initialized with Lights.")
+        logger.info("ControlModule initialized with Lights and Hexapod.")
 
     def move(self, direction):
         logger.info(f"Executing move: {direction}")
