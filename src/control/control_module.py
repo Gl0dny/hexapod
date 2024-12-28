@@ -167,12 +167,10 @@ class ControlModule:
     #     logger.info(f"Changing mode to: {mode}")
     #     # Implement mode change logic here
 
-    def monitor_calibration_status(self, calibration_status):
+    def monitor_calibration_status(self):
         """
         Monitors the calibration status and updates LEDs periodically.
         
-        Args:
-            calibration_status (dict): Initial calibration status.
         """
         try:
             while not self.stop_monitor_calibration.is_set():
@@ -182,6 +180,7 @@ class ControlModule:
                 # for leg_index, status in updated_status.items():
                 #     logger.debug(f"Updated Calibration Status - Leg {leg_index}: {status}")
                 #     print(f"Updated Calibration Status - Leg {leg_index}: {status}")
+                # print(f"Calibration Status: {calibration_status}")
                 
                 # Delegate LED updates to LightsInteractionHandler
                 self.lights_handler.update_calibration_leds_status(updated_status)
@@ -191,7 +190,6 @@ class ControlModule:
                     logger.info("All legs calibrated. Stopping calibration status monitoring.")
                     self.stop_monitor_calibration.set()
                 
-                # Replace blocking sleep with non-blocking wait
                 self.stop_monitor_calibration.wait(timeout=2)
         except Exception as e:
             logger.error(f"Error in calibration status monitoring thread: {e}")
@@ -222,14 +220,9 @@ class ControlModule:
             )
             calibration_thread.start()
             
-            # Retrieve initial calibration status
-            calibration_status = hexapod.calibration.get_calibration_status()
-            print(f"Calibration Status: {calibration_status}")
-            
             # Start separate thread for monitoring calibration status
             calibration_monitor_thread = threading.Thread(
                 target=self.monitor_calibration_status,
-                args=(calibration_status,),
                 daemon=True
             )
             calibration_monitor_thread.start()
