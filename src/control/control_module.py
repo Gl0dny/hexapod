@@ -4,14 +4,14 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from lights import LightsInteractionHandler
+from lights import LightsAnimationHandler
 from lights.lights import ColorRGB
 
 logger = logging.getLogger(__name__)
 
 class ControlModule:
     def __init__(self):
-        self.lights_handler = LightsInteractionHandler()
+        self.lights_handler = LightsAnimationHandler()
         logger.info("ControlModule initialized with Lights.")
 
     def move(self, direction):
