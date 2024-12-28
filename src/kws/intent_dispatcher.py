@@ -109,7 +109,7 @@ class IntentDispatcher:
     def handle_set_brightness(self, slots):
         brightness_percentage = slots.get('brightness_percentage')
         if brightness_percentage:
-            logger.info(f"Handling set_brightness command: {brightness_percentage}%")
+            logger.info(f"Handling set_brightness command: {brightness_percentage}")
             self.control.set_brightness(brightness_percentage)
         else:
             logger.error("No brightness_percentage provided for set_brightness command.")

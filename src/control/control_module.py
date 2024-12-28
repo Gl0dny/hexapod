@@ -16,6 +16,22 @@ class ControlModule:
         self.lights_handler = LightsInteractionHandler()
         logger.info("ControlModule initialized with Lights and Hexapod.")
 
+    def inject_hexapod(func):
+        """
+        Decorator to inject self.hexapod into the decorated function.
+        """
+        def wrapper(self, *args, **kwargs):
+            return func(self, self.hexapod, *args, **kwargs)
+        return wrapper
+
+    def inject_lights_handler(func):
+        """
+        Decorator to inject self.lights_handler into the decorated function.
+        """
+        def wrapper(self, *args, **kwargs):
+            return func(self, self.lights_handler, *args, **kwargs)
+        return wrapper
+
     def move(self, direction):
         logger.info(f"Executing move: {direction}")
         # Implement movement logic here
@@ -41,19 +57,35 @@ class ControlModule:
         else:
             logger.error("No angle or direction provided for rotation.")
 
-    def turn_lights(self, switch_state):
+    @inject_lights_handler
+    def turn_lights(self, lights_handler, switch_state):
+        """
+        Turns the lights on or off based on the switch state.
+        
+        Args:
+            lights_handler (LightsInteractionHandler): The lights handler instance.
+            switch_state (str): State to switch the lights to ('on' or 'off').
+        """
         if switch_state == 'off':
-            logger.info(f"Turning lights off")
-            self.lights_handler.off()
+            logger.info("Turning lights off")
+            lights_handler.off()
         else:
-            logger.info(f"Turning lights on")
-            self.lights_handler.wakeup()
+            logger.info("Turning lights on")
+            lights_handler.wakeup()
 
-    def change_color(self, color):
+    @inject_lights_handler
+    def change_color(self, lights_handler, color):
+        """
+        Changes the color of the lights.
+        
+        Args:
+            lights_handler (LightsInteractionHandler): The lights handler instance.
+            color (str): The color to change the lights to.
+        """
         try:
             enum_color = ColorRGB[color.upper()]
             logger.info(f"Switching color of the lights to {color}")
-            self.lights_handler.lights.set_color(enum_color)
+            lights_handler.lights.set_color(enum_color)
         except KeyError:
             logger.error(f"Color '{color}' is not supported.")
 
@@ -81,9 +113,29 @@ class ControlModule:
         logger.info(f"Setting acceleration to {accel_percentage}%.")
         # Implement logic to set acceleration
 
-    def set_brightness(self, brightness_percentage):
-        logger.info(f"Setting brightness to {brightness_percentage}%.")
-        # Implement logic to set lights brightness
+    @inject_lights_handler
+    def set_brightness(self, lights_handler, brightness_percentage):
+        """
+        Sets the brightness of the lights.
+        
+        Args:
+            lights_handler (LightsInteractionHandler): The lights handler instance.
+            brightness_percentage (int or str): Brightness level (0-100 or '0%-100%').
+        """
+        try:
+            if isinstance(brightness_percentage, str) and brightness_percentage.endswith('%'):
+                brightness_value = int(brightness_percentage.rstrip('%'))
+            else:
+                brightness_value = int(brightness_percentage)
+            
+            if not 0 <= brightness_value <= 100:
+                raise ValueError("Brightness percentage must be between 0 and 100.")
+            
+            logger.info(f"Setting brightness to {brightness_value}%.")
+            lights_handler.lights.set_brightness(brightness_value)
+        except ValueError as e:
+            logger.error(f"Invalid brightness_percentage value: {brightness_percentage}. Error: {e}")
+            print(f"Error: {e}")
 
     def shut_down(self):
         logger.info("Shutting down robot.")
@@ -113,12 +165,15 @@ class ControlModule:
     #     logger.info(f"Changing mode to: {mode}")
     #     # Implement mode change logic here
 
-    def calibrate(self, hexapod):
+    @inject_hexapod
+    @inject_lights_handler
+    def calibrate(self, lights_handler, hexapod):
         """
         Initiates and monitors the calibration process for the hexapod.
         Updates LED colors based on the current calibration status of each leg.
         
         Args:
+            lights_handler (LightsInteractionHandler): The lights handler instance.
             hexapod (Hexapod): The hexapod instance to calibrate.
         
         Returns:
@@ -127,24 +182,24 @@ class ControlModule:
         logger.info("Starting calibration.")
         
         # Set initial LED color to indicate calibration start
-        self.lights_handler.lights.set_color(ColorRGB.YELLOW)
+        lights_handler.lights.set_color(ColorRGB.YELLOW)
         
         # Start calibration in a separate thread if needed
         hexapod.calibrate_all_servos()
         
-        # Retrieve current calibration calibration_status
+        # Retrieve current calibration status
         calibration_status = hexapod.calibration.get_calibration_status()
         
-        # Determine LED color based on calibration calibration_status
+        # Determine LED color based on calibration status
         all_calibrated = all(status == "calibrated" for status in calibration_status.values())
         
         if all_calibrated:
             # All legs calibrated successfully
-            self.lights_handler.lights.set_color(ColorRGB.GREEN)
+            lights_handler.lights.set_color(ColorRGB.GREEN)
             logger.info("Calibration completed successfully.")
         else:
             # Some legs are still calibrating or failed
-            self.lights_handler.lights.set_color(ColorRGB.RED)
+            lights_handler.lights.set_color(ColorRGB.RED)
             logger.warning("Calibration incomplete or some legs failed.")
         
         return calibration_status
