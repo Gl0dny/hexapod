@@ -6,7 +6,7 @@ from maestro import MaestroUART
 from robot import Leg, Calibration
 
 class Hexapod:
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Represents the hexapod robot with six legs.
 
@@ -19,34 +19,34 @@ class Hexapod:
             femur_params (Dict[str, float]): Parameters for the femur joint, including length, channel, angle limits, and servo settings.
             tibia_params (Dict[str, float]): Parameters for the tibia joint, including length, channel, angle limits, and servo settings.
             end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z).
-            calibration (Calibration): Instance managing servo calibrations and related processes.
             leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
+            calibration (Calibration): Instance managing servo calibrations and related processes.
         """
-        self.controller = MaestroUART('/dev/ttyS0', 9600)
+        self.controller: MaestroUART = MaestroUART('/dev/ttyS0', 9600)
         
-        self.speed = 32
-        self.accel = 5
+        self.speed: int = 32
+        self.accel: int = 5
 
-        coxa_params = {
+        coxa_params: Dict[str, float] = {
             'length': 27.5,
             'angle_min': -45,
             'angle_max': 45,
             'z_offset': 22.5
         }
-        femur_params = {
+        femur_params: Dict[str, float] = {
             'length': 52.5,
             'angle_min': -45,
             'angle_max': 45,
             'invert': True
         }
-        tibia_params = {
+        tibia_params: Dict[str, float] = {
             'length': 140.0,
             'angle_min': -45,
             'angle_max': 45,
             'x_offset': 22.5
         }
 
-        self.end_effector_offset = (
+        self.end_effector_offset: Tuple[float, float, float] = (
             tibia_params['x_offset'],
             femur_params['length'] + coxa_params['length'],
             tibia_params['length'] + coxa_params['z_offset']
@@ -64,9 +64,6 @@ class Hexapod:
             leg = Leg(coxa, femur, tibia, self.controller, self.end_effector_offset)
             self.legs.append(leg)
 
-        self.calibration = Calibration(self)
-        self.calibration.load_calibration()
-
         self.leg_to_led: Dict[int, int] = {
             0: 2,
             1: 0,
@@ -75,6 +72,9 @@ class Hexapod:
             4: 8,
             5: 10
         }
+
+        self.calibration: Calibration = Calibration(self)
+        self.calibration.load_calibration()
 
     def calibrate_all_servos(self) -> None:
         """

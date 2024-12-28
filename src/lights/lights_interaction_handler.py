@@ -146,7 +146,7 @@ class LightsInteractionHandler:
         for leg_index, led_index in self.leg_to_led.items():
             status = calibration_status.get(leg_index, "not_calibrated")
             if status == "calibrating":
-                self.lights.set_color(ColorRGB.ORANGE, led_index=led_index)
+                self.lights.set_color(ColorRGB.YELLOW, led_index=led_index)
             elif status == "calibrated":
                 self.lights.set_color(ColorRGB.GREEN, led_index=led_index)
             else:
