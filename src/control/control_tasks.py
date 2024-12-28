@@ -71,3 +71,24 @@ class RunCalibrationTask(ControlTask):
         Runs the calibration process.
         """
         self.hexapod.calibrate_all_servos()
+
+class CompositeCalibrationTask(ControlTask):
+    def __init__(self, hexapod, lights_handler):
+        super().__init__()
+        self.run_calibration_task = RunCalibrationTask(hexapod)
+        self.monitor_calibration_task = MonitorCalibrationStatusTask(hexapod, lights_handler)
+
+    def run(self) -> None:
+        """
+        Starts both RunCalibrationTask and MonitorCalibrationStatusTask.
+        """
+        self.run_calibration_task.start()
+        self.monitor_calibration_task.start()
+
+    def stop_task(self) -> None:
+        """
+        Stops both RunCalibrationTask and MonitorCalibrationStatusTask.
+        """
+        self.run_calibration_task.stop_task()
+        self.monitor_calibration_task.stop_task()
+        super().stop_task()

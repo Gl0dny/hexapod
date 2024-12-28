@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
-from control.control_tasks import ControlTask, RunCalibrationTask, MonitorCalibrationStatusTask
+from control.control_tasks import ControlTask, CompositeCalibrationTask, RunCalibrationTask, MonitorCalibrationStatusTask
 
 logger = logging.getLogger(__name__)
 
@@ -202,11 +202,8 @@ class ControlInterface:
             logger.info("Starting calibration.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = RunCalibrationTask(self.hexapod)
+            self.control_task = CompositeCalibrationTask(self.hexapod, self.lights_handler)
             self.control_task.start()
-
-            monitor_task = MonitorCalibrationStatusTask(self.hexapod, self.lights_handler)
-            monitor_task.start()
         
         except Exception as e:
             logger.error(f"Calibration failed: {e}")
