@@ -1,0 +1,13 @@
+{
+    "leg_0": {
+      "coxa": {"servo_min": 500, "servo_max": 2500},
+      "femur": {"servo_min": 600, "servo_max": 2400},
+      "tibia": {"servo_min": 700, "servo_max": 2300}
+    },
+    "leg_1": {
+      "coxa": {"servo_min": 520, "servo_max": 2520},
+      "femur": {"servo_min": 610, "servo_max": 2410},
+      "tibia": {"servo_min": 710, "servo_max": 2310}
+    }
+  }
+  

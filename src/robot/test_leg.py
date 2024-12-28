@@ -50,7 +50,7 @@ def main():
 
     print(f"Set angles to Coxa: {theta1}°, Femur: {theta2}°, Tibia: {theta3}°")
 
-    # controller.go_home()
+    controller.go_home()
 
 if __name__ == "__main__":
     main()
