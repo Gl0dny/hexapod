@@ -57,6 +57,11 @@ context:
       - Move (in) (a, an, the) [high, upright] profile (position)
     helix:
       - "[Helix, Spiral]"
+    calibrate:
+      - "Calibration"
+      - "[Calibrate, Recalibrate, Adjust] (the) (motors)"
+      - "[Initiate, Begin, Start] (the) calibration (process)"
+      - "[Run, Perform] (a) (system) calibration"
   slots:
     direction:
       - back
