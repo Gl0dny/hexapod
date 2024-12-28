@@ -9,14 +9,21 @@ class Calibration:
             hexapod (Hexapod): The Hexapod instance to be calibrated.
         """
         self.hexapod = hexapod
+        self.status = {}
 
     def calibrate_all_servos(self):
         """
         Calibrates all servos for each leg and joint of the hexapod.
+        Updates calibration status for each leg to "calibrating" during the process and "calibrated" upon completion.
         Separates calibration steps into individual methods and handles inverted joints.
         Saves calibration data after successful calibration.
+        
+        Returns:
+            dict: A dictionary with leg indices as keys and their calibration status ("calibrated").
         """
+        status = {}
         for i, leg in enumerate(self.hexapod.legs):
+            self.status[i] = "calibrating"
             for joint_name in ['coxa', 'femur', 'tibia']:
                 joint = getattr(leg, joint_name)
                 calibration_success = False
@@ -30,7 +37,17 @@ class Calibration:
                     calibration_success = self.check_zero_angle(i, joint_name)
                 self.hexapod.controller.go_home()
                 print(f"Set Leg {i} to default position (0, 0, 0).")
+            self.status[i] = "calibrated"
         self.save_calibration()
+
+    def get_calibration_status(self):
+        """
+        Retrieves the current calibration status.
+        
+        Returns:
+            dict: Current calibration status with leg indices as keys.
+        """
+        return self.status
 
     def calibrate_servo_min(self, leg_index, joint_name):
         """

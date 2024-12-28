@@ -110,3 +110,39 @@ class ControlModule:
     # def change_mode(self, mode):
     #     logger.info(f"Changing mode to: {mode}")
     #     # Implement mode change logic here
+
+    def calibrate(self, hexapod):
+        """
+        Initiates and monitors the calibration process for the hexapod.
+        Updates LED colors based on the current calibration status of each leg.
+        
+        Args:
+            hexapod (Hexapod): The hexapod instance to calibrate.
+        
+        Returns:
+            dict: A dictionary with leg indices as keys and their calibration status.
+        """
+        logger.info("Starting calibration.")
+        
+        # Set initial LED color to indicate calibration start
+        self.lights_handler.lights.set_color(ColorRGB.YELLOW)
+        
+        # Start calibration in a separate thread if needed
+        hexapod.calibrate_all_servos()
+        
+        # Retrieve current calibration calibration_status
+        calibration_status = hexapod.calibration.get_calibration_status()
+        
+        # Determine LED color based on calibration calibration_status
+        all_calibrated = all(status == "calibrated" for status in calibration_status.values())
+        
+        if all_calibrated:
+            # All legs calibrated successfully
+            self.lights_handler.lights.set_color(ColorRGB.GREEN)
+            logger.info("Calibration completed successfully.")
+        else:
+            # Some legs are still calibrating or failed
+            self.lights_handler.lights.set_color(ColorRGB.RED)
+            logger.warning("Calibration incomplete or some legs failed.")
+        
+        return calibration_status

@@ -24,8 +24,9 @@ class IntentDispatcher:
             'sleep': self.handle_sleep,
             'low_profle_mode': self.handle_low_profile_mode,
             'upright_mode': self.handle_upright_mode,
-            'helix': self.handle_helix
+            'helix': self.handle_helix,
             # 'mode': self.handle_mode,
+            'calibrate': self.handle_calibrate
         }
 
     def dispatch(self, intent, slots):
@@ -144,3 +145,7 @@ class IntentDispatcher:
     #         self.control.change_mode(mode)
     #     else:
     #         logger.error("No mode provided for mode command.")
+
+    def handle_calibrate(self, slots):
+        logger.info("Handling calibrate command.")
+        self.control.calibrate()

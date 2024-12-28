@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg
@@ -67,6 +66,10 @@ class Hexapod:
         self.calibration.load_calibration()
 
     def calibrate_all_servos(self):
+        """
+        Initiates the calibration of all servos.
+        Updates leg statuses to "calibrating" during the process and "calibrated" upon completion.
+        """
         self.calibration.calibrate_all_servos()
 
     def move_leg(self, leg_index, x, y, z, speed=None, accel=None):
