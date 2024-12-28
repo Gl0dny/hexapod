@@ -13,13 +13,16 @@ class Leg:
             controller (MaestroUART): The shared MaestroUART controller instance for servo communication.
             end_effector_offset (tuple): (x, y, z) offset for the end effector's position relative to the leg's base.
         """
-        coxa_params_copy = dict(coxa_params)
-        self.coxa_z_offset = coxa_params_copy.pop('z_offset', 0.0)
-        tiba_params_copy = dict(tibia_params)
-        self.tibia_x_offset = tiba_params_copy.pop('x_offset', 0.0)
-        self.coxa = Joint(controller, **coxa_params_copy)
-        self.femur = Joint(controller, **femur_params)
-        self.tibia = Joint(controller, **tiba_params_copy)
+        self.coxa_params = dict(coxa_params)
+        self.femur_params = dict(femur_params)
+        self.tibia_params = dict(tibia_params)
+        
+        self.coxa_z_offset = self.coxa_params.pop('z_offset', 0.0)
+        self.tibia_x_offset = self.tibia_params.pop('x_offset', 0.0)
+        
+        self.coxa = Joint(controller, **self.coxa_params)
+        self.femur = Joint(controller, **self.femur_params)
+        self.tibia = Joint(controller, **self.tibia_params)
         self.end_effector_offset = end_effector_offset
         # print(f"Initializing Leg with coxa_params: {coxa_params}, femur_params: {femur_params}, tibia_params: {tibia_params}")
 
@@ -46,11 +49,11 @@ class Leg:
         z += oz
         print(f"Adjusted position for IK - x: {x}, y: {y}, z: {z}")
 
-        # Angle for the coxa joint
+        # Calculate the angle for the coxa joint based on x and y positions
         coxa_angle = math.atan2(x, y)
         print(f"coxa_angle (radians): {coxa_angle}")
 
-        # Calculate the horizontal distance to the target
+        # Calculate the horizontal distance to the target position
         R = math.hypot(x, y)
         print(f"horizontal_distance: {R}")
 
@@ -64,7 +67,7 @@ class Leg:
         if F > max_reach:
             raise ValueError("Target is out of reach.")
 
-        # Inverse kinematics calculations
+        # Inverse kinematics calculations to find joint angles
         alpha1_tan = (R - self.coxa.length) / (z - self.coxa_z_offset)
         alpha2_cos = (self.tibia.length**2 - self.femur.length**2 - F**2) / (-2 * self.femur.length * F)
         alpha1 = math.atan(alpha1_tan)

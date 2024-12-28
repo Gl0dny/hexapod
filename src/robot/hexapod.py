@@ -1,59 +1,58 @@
 import os
 import sys
+from typing import Optional, List, Tuple, Dict
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
-from robot import Leg
+from robot import Leg, Calibration
 
 class Hexapod:
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Represents the hexapod robot with six legs.
+
         Attributes:
             controller (MaestroUART): Serial controller for managing servo motors.
             speed (int): Default speed setting for servo movements.
             accel (int): Default acceleration setting for servo movements.
-            legs (list): List of Leg instances representing each of the hexapod's legs.
-            coxa_params (dict): Parameters for the coxa joint, including length, channel, angle limits, and servo settings.
-            femur_params (dict): Parameters for the femur joint, including length, channel, angle limits, and servo settings.
-            tibia_params (dict): Parameters for the tibia joint, including length, channel, angle limits, and servo settings.
-            end_effector_offset (tuple): Default offset for the end effector position - (x,y,z).
+            legs (List[Leg]): List of Leg instances representing each of the hexapod's legs.
+            coxa_params (Dict[str, float]): Parameters for the coxa joint, including length, channel, angle limits, and servo settings.
+            femur_params (Dict[str, float]): Parameters for the femur joint, including length, channel, angle limits, and servo settings.
+            tibia_params (Dict[str, float]): Parameters for the tibia joint, including length, channel, angle limits, and servo settings.
+            end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z).
+            leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
+            calibration (Calibration): Instance managing servo calibrations and related processes.
         """
-        self.controller = MaestroUART('/dev/ttyS0', 9600)
+        self.controller: MaestroUART = MaestroUART('/dev/ttyS0', 9600)
         
-        self.speed = 32
-        self.accel = 5
+        self.speed: int = 32
+        self.accel: int = 5
 
-        coxa_params = {
+        coxa_params: Dict[str, float] = {
             'length': 27.5,
             'angle_min': -45,
             'angle_max': 45,
-            'servo_min': 992 * 4,
-            'servo_max': 2000 * 4,
             'z_offset': 22.5
         }
-        femur_params = {
+        femur_params: Dict[str, float] = {
             'length': 52.5,
             'angle_min': -45,
             'angle_max': 45,
-            'servo_min': 992 * 4,
-            'servo_max': 2000 * 4
+            'invert': True
         }
-        tibia_params = {
+        tibia_params: Dict[str, float] = {
             'length': 140.0,
             'angle_min': -45,
             'angle_max': 45,
-            'servo_min': 992 * 4,
-            'servo_max': 2000 * 4,
             'x_offset': 22.5
         }
 
-        self.end_effector_offset = (
+        self.end_effector_offset: Tuple[float, float, float] = (
             tibia_params['x_offset'],
-            femur_params['length']+coxa_params['length'],
-            tibia_params['length']+coxa_params['z_offset']
+            femur_params['length'] + coxa_params['length'],
+            tibia_params['length'] + coxa_params['z_offset']
         )
 
-        self.legs = []
+        self.legs: List[Leg] = []
         for i in range(6):
             coxa = coxa_params.copy()
             coxa['channel'] = i * 3
@@ -65,42 +64,36 @@ class Hexapod:
             leg = Leg(coxa, femur, tibia, self.controller, self.end_effector_offset)
             self.legs.append(leg)
 
-    def calibrate_servo(self, leg_index, joint, servo_min, servo_max):
-        """
-        Calibrate servo_min and servo_max for a specific joint of a leg.
+        self.leg_to_led: Dict[int, int] = {
+            0: 2,
+            1: 0,
+            2: 4,
+            3: 6,
+            4: 8,
+            5: 10
+        }
 
+        self.calibration: Calibration = Calibration(self)
+        self.calibration.load_calibration()
+
+    def calibrate_all_servos(self) -> None:
+        """
+        Calibrate all servo motors using the Calibration module.
+        Sets each leg's status to 'calibrating' and updates to 'calibrated' once done.
+        """
+        self.calibration.calibrate_all_servos()
+
+    def move_leg(self, leg_index: int, x: float, y: float, z: float, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
+        """
+        Move a specific leg to the given (x, y, z) coordinate.
+        
         Args:
             leg_index (int): Index of the leg (0-5).
-            joint (str): The joint to calibrate ('coxa', 'femur', or 'tibia').
-            servo_min (int): New minimum servo value.
-            servo_max (int): New maximum servo value.
-        """
-        if 0 <= leg_index < len(self.legs):
-            leg = self.legs[leg_index]
-            if joint == 'coxa':
-                leg.coxa_params['servo_min'] = servo_min
-                leg.coxa_params['servo_max'] = servo_max
-            elif joint == 'femur':
-                leg.femur_params['servo_min'] = servo_min
-                leg.femur_params['servo_max'] = servo_max
-            elif joint == 'tibia':
-                leg.tibia_params['servo_min'] = servo_min
-                leg.tibia_params['servo_max'] = servo_max
-            else:
-                print("Invalid joint name. Choose 'coxa', 'femur', or 'tibia'.")
-        else:
-            print("Invalid leg index. Must be between 0 and 5.")
-
-
-    def move_leg(self, leg_index, x, y, z, speed=None, accel=None):
-        """
-        Command a leg to move to a position.
-
-        Args:
-            leg_index (int): Index of the leg (0-5).
-            x, y, z (float): Target coordinates.
-            speed (int, optional): Servo speed. Defaults to Hexapod's speed.
-            accel (int, optional): Servo acceleration. Defaults to Hexapod's accel.
+            x (float): Target x-coordinate.
+            y (float): Target y-coordinate.
+            z (float): Target z-coordinate.
+            speed (int, optional): Overrides the default servo speed.
+            accel (int, optional): Overrides the default servo acceleration.
         """
         if speed is None:
             speed = self.speed
@@ -108,14 +101,14 @@ class Hexapod:
             accel = self.accel
         self.legs[leg_index].move_to(x, y, z, speed, accel)
 
-    def move_all_legs(self, positions, speed=None, accel=None):
+    def move_all_legs(self, positions: List[Tuple[float, float, float]], speed: Optional[int] = None, accel: Optional[int] = None) -> None:
         """
-        Command all legs to move to specified positions.
-
+        Move all legs simultaneously to specified positions.
+        
         Args:
-            positions (list): List of (x, y, z) tuples.
-            speed (int, optional): Servo speed. Defaults to Hexapod's speed.
-            accel (int, optional): Servo acceleration. Defaults to Hexapod's accel.
+            positions (List[Tuple[float, float, float]]): List of (x, y, z) tuples for each leg.
+            speed (int, optional): Overrides default servo speed.
+            accel (int, optional): Overrides default servo acceleration.
         """
         if speed is None:
             speed = self.speed
@@ -125,23 +118,7 @@ class Hexapod:
             x, y, z = pos
             self.move_leg(i, x, y, z, speed, accel)
 
-    # Implement gait algorithms here
-
-# Example usage
 if __name__ == '__main__':
+    # Calibrate hexapod
     hexapod = Hexapod()
-
-    # Define target positions for each leg
-    positions = [
-        (100.0,  50.0, -50.0),  # Leg 0
-        (100.0, -50.0, -50.0),  # Leg 1
-        (80.0,  60.0, -50.0),   # Leg 2
-        (80.0, -60.0, -50.0),   # Leg 3
-        (60.0,  70.0, -50.0),   # Leg 4
-        (60.0, -70.0, -50.0),   # Leg 5
-    ]
-
-    # Move all legs to their initial positions
-    hexapod.move_all_legs(positions)
-
-    # Implement gait control loops and additional functionality
+    hexapod.calibrate_all_servos()

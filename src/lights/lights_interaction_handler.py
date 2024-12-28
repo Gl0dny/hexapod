@@ -1,4 +1,4 @@
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, Dict
 from lights import Lights
 from .animation import Animation, OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
 from .lights import ColorRGB
@@ -10,18 +10,23 @@ class LightsInteractionHandler:
     Attributes:
         lights (Lights): The Lights object to control the LEDs.
         animation (Animation): The current animation being played.
+        leg_to_led (dict): Mapping from leg indices to LED indices.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, leg_to_led_map: Dict[int, int]) -> None:
         """
         Initialize the LightsInteractionHandler object.
+
+        Args:
+            leg_to_led_map (dict): Mapping from leg indices to LED indices.
         """
         self.lights: Lights = Lights()
         self.animation: Animation = None
+        self.leg_to_led = leg_to_led_map
 
     def stop_animation(self) -> None:
         """
-        Stop the current animation if one is running.
+        Stop any running animation and reset the animation attribute.
         """
         if hasattr(self, 'animation') and self.animation:
             self.animation.stop_animation()
@@ -129,3 +134,20 @@ class LightsInteractionHandler:
         self.stop_animation()
         self.animation = None  # Ensure animation is set to avoid AttributeError
         raise NotImplementedError("The 'speak' method is not implemented yet.")
+
+    def update_calibration_leds_status(self, calibration_status: Dict[int, str]) -> None:
+        """
+        Update each leg's LED color based on calibration status.
+        
+        Args:
+            calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
+        """
+        self.stop_animation()
+        for leg_index, led_index in self.leg_to_led.items():
+            status = calibration_status.get(leg_index, "not_calibrated")
+            if status == "calibrating":
+                self.lights.set_color(ColorRGB.YELLOW, led_index=led_index)
+            elif status == "calibrated":
+                self.lights.set_color(ColorRGB.GREEN, led_index=led_index)
+            else:
+                self.lights.set_color(ColorRGB.RED, led_index=led_index)
