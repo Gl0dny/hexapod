@@ -70,7 +70,7 @@ class RunCalibrationTask(ControlTask):
         """
         Runs the calibration process.
         """
-        self.hexapod.calibrate_all_servos()
+        self.hexapod.calibrate_all_servos(stop_event=self.stop_event)
 
 class CompositeCalibrationTask(ControlTask):
     def __init__(self, hexapod, lights_handler):

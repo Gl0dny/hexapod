@@ -1,6 +1,7 @@
 import os
 import sys
 from typing import Optional, List, Tuple, Dict
+import threading
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg, Calibration
@@ -76,12 +77,15 @@ class Hexapod:
         self.calibration: Calibration = Calibration(self)
         self.calibration.load_calibration()
 
-    def calibrate_all_servos(self) -> None:
+    def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
         Calibrate all servo motors using the Calibration module.
         Sets each leg's status to 'calibrating' and updates to 'calibrated' once done.
+
+        Args:
+            stop_event (threading.Event, optional): Event to signal stopping the calibration process.
         """
-        self.calibration.calibrate_all_servos()
+        self.calibration.calibrate_all_servos(stop_event=stop_event)
 
     def move_leg(self, leg_index: int, x: float, y: float, z: float, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
         """
