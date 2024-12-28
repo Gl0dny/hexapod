@@ -32,8 +32,9 @@ class Hexapod:
         }
         femur_params = {
             'length': 52.5,
-            'angle_min': -45,
+            'angle_min': -45, 
             'angle_max': 45,
+            'invert': True
         }
         tibia_params = {
             'length': 140.0,
@@ -103,8 +104,8 @@ class Hexapod:
                             calibrated_min = True
                         else:
                             print("Re-enter servo_min calibration value.")
-                    except ValueError:
-                        print("Invalid input. Please enter an integer value for servo_min.")
+                    except ValueError as e:
+                        print(f"Invalid input. Please enter an integer value for servo_min. Error: {e}")
 
                 # Calibrate servo_max
                 calibrated_max = False
