@@ -7,15 +7,15 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
-from control import RunCalibrationTask, MonitorCalibrationStatusTask
+from control.control_tasks  import RunCalibrationTask, MonitorCalibrationStatusTask
 
 logger = logging.getLogger(__name__)
 
-class ControlModule:
+class ControlInterface:
     def __init__(self):
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
-        logger.info("ControlModule initialized with Lights and Hexapod.")
+        logger.info("ControlInterface initialized with Lights and Hexapod.")
 
     # def inject_hexapod(func):
     #     """

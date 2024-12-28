@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
 from intent_dispatcher import IntentDispatcher
-from control import ControlModule, StateManager
+from control import ControlInterface, StateManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class VoiceControl(threading.Thread):
         self._context = self._picovoice.context_info
         self._device_index = device_index
 
-        self._control = ControlModule()
+        self._control = ControlInterface()
         self._dispatcher = IntentDispatcher(self._control)
         self._state_manager = StateManager()
 

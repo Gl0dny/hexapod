@@ -1,3 +1,3 @@
-from .control_module import ControlModule
+from .control_interface import ControlModule
 from .state_manager import StateManager
-from .task import Task
+from .control_tasks import Task
