@@ -200,7 +200,8 @@ class ControlInterface:
         """
         try:
             logger.info("Starting calibration.")
-            self.control_task.stop_task()
+            if self.control_task:
+                self.control_task.stop_task()
             self.control_task = RunCalibrationTask(self.hexapod)
             self.control_task.start()
 
