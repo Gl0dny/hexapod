@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg
@@ -27,23 +28,17 @@ class Hexapod:
             'length': 27.5,
             'angle_min': -45,
             'angle_max': 45,
-            'servo_min': 992 * 4,
-            'servo_max': 2000 * 4,
             'z_offset': 22.5
         }
         femur_params = {
             'length': 52.5,
             'angle_min': -45,
             'angle_max': 45,
-            'servo_min': 992 * 4,
-            'servo_max': 2000 * 4
         }
         tibia_params = {
             'length': 140.0,
             'angle_min': -45,
             'angle_max': 45,
-            'servo_min': 992 * 4,
-            'servo_max': 2000 * 4,
             'x_offset': 22.5
         }
 
@@ -65,6 +60,163 @@ class Hexapod:
             leg = Leg(coxa, femur, tibia, self.controller, self.end_effector_offset)
             self.legs.append(leg)
 
+        self.load_calibration()
+
+    def calibrate_all_servos(self):
+        """
+        Calibrate all servos by prompting user for each servo's min and max values until confirmed correct.
+        Calibrates servo_min and servo_max in separate steps with corresponding angle adjustments,
+        and verifies the zero angle position.
+        """
+        for i, leg in enumerate(self.legs):
+            for joint_name in ['coxa', 'femur', 'tibia']:
+                joint_params = getattr(leg, joint_name + '_params')
+                angle_min = joint_params.get('angle_min', -45)
+                angle_max = joint_params.get('angle_max', 45)
+                angle_zero = 0
+
+                print(f"\nCalibrating {joint_name} of Leg {i}:")
+                print(f"Expected angle_min ({angle_min}°) corresponds to servo_min: {992 * 4}")
+                print(f"Expected angle_max ({angle_max}°) corresponds to servo_max: {2000 * 4}")
+
+                # Calibrate servo_min
+                calibrated_min = False
+                while not calibrated_min:
+                    try:
+                        servo_min_input = int(input(f"Enter servo_min for Leg {i} {joint_name} (992-2000): "))
+                        
+                        if not (992 <= servo_min_input <= 2000):
+                            print("Error: servo_min must be between 992 and 2000.")
+                            continue
+                        
+                        servo_min = servo_min_input * 4
+                        
+                        self.calibrate_servo(i, joint_name, servo_min, leg.__dict__[joint_name].servo_max)
+                        
+                        joint = getattr(leg, joint_name)
+                        joint.set_angle(angle_min, speed=self.speed, accel=self.accel)
+                        print(f"Set {joint_name} of Leg {i} to angle_min: {angle_min}°")
+                        
+                        confirm_min = input("Is the servo_min calibration correct? (y/n): ").strip().lower()
+                        print()
+                        if confirm_min == 'y':
+                            calibrated_min = True
+                        else:
+                            print("Re-enter servo_min calibration value.")
+                    except ValueError:
+                        print("Invalid input. Please enter an integer value for servo_min.")
+
+                # Calibrate servo_max
+                calibrated_max = False
+                while not calibrated_max:
+                    try:
+                        servo_max_input = int(input(f"Enter servo_max for Leg {i} {joint_name} (992-2000): "))
+                        
+                        if not (992 <= servo_max_input <= 2000):
+                            print("Error: servo_max must be between 992 and 2000.")
+                            continue
+                        if servo_max_input <= servo_min_input:
+                            print("Error: servo_max must be greater than servo_min.")
+                            continue
+                        
+                        servo_max = servo_max_input * 4
+                        
+                        self.calibrate_servo(i, joint_name, leg.__dict__[joint_name].servo_min, servo_max)
+                        
+                        joint.set_angle(angle_max, speed=self.speed, accel=self.accel)
+                        print(f"Set {joint_name} of Leg {i} to angle_max: {angle_max}°")
+                        
+                        confirm_max = input("Is the servo_max calibration correct? (y/n): ").strip().lower()
+                        print()
+                        if confirm_max == 'y':
+                            calibrated_max = True
+                        else:
+                            print("Re-enter servo_max calibration value.")
+                    except ValueError:
+                        print("Invalid input. Please enter an integer value for servo_max.")
+
+                # Check angle_zero
+                calibrated_zero = False
+                while not calibrated_zero:
+                    try:
+                        joint.set_angle(angle_zero)
+                        print(f"Set {joint_name} of Leg {i} to angle_zero: {angle_zero}°")
+                        
+                        confirm_zero = input("Is the zero angle calibration correct? (y/n): ").strip().lower()
+                        print()
+                        if confirm_zero == 'y':
+                            calibrated_zero = True
+                        else:
+                            print("Recalibrate servo_min and servo_max if zero angle is incorrect.")
+                    except ValueError as e:
+                        print(f"Error setting zero angle: {e}")
+
+            # Set leg to default position after calibration
+            # self.move_leg(i, -25, 0, 0)
+            self.controller.go_home()
+            print(f"Set Leg {i} to default position (0, 0, 0).")
+
+        self.save_calibration()
+
+    def save_calibration(self):
+        """
+        Save the current calibration settings to a JSON file.
+        Overwrites the existing calibration.json file.
+        """
+        calibration_data = {}
+        for i, leg in enumerate(self.legs):
+            calibration_data[f"leg_{i}"] = {
+                "coxa": {
+                    "servo_min": leg.coxa.servo_min,
+                    "servo_max": leg.coxa.servo_max
+                },
+                "femur": {
+                    "servo_min": leg.femur.servo_min,
+                    "servo_max": leg.femur.servo_max
+                },
+                "tibia": {
+                    "servo_min": leg.tibia.servo_min,
+                    "servo_max": leg.tibia.servo_max
+                }
+            }
+        
+        try:
+            with open("calibration.json", "w") as f:
+                json.dump(calibration_data, f, indent=4)
+            print("Calibration data saved to calibration.json.")
+        except IOError as e:
+            print(f"Failed to save calibration data: {e}")
+
+    def load_calibration(self):
+        """
+        Load calibration data from calibration.json and update servo parameters.
+        Ensures servo_min and servo_max are between 992 and 2000 and servo_min < servo_max before applying.
+        """
+        try:
+            with open("calibration.json", "r") as f:
+                calibration_data = json.load(f)
+            for i, leg in enumerate(self.legs):
+                leg_data = calibration_data.get(f"leg_{i}", {})
+                for joint_name in ['coxa', 'femur', 'tibia']:
+                    joint_calib = leg_data.get(joint_name, {})
+                    servo_min = joint_calib.get('servo_min')
+                    servo_max = joint_calib.get('servo_max')
+                    if servo_min and servo_max:
+                        if (992 * 4 <= servo_min <= 2000 * 4 and
+                            992 * 4 <= servo_max <= 2000 * 4 and
+                            servo_min < servo_max):
+                            self.calibrate_servo(i, joint_name, servo_min, servo_max)
+                            print(f"Loaded calibration for leg {i} {joint_name}: servo_min={servo_min}, servo_max={servo_max}")
+                        else:
+                            print(f"Calibration values for leg {i} {joint_name} are invalid (servo_min: {servo_min}, servo_max: {servo_max}). Using default values.")
+                            self.calibrate_servo(i, joint_name, 992 * 4, 2000 * 4)
+                            print(f"Set to default: servo_min=3968, servo_max=8000")
+        except FileNotFoundError:
+            print("calibration.json not found. Using default calibration values.")
+        except json.JSONDecodeError as e:
+            print(f"Error decoding calibration.json: {e}")
+            print("Using default calibration values.")
+
     def calibrate_servo(self, leg_index, joint, servo_min, servo_max):
         """
         Calibrate servo_min and servo_max for a specific joint of a leg.
@@ -80,17 +232,19 @@ class Hexapod:
             if joint == 'coxa':
                 leg.coxa_params['servo_min'] = servo_min
                 leg.coxa_params['servo_max'] = servo_max
+                leg.coxa.update_calibration(servo_min, servo_max)
             elif joint == 'femur':
                 leg.femur_params['servo_min'] = servo_min
                 leg.femur_params['servo_max'] = servo_max
+                leg.femur.update_calibration(servo_min, servo_max)
             elif joint == 'tibia':
                 leg.tibia_params['servo_min'] = servo_min
                 leg.tibia_params['servo_max'] = servo_max
+                leg.tibia.update_calibration(servo_min, servo_max)
             else:
                 print("Invalid joint name. Choose 'coxa', 'femur', or 'tibia'.")
         else:
             print("Invalid leg index. Must be between 0 and 5.")
-
 
     def move_leg(self, leg_index, x, y, z, speed=None, accel=None):
         """
@@ -132,16 +286,19 @@ if __name__ == '__main__':
     hexapod = Hexapod()
 
     # Define target positions for each leg
-    positions = [
-        (100.0,  50.0, -50.0),  # Leg 0
-        (100.0, -50.0, -50.0),  # Leg 1
-        (80.0,  60.0, -50.0),   # Leg 2
-        (80.0, -60.0, -50.0),   # Leg 3
-        (60.0,  70.0, -50.0),   # Leg 4
-        (60.0, -70.0, -50.0),   # Leg 5
-    ]
+    # positions = [
+    #     (100.0,  50.0, -50.0),  # Leg 0
+    #     (100.0, -50.0, -50.0),  # Leg 1
+    #     (80.0,  60.0, -50.0),   # Leg 2
+    #     (80.0, -60.0, -50.0),   # Leg 3
+    #     (60.0,  70.0, -50.0),   # Leg 4
+    #     (60.0, -70.0, -50.0),   # Leg 5
+    # ]
 
-    # Move all legs to their initial positions
-    hexapod.move_all_legs(positions)
+    # Start calibration
+    hexapod.calibrate_all_servos()
+
+    # Move all legs to their initial positions after calibration
+    # hexapod.move_all_legs(positions)
 
     # Implement gait control loops and additional functionality

@@ -61,3 +61,15 @@ class Joint:
         servo_range = self.servo_max - self.servo_min
         target = self.servo_min + servo_range * ((angle - self.angle_min) / angle_range)
         return int(target)
+
+    def update_calibration(self, servo_min, servo_max):
+        """
+        Update the servo_min and servo_max calibration values.
+
+        Args:
+            servo_min (int): New minimum servo target value.
+            servo_max (int): New maximum servo target value.
+        """
+        self.servo_min = servo_min
+        self.servo_max = servo_max
+        print(f"Updated calibration for channel {self.channel}: servo_min={self.servo_min}, servo_max={self.servo_max}")
