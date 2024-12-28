@@ -3,7 +3,7 @@ from lights import Lights
 from .animation import Animation, OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
 from .lights import ColorRGB
 
-class LightsAnimationHandler:
+class LightsInteractionHandler:
     """
     A class to handle interactions with the Lights object, including animations.
 
@@ -14,7 +14,7 @@ class LightsAnimationHandler:
 
     def __init__(self) -> None:
         """
-        Initialize the LightsAnimationHandler object.
+        Initialize the LightsInteractionHandler object.
         """
         self.lights: Lights = Lights()
         self.animation: Animation = None

@@ -1,3 +1,3 @@
 from .lights import Lights
-from .lights_animation_handler import LightsAnimationHandler
+from .lights_interaction_handler import LightsInteractionHandler
 from .animation import Animation
