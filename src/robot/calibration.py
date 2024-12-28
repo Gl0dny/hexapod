@@ -9,7 +9,8 @@ class Calibration:
             hexapod (Hexapod): The Hexapod instance to be calibrated.
         """
         self.hexapod = hexapod
-        self.status = {}
+        # Initialize all legs as not calibrated
+        self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
 
     def calibrate_all_servos(self):
         """
@@ -17,11 +18,7 @@ class Calibration:
         Updates calibration status for each leg to "calibrating" during the process and "calibrated" upon completion.
         Separates calibration steps into individual methods and handles inverted joints.
         Saves calibration data after successful calibration.
-        
-        Returns:
-            dict: A dictionary with leg indices as keys and their calibration status ("calibrated").
         """
-        status = {}
         for i, leg in enumerate(self.hexapod.legs):
             self.status[i] = "calibrating"
             for joint_name in ['coxa', 'femur', 'tibia']:

@@ -1,6 +1,8 @@
 import logging
 import sys
 import os
+import threading
+import time  # Added import for time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -14,6 +16,7 @@ class ControlModule:
     def __init__(self):
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler()
+        self.stop_monitor_calibration = threading.Event()  # Initialize stop event
         logger.info("ControlModule initialized with Lights and Hexapod.")
 
     def inject_hexapod(func):
@@ -165,41 +168,73 @@ class ControlModule:
     #     logger.info(f"Changing mode to: {mode}")
     #     # Implement mode change logic here
 
+    def monitor_calibration_status(self, calibration_status):
+        """
+        Monitors the calibration status and updates LEDs periodically.
+        
+        Args:
+            calibration_status (dict): Initial calibration status.
+        """
+        try:
+            while not self.stop_monitor_calibration.is_set():
+                updated_status = self.hexapod.calibration.get_calibration_status()
+                
+                # Debug prints to look up updated calibration status
+                # for leg_index, status in updated_status.items():
+                #     logger.debug(f"Updated Calibration Status - Leg {leg_index}: {status}")
+                #     print(f"Updated Calibration Status - Leg {leg_index}: {status}")
+                
+                # Delegate LED updates to LightsInteractionHandler
+                self.lights_handler.update_calibration_leds_status(updated_status)
+                
+                # Check if all legs are calibrated to stop monitoring
+                if all(status == "calibrated" for status in updated_status.values()):
+                    logger.info("All legs calibrated. Stopping calibration status monitoring.")
+                    self.stop_monitor_calibration.set()
+                
+                # Replace blocking sleep with non-blocking wait
+                self.stop_monitor_calibration.wait(timeout=2)
+        except Exception as e:
+            logger.error(f"Error in calibration status monitoring thread: {e}")
+
+    def run_calibration(self):
+        """
+        Runs the calibration process.
+        """
+        self.hexapod.calibrate_all_servos()
+
     @inject_hexapod
     @inject_lights_handler
     def calibrate(self, lights_handler, hexapod):
         """
-        Initiates and monitors the calibration process for the hexapod.
-        Updates LED colors based on the current calibration status of each leg.
+        Initiates the calibration process in a separate thread to avoid blocking other activities.
         
         Args:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             hexapod (Hexapod): The hexapod instance to calibrate.
-        
-        Returns:
-            dict: A dictionary with leg indices as keys and their calibration status.
         """
-        logger.info("Starting calibration.")
+        try:
+            logger.info("Starting calibration.")
+            
+            # Start calibration in a separate thread
+            calibration_thread = threading.Thread(
+                target=self.run_calibration,
+                daemon=True
+            )
+            calibration_thread.start()
+            
+            # Retrieve initial calibration status
+            calibration_status = hexapod.calibration.get_calibration_status()
+            print(f"Calibration Status: {calibration_status}")
+            
+            # Start separate thread for monitoring calibration status
+            calibration_monitor_thread = threading.Thread(
+                target=self.monitor_calibration_status,
+                args=(calibration_status,),
+                daemon=True
+            )
+            calibration_monitor_thread.start()
         
-        # Set initial LED color to indicate calibration start
-        lights_handler.lights.set_color(ColorRGB.YELLOW)
-        
-        # Start calibration in a separate thread if needed
-        hexapod.calibrate_all_servos()
-        
-        # Retrieve current calibration status
-        calibration_status = hexapod.calibration.get_calibration_status()
-        
-        # Determine LED color based on calibration status
-        all_calibrated = all(status == "calibrated" for status in calibration_status.values())
-        
-        if all_calibrated:
-            # All legs calibrated successfully
-            lights_handler.lights.set_color(ColorRGB.GREEN)
-            logger.info("Calibration completed successfully.")
-        else:
-            # Some legs are still calibrating or failed
+        except Exception as e:
+            logger.error(f"Calibration failed: {e}")
             lights_handler.lights.set_color(ColorRGB.RED)
-            logger.warning("Calibration incomplete or some legs failed.")
-        
-        return calibration_status

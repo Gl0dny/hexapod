@@ -18,6 +18,15 @@ class LightsInteractionHandler:
         """
         self.lights: Lights = Lights()
         self.animation: Animation = None
+        # Define mapping from leg indices to LED indices
+        self.leg_to_led = {
+            0: 2,
+            1: 0,
+            2: 4,
+            3: 6,
+            4: 8,
+            5: 10
+        }
 
     def stop_animation(self) -> None:
         """
@@ -129,3 +138,20 @@ class LightsInteractionHandler:
         self.stop_animation()
         self.animation = None  # Ensure animation is set to avoid AttributeError
         raise NotImplementedError("The 'speak' method is not implemented yet.")
+
+    def update_calibration_leds_status(self, calibration_status: dict) -> None:
+        """
+        Updates LEDs based on the calibration status of each leg.
+        
+        Args:
+            calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
+        """
+        # Use leg_to_led to map leg indices to their corresponding LED indices
+        for leg_index, led_index in self.leg_to_led.items():
+            status = calibration_status.get(leg_index, "not_calibrated")
+            if status == "calibrating":
+                self.lights.set_color(ColorRGB.ORANGE, led_index=led_index)
+            elif status == "calibrated":
+                self.lights.set_color(ColorRGB.GREEN, led_index=led_index)
+            else:
+                self.lights.set_color(ColorRGB.RED, led_index=led_index)
