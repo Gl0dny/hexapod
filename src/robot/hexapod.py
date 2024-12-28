@@ -2,8 +2,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
-from robot import Leg
-from calibration import Calibration
+from robot import Leg, Calibration
 
 class Hexapod:
     def __init__(self):
