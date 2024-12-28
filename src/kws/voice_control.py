@@ -41,20 +41,20 @@ class VoiceControl(threading.Thread):
         self._context = self._picovoice.context_info
         self._device_index = device_index
 
-        self._control = ControlInterface()
-        self._dispatcher = IntentDispatcher(self._control)
-        self._state_manager = StateManager()
+        self._control_interface = ControlInterface()
+        self._intent_dispatcher = IntentDispatcher(self._control_interface)
+        # self._state_manager = StateManager()
 
     def print_context(self):
         print(self._context)
 
     def _wake_word_callback(self):
         print('[wake word]\n')
-        self._control.lights_handler.listen()
+        self._control_interface.lights_handler.listen()
 
     def _inference_callback(self, inference):
 
-        self._control.lights_handler.off()
+        self._control_interface.lights_handler.off()
 
         print('{')
         print("  is_understood : '%s'," % ('true' if inference.is_understood else 'false'))
@@ -69,12 +69,12 @@ class VoiceControl(threading.Thread):
 
         if inference.is_understood:
             # if self.state_manager.can_execute(inference.intent):
-                # self._control.lights_handler.think()
-                self._dispatcher.dispatch(inference.intent, inference.slots)
+                # self._control_interface.lights_handler.think()
+                self._intent_dispatcher.dispatch(inference.intent, inference.slots)
             # else:
             #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
 
-                # self._control.lights_handler.off()
+                # self._control_interface.lights_handler.off()
                 print('\n[Listening ...]')
 
     def run(self):
@@ -92,7 +92,9 @@ class VoiceControl(threading.Thread):
 
         except KeyboardInterrupt:
             sys.stdout.write('\b' * 2)
-            print('Stopping ...')
+            print('Stopping control tasks and animations due to keyboard interrupt...')
+            self._control_interface.stop_control_task()
+            self._control_interface.lights_handler.off()
         finally:
             if recorder is not None:
                 recorder.delete()

@@ -19,21 +19,21 @@ class ControlInterface:
         self.control_task: ControlTask = None
         logger.info("ControlInterface initialized with Lights and Hexapod.")
 
-    # def inject_hexapod(func):
-    #     """
-    #     Decorator to inject self.hexapod into the decorated function.
-    #     """
-    #     def wrapper(self, *args, **kwargs):
-    #         return func(self, self.hexapod, *args, **kwargs)
-    #     return wrapper
+    def inject_hexapod(func):
+        """
+        Decorator to inject self.hexapod into the decorated function.
+        """
+        def wrapper(self, *args, **kwargs):
+            return func(self, self.hexapod, *args, **kwargs)
+        return wrapper
 
-    # def inject_lights_handler(func):
-    #     """
-    #     Decorator to inject self.lights_handler into the decorated function.
-    #     """
-    #     def wrapper(self, *args, **kwargs):
-    #         return func(self, self.lights_handler, *args, **kwargs)
-    #     return wrapper
+    def inject_lights_handler(func):
+        """
+        Decorator to inject self.lights_handler into the decorated function.
+        """
+        def wrapper(self, *args, **kwargs):
+            return func(self, self.lights_handler, *args, **kwargs)
+        return wrapper
 
     def stop_control_task(self) -> None:
         """
@@ -85,37 +85,37 @@ class ControlInterface:
     #     else:
     #         logger.error("No angle or direction provided for rotation.")
 
-    # @inject_lights_handler
-    # def turn_lights(self, lights_handler, switch_state):
-    #     """
-    #     Turns the lights on or off based on the switch state.
+    @inject_lights_handler
+    def turn_lights(self, lights_handler, switch_state):
+        """
+        Turns the lights on or off based on the switch state.
         
-    #     Args:
-    #         lights_handler (LightsInteractionHandler): The lights handler instance.
-    #         switch_state (str): State to switch the lights to ('on' or 'off').
-    #     """
-    #     if switch_state == 'off':
-    #         logger.info("Turning lights off")
-    #         lights_handler.off()
-    #     else:
-    #         logger.info("Turning lights on")
-    #         lights_handler.wakeup()
+        Args:
+            lights_handler (LightsInteractionHandler): The lights handler instance.
+            switch_state (str): State to switch the lights to ('on' or 'off').
+        """
+        if switch_state == 'off':
+            logger.info("Turning lights off")
+            lights_handler.off()
+        else:
+            logger.info("Turning lights on")
+            lights_handler.wakeup()
 
-    # @inject_lights_handler
-    # def change_color(self, lights_handler, color):
-    #     """
-    #     Changes the color of the lights.
+    @inject_lights_handler
+    def change_color(self, lights_handler, color):
+        """
+        Changes the color of the lights.
         
-    #     Args:
-    #         lights_handler (LightsInteractionHandler): The lights handler instance.
-    #         color (str): The color to change the lights to.
-    #     """
-    #     try:
-    #         enum_color = ColorRGB[color.upper()]
-    #         logger.info(f"Switching color of the lights to {color}")
-    #         lights_handler.lights.set_color(enum_color)
-    #     except KeyError:
-    #         logger.error(f"Color '{color}' is not supported.")
+        Args:
+            lights_handler (LightsInteractionHandler): The lights handler instance.
+            color (str): The color to change the lights to.
+        """
+        try:
+            enum_color = ColorRGB[color.upper()]
+            logger.info(f"Switching color of the lights to {color}")
+            lights_handler.lights.set_color(enum_color)
+        except KeyError:
+            logger.error(f"Color '{color}' is not supported.")
 
     # def repeat_last_command(self):
     #     logger.info("Repeating last command.")
