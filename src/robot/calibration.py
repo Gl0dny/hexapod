@@ -39,10 +39,10 @@ class Calibration:
 
     def get_calibration_status(self):
         """
-        Retrieves the current calibration status.
+        Retrieves current calibration status for all legs.
         
         Returns:
-            dict: Current calibration status with leg indices as keys.
+            dict: Mapping of leg_index to calibration status.
         """
         return self.status
 

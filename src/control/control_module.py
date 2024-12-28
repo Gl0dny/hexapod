@@ -2,7 +2,6 @@ import logging
 import sys
 import os
 import threading
-import time  # Added import for time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -15,8 +14,8 @@ logger = logging.getLogger(__name__)
 class ControlModule:
     def __init__(self):
         self.hexapod = Hexapod()
-        self.lights_handler = LightsInteractionHandler()
-        self.stop_monitor_calibration = threading.Event()  # Initialize stop event
+        self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
+        self.stop_monitor_calibration = threading.Event()
         logger.info("ControlModule initialized with Lights and Hexapod.")
 
     def inject_hexapod(func):
