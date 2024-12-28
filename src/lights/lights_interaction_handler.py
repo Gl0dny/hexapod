@@ -13,16 +13,16 @@ class LightsInteractionHandler:
         leg_to_led (dict): Mapping from leg indices to LED indices.
     """
 
-    def __init__(self, leg_to_led_map: Dict[int, int]) -> None:
+    def __init__(self, leg_to_led: Dict[int, int]) -> None:
         """
         Initialize the LightsInteractionHandler object.
 
         Args:
-            leg_to_led_map (dict): Mapping from leg indices to LED indices.
+            leg_to_led (dict): Mapping from leg indices to LED indices.
         """
         self.lights: Lights = Lights()
         self.animation: Animation = None
-        self.leg_to_led = leg_to_led_map
+        self.leg_to_led = leg_to_led
 
     def stop_animation(self) -> None:
         """

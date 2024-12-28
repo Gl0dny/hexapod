@@ -22,7 +22,7 @@ class Animation(abc.ABC):
             lights (Lights): The Lights object to control the LEDs.
         """
         self.lights: Lights = lights
-        self.thread: threading.Thread = None  # Temporarily set to None until initialized
+        self.thread: threading.Thread = None
         self.stop_event: threading.Event = threading.Event()
 
     def start(self) -> None:
