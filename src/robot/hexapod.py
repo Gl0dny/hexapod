@@ -32,7 +32,7 @@ class Hexapod:
         }
         femur_params = {
             'length': 52.5,
-            'angle_min': -45, 
+            'angle_min': -45,
             'angle_max': 45,
             'invert': True
         }
@@ -65,99 +65,196 @@ class Hexapod:
 
     def calibrate_all_servos(self):
         """
-        Calibrate all servos by prompting user for each servo's min and max values until confirmed correct.
-        Calibrates servo_min and servo_max in separate steps with corresponding angle adjustments,
-        and verifies the zero angle position.
+        Calibrate all servos by separating calibration steps into individual methods.
+        Inverts the order of min and max calibration if the joint is inverted.
         """
         for i, leg in enumerate(self.legs):
             for joint_name in ['coxa', 'femur', 'tibia']:
-                joint_params = getattr(leg, joint_name + '_params')
-                angle_min = joint_params.get('angle_min', -45)
-                angle_max = joint_params.get('angle_max', 45)
-                angle_zero = 0
-
-                print(f"\nCalibrating {joint_name} of Leg {i}:")
-                print(f"Expected angle_min ({angle_min}°) corresponds to servo_min: {992 * 4}")
-                print(f"Expected angle_max ({angle_max}°) corresponds to servo_max: {2000 * 4}")
-
-                # Calibrate servo_min
-                calibrated_min = False
-                while not calibrated_min:
-                    try:
-                        servo_min_input = int(input(f"Enter servo_min for Leg {i} {joint_name} (992-2000): "))
-                        
-                        if not (992 <= servo_min_input <= 2000):
-                            print("Error: servo_min must be between 992 and 2000.")
-                            continue
-                        
-                        servo_min = servo_min_input * 4
-                        
-                        self.calibrate_servo(i, joint_name, servo_min, leg.__dict__[joint_name].servo_max)
-                        
-                        joint = getattr(leg, joint_name)
-                        joint.set_angle(angle_min, speed=self.speed, accel=self.accel)
-                        print(f"Set {joint_name} of Leg {i} to angle_min: {angle_min}°")
-                        
-                        confirm_min = input("Is the servo_min calibration correct? (y/n): ").strip().lower()
-                        print()
-                        if confirm_min == 'y':
-                            calibrated_min = True
-                        else:
-                            print("Re-enter servo_min calibration value.")
-                    except ValueError as e:
-                        print(f"Invalid input. Please enter an integer value for servo_min. Error: {e}")
-
-                # Calibrate servo_max
-                calibrated_max = False
-                while not calibrated_max:
-                    try:
-                        servo_max_input = int(input(f"Enter servo_max for Leg {i} {joint_name} (992-2000): "))
-                        
-                        if not (992 <= servo_max_input <= 2000):
-                            print("Error: servo_max must be between 992 and 2000.")
-                            continue
-                        if servo_max_input <= servo_min_input:
-                            print("Error: servo_max must be greater than servo_min.")
-                            continue
-                        
-                        servo_max = servo_max_input * 4
-                        
-                        self.calibrate_servo(i, joint_name, leg.__dict__[joint_name].servo_min, servo_max)
-                        
-                        joint.set_angle(angle_max, speed=self.speed, accel=self.accel)
-                        print(f"Set {joint_name} of Leg {i} to angle_max: {angle_max}°")
-                        
-                        confirm_max = input("Is the servo_max calibration correct? (y/n): ").strip().lower()
-                        print()
-                        if confirm_max == 'y':
-                            calibrated_max = True
-                        else:
-                            print("Re-enter servo_max calibration value.")
-                    except ValueError:
-                        print("Invalid input. Please enter an integer value for servo_max.")
-
-                # Check angle_zero
-                calibrated_zero = False
-                while not calibrated_zero:
-                    try:
-                        joint.set_angle(angle_zero)
-                        print(f"Set {joint_name} of Leg {i} to angle_zero: {angle_zero}°")
-                        
-                        confirm_zero = input("Is the zero angle calibration correct? (y/n): ").strip().lower()
-                        print()
-                        if confirm_zero == 'y':
-                            calibrated_zero = True
-                        else:
-                            print("Recalibrate servo_min and servo_max if zero angle is incorrect.")
-                    except ValueError as e:
-                        print(f"Error setting zero angle: {e}")
-
-            # Set leg to default position after calibration
-            # self.move_leg(i, -25, 0, 0)
-            self.controller.go_home()
-            print(f"Set Leg {i} to default position (0, 0, 0).")
-
+                joint = getattr(leg, joint_name)
+                calibration_success = False
+                while not calibration_success:
+                    if joint.invert:
+                        self.calibrate_servo_min_inverted(i, joint_name)
+                        self.calibrate_servo_max_inverted(i, joint_name)
+                    else:
+                        self.calibrate_servo_min(i, joint_name)
+                        self.calibrate_servo_max(i, joint_name)
+                    calibration_success = self.check_zero_angle(i, joint_name)
+                # Set leg to default position after calibration
+                # self.move_leg(i, -25, 0, 0)
+                self.controller.go_home()
+                print(f"Set Leg {i} to default position (0, 0, 0).")
         self.save_calibration()
+
+    def calibrate_servo_min(self, leg_index, joint_name):
+        """
+        Calibrate servo_min for a specific joint of a leg.
+        """
+        calibrated_min = False
+        while not calibrated_min:
+            try:
+                joint = getattr(self.legs[leg_index], joint_name)
+                if joint.invert:
+                    print(f"Expected angle_min ({joint.angle_min}°) corresponds to servo_max: {2000}")
+                else:
+                    print(f"Expected angle_min ({joint.angle_min}°) corresponds to servo_min: {992}")
+
+                servo_min_input = int(input(f"Enter servo_min for Leg {leg_index} {joint_name} (992-2000): "))
+                
+                if not (992 <= servo_min_input <= 2000):
+                    print("Error: servo_min must be between 992 and 2000.")
+                    continue
+                
+                if joint.invert:
+                    if servo_min_input >= (getattr(self.legs[leg_index], joint_name).servo_max // 4):
+                        print("Error: Inverted servo_min must be greater than inverted servo_max.")
+                        continue
+                servo_min = servo_min_input * 4
+                
+                self.calibrate_servo(leg_index, joint_name, servo_min, getattr(self.legs[leg_index], joint_name).servo_max)
+                
+                joint.set_angle(joint.angle_min)
+                print(f"Set {joint_name} of Leg {leg_index} to angle_min: {joint.angle_min}°")
+                
+                confirm_min = input("Is the servo_min calibration correct? (y/n): ").strip().lower()
+                print()
+                if confirm_min == 'y':
+                    calibrated_min = True
+                else:
+                    print("Re-enter servo_min calibration value.")
+            except ValueError as e:
+                print(f"Invalid input. Please enter an integer value for servo_min. Error: {e}")
+
+    def calibrate_servo_max(self, leg_index, joint_name):
+        """
+        Calibrate servo_max for a specific joint of a leg.
+        """
+        calibrated_max = False
+        while not calibrated_max:
+            try:
+                joint = getattr(self.legs[leg_index], joint_name)
+                if joint.invert:
+                    print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_min: {992}")
+                else:
+                    print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_max: {2000}")
+
+                servo_max_input = int(input(f"Enter servo_max for Leg {leg_index} {joint_name} (992-2000): "))
+                
+                if not (992 <= servo_max_input <= 2000):
+                    print("Error: servo_max must be between 992 and 2000.")
+                    continue
+
+                if not joint.invert:
+                    if servo_max_input <= (getattr(self.legs[leg_index], joint_name).servo_min // 4):
+                        print("Error: servo_max must be greater than servo_min.")
+                        continue
+                
+                servo_max = servo_max_input * 4
+                
+                self.calibrate_servo(leg_index, joint_name, getattr(self.legs[leg_index], joint_name).servo_min, servo_max)
+                
+                joint.set_angle(joint.angle_max)
+                print(f"Set {joint_name} of Leg {leg_index} to angle_max: {joint.angle_max}°")
+                
+                confirm_max = input("Is the servo_max calibration correct? (y/n): ").strip().lower()
+                print()
+                if confirm_max == 'y':
+                    calibrated_max = True
+                else:
+                    print("Re-enter servo_max calibration value.")
+            except ValueError:
+                print("Invalid input. Please enter an integer value for servo_max.")
+
+    def calibrate_servo_min_inverted(self, leg_index, joint_name):
+        """
+        Calibrate servo_min (servo_max for inverted joints) for an inverted joint of a leg.
+        """
+        calibrated_min = False
+        while not calibrated_min:
+            try:
+                print(f"Expected angle_min ({getattr(self.legs[leg_index], joint_name).angle_min}°) corresponds to servo_max: {2000}")
+                servo_max_input = int(input(f"Enter servo_max for Leg {leg_index} {joint_name} (992-2000): "))
+                
+                if not (992 <= servo_max_input <= 2000):
+                    print("Error: servo_max must be between 992 and 2000.")
+                    continue
+
+                servo_max = servo_max_input * 4
+                
+                self.calibrate_servo(leg_index, joint_name, getattr(self.legs[leg_index], joint_name).servo_min, servo_max)
+                
+                joint = getattr(self.legs[leg_index], joint_name)
+                joint.set_angle(joint.angle_min)
+                print(f"Set {joint_name} of Leg {leg_index} to angle_min: {joint.angle_min}°")
+                
+                confirm_min = input("Is the servo_max calibration correct? (y/n): ").strip().lower()
+                print()
+                if confirm_min == 'y':
+                    calibrated_min = True
+                else:
+                    print("Re-enter servo_max calibration value.")
+            except ValueError as e:
+                print(f"Invalid input. Please enter an integer value for servo_max. Error: {e}")
+
+    def calibrate_servo_max_inverted(self, leg_index, joint_name):
+        """
+        Calibrate servo_max (servo_min for inverted joints) for an inverted joint of a leg.
+        """
+        calibrated_max = False
+        while not calibrated_max:
+            try:
+                print(f"Expected angle_max ({getattr(self.legs[leg_index], joint_name).angle_max}°) corresponds to servo_min: {992}")
+                servo_min_input = int(input(f"Enter servo_min for Leg {leg_index} {joint_name} (992-2000): "))
+                
+                if not (992 <= servo_min_input <= 2000):
+                    print("Error: servo_min must be between 992 and 2000.")
+                    continue
+                if servo_min_input >= (getattr(self.legs[leg_index], joint_name).servo_max // 4):
+                    print("Error: Inverted servo_min must be less than inverted servo_max.")
+                    continue
+
+                servo_min = servo_min_input * 4
+                
+                self.calibrate_servo(leg_index, joint_name, servo_min, getattr(self.legs[leg_index], joint_name).servo_max)
+                
+                joint = getattr(self.legs[leg_index], joint_name)
+                joint.set_angle(joint.angle_max)
+                print(f"Set {joint_name} of Leg {leg_index} to angle_max: {joint.angle_max}°")
+                
+                confirm_max = input("Is the servo_min calibration correct? (y/n): ").strip().lower()
+                print()
+                if confirm_max == 'y':
+                    calibrated_max = True
+                else:
+                    print("Re-enter servo_min calibration value.")
+            except ValueError:
+                print("Invalid input. Please enter an integer value for servo_min.")
+
+    def check_zero_angle(self, leg_index, joint_name):
+        """
+        Check zero_angle for a specific joint of a leg.
+
+        Returns:
+            bool: True if calibration is correct, False otherwise.
+        """
+        calibrated_zero = False
+        while not calibrated_zero:
+            try:
+                joint = getattr(self.legs[leg_index], joint_name)
+                joint.set_angle(0)
+                print(f"Set {joint_name} of Leg {leg_index} to angle_zero: 0°")
+                
+                confirm_zero = input("Is the zero angle calibration correct? (y/n): ").strip().lower()
+                print()
+                if confirm_zero == 'y':
+                    calibrated_zero = True
+                    return True
+                else:
+                    print("Zero angle calibrated incorrectly. Recalibrating...")
+                    return False
+            except ValueError as e:
+                print(f"Error setting zero angle: {e}")
+        return False
 
     def save_calibration(self):
         """
@@ -213,10 +310,10 @@ class Hexapod:
                             self.calibrate_servo(i, joint_name, 992 * 4, 2000 * 4)
                             print(f"Set to default: servo_min=3968, servo_max=8000")
         except FileNotFoundError:
-            print("calibration.json not found. Using default calibration values.")
+            print("calibration.json not found. Using default calibration values. Run calibrate_all_servos() to set new values.")
         except json.JSONDecodeError as e:
             print(f"Error decoding calibration.json: {e}")
-            print("Using default calibration values.")
+            print("Using default calibration values. Run calibrate_all_servos() to set new values.")
 
     def calibrate_servo(self, leg_index, joint, servo_min, servo_max):
         """
