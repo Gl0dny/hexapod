@@ -169,10 +169,7 @@ class Calibration:
                 return
             try:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
-                if joint.invert:
-                    print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_min: {992}")
-                else:
-                    print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_max: {2000}")
+                print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_max: {2000}")
 
                 prompt = f"Enter servo_max for Leg {leg_index} {joint_name} (992-2000): "
                 print(prompt, end='', flush=True)  # Print prompt once
@@ -197,11 +194,10 @@ class Calibration:
                     servo_max_input = None
                     continue
 
-                if not joint.invert:
-                    if servo_max_input <= (joint.servo_min // 4):
-                        print("\nError: servo_max must be greater than servo_min.")
-                        servo_max_input = None
-                        continue
+                if servo_max_input <= (joint.servo_min // 4):
+                    print("\nError: servo_max must be greater than servo_min.")
+                    servo_max_input = None
+                    continue
 
                 servo_max = servo_max_input * 4
 
@@ -253,7 +249,7 @@ class Calibration:
                 return
             try:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
-                print(f"Expected angle_min ({joint.angle_min}°) corresponds to servo_max: {2000}")
+                print(f"Servo inverted. Expected angle_min ({joint.angle_min}°) corresponds to servo_max: {2000}")
                 
                 prompt = f"Enter servo_max for Leg {leg_index} {joint_name} (992-2000): "
                 print(prompt, end='', flush=True)  # Print prompt once
@@ -327,7 +323,7 @@ class Calibration:
                 return
             try:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
-                print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_min: {992}")
+                print(f"Servo inverted. Expected angle_max ({joint.angle_max}°) corresponds to servo_min: {992}")
                 
                 prompt = f"Enter servo_min for Leg {leg_index} {joint_name} (992-2000): "
                 print(prompt, end='', flush=True)  # Print prompt once

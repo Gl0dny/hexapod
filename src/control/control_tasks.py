@@ -37,6 +37,7 @@ class ControlTask(abc.ABC):
         Stop the task and wait for the thread to finish.
         """
         self.stop_event.set()
+        print(f"Task {self.__class__.__name__} has been stopped.")  # Added debug print
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=0.01)
 
