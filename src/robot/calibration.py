@@ -13,19 +13,8 @@ class Calibration:
             hexapod (Hexapod): The Hexapod instance to be calibrated.
         """
         self.hexapod = hexapod
-        # Initialize the InputHandler
         self.input_handler = InputHandler()
-        # Initialize all legs as not calibrated
-        self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
-
-    def get_input(self) -> Optional[str]:
-        """
-        Retrieves user input in a non-blocking manner by fetching it from the InputHandler.
-        
-        Returns:
-            Optional[str]: The user input or None if interrupted.
-        """
-        return self.input_handler.get_input(timeout=0.1)
+        self.status = {}
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
@@ -43,14 +32,14 @@ class Calibration:
             for i, leg in enumerate(self.hexapod.legs):
                 if stop_event and stop_event.is_set():
                     print("Calibration interrupted before starting Leg {}.".format(i))
-                    self._shutdown_input_listener()
+                    self.input_handler.shutdown()
                     return
 
                 self.status[i] = "calibrating"
                 for joint_name in ['coxa', 'femur', 'tibia']:
                     if stop_event and stop_event.is_set():
                         print("Calibration interrupted during calibration of Leg {}, Joint {}.".format(i, joint_name))
-                        self._shutdown_input_listener()
+                        self.input_handler.shutdown()
                         return
 
                     joint = getattr(leg, joint_name)
@@ -58,7 +47,7 @@ class Calibration:
                     while not calibration_success:
                         if stop_event and stop_event.is_set():
                             print("Calibration interrupted during calibration of Leg {}, Joint {}.".format(i, joint_name))
-                            self._shutdown_input_listener()
+                            self.input_handler.shutdown()
                             return
 
                         if joint.invert:
@@ -70,7 +59,7 @@ class Calibration:
 
                         if stop_event and stop_event.is_set():
                             print("Calibration interrupted after calibrating Leg {}, Joint {}.".format(i, joint_name))
-                            self._shutdown_input_listener()
+                            self.input_handler.shutdown()
                             return
 
                         calibration_success = self.check_zero_angle(i, joint_name, stop_event)
@@ -80,21 +69,10 @@ class Calibration:
                 
                 self.status[i] = "calibrated"
             self.save_calibration()
-            self._shutdown_input_listener()
+            self.input_handler.shutdown()
         except Exception as e:
             print(f"Error during calibration: {e}")
-            self._shutdown_input_listener()
-
-    def _shutdown_input_listener(self):
-        """
-        Shuts down the input listener gracefully using the InputHandler.
-        """
-        self.input_handler.shutdown()
-        try:
-            import sys
-            sys.stdin.close()
-        except Exception as e:
-            logging.error("Error shutting down input listener", exc_info=True)
+            self.input_handler.shutdown()
 
     def get_calibration_status(self):
         """
@@ -131,7 +109,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during servo_min input of Leg {leg_index} {joint_name}.")
                         return
-                    servo_min_input_str = self.get_input()
+                    servo_min_input_str = self.input_handler.get_input()
                     if servo_min_input_str is not None:
                         try:
                             servo_min_input = int(servo_min_input_str)
@@ -160,7 +138,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during confirmation of servo_min of Leg {leg_index} {joint_name}.")
                         return
-                    confirm_min_str = self.get_input()
+                    confirm_min_str = self.input_handler.get_input()
                     if confirm_min_str is not None:
                         confirm_min = confirm_min_str.strip().lower()
                     else:
@@ -203,7 +181,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during servo_max input of Leg {leg_index} {joint_name}.")
                         return
-                    servo_max_input_str = self.get_input()
+                    servo_max_input_str = self.input_handler.get_input()
                     if servo_max_input_str is not None:
                         try:
                             servo_max_input = int(servo_max_input_str)
@@ -239,7 +217,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during confirmation of servo_max of Leg {leg_index} {joint_name}.")
                         return
-                    confirm_max_str = self.get_input()
+                    confirm_max_str = self.input_handler.get_input()
                     if confirm_max_str is not None:
                         confirm_max = confirm_max_str.strip().lower()
                     else:
@@ -284,7 +262,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during inverted servo_min input of Leg {leg_index} {joint_name}.")
                         return
-                    servo_max_input_str = self.get_input()
+                    servo_max_input_str = self.input_handler.get_input()
                     if servo_max_input_str is not None:
                         try:
                             servo_max_input = int(servo_max_input_str)
@@ -313,7 +291,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during inverted servo_min confirmation of Leg {leg_index} {joint_name}.")
                         return
-                    confirm_min_str = self.get_input()
+                    confirm_min_str = self.input_handler.get_input()
                     if confirm_min_str is not None:
                         confirm_min = confirm_min_str.strip().lower()
                     else:
@@ -358,7 +336,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during inverted servo_max input of Leg {leg_index} {joint_name}.")
                         return
-                    servo_min_input_str = self.get_input()
+                    servo_min_input_str = self.input_handler.get_input()
                     if servo_min_input_str is not None:
                         try:
                             servo_min_input = int(servo_min_input_str)
@@ -391,7 +369,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during inverted servo_max confirmation of Leg {leg_index} {joint_name}.")
                         return
-                    confirm_max_str = self.get_input()
+                    confirm_max_str = self.input_handler.get_input()
                     if confirm_max_str is not None:
                         confirm_max = confirm_max_str.strip().lower()
                     else:
@@ -435,7 +413,7 @@ class Calibration:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during zero angle confirmation of Leg {leg_index} {joint_name}.")
                         return False
-                    confirm_zero_str = self.get_input()
+                    confirm_zero_str = self.input_handler.get_input()
                     if confirm_zero_str is not None:
                         confirm_zero = confirm_zero_str.strip().lower()
                     else:
