@@ -92,6 +92,7 @@ class VoiceControl(threading.Thread):
 
         except KeyboardInterrupt:
             sys.stdout.write('\b' * 2)
+            print("  ", flush=True)
             print('Stopping control tasks and animations due to keyboard interrupt...')
             self._control_interface.stop_control_task()
             self._control_interface.lights_handler.off()
