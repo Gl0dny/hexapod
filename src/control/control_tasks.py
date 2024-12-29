@@ -37,8 +37,8 @@ class ControlTask(abc.ABC):
         Stop the task and wait for the thread to finish.
         """
         self.stop_event.set()
-        print(f"Task {self.__class__.__name__} stopping.")
         if self.thread and self.thread.is_alive():
+            print(f"Task {self.__class__.__name__} stopping.")
             self.thread.join()
 
 class MonitorCalibrationStatusTask(ControlTask):
@@ -59,7 +59,7 @@ class MonitorCalibrationStatusTask(ControlTask):
                     print(updated_status)
                     print("All legs calibrated. Stopping calibration status monitoring.")
                     self.stop_event.set()
-                self.stop_event.wait(timeout=2)
+                self.stop_event.wait(timeout=0.5)
         except Exception as e:
             print(f"Error in calibration status monitoring thread: {e}")
 

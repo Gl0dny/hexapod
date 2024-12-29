@@ -65,6 +65,7 @@ class Calibration:
                     print(f"Set Leg {i} to default position (0, 0, 0).")
                 
                 self.status[i] = "calibrated"
+            self.hexapod.controller.go_home()
             self.save_calibration()
         except Exception as e:
             print(f"Error during calibration: {e}")
