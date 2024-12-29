@@ -47,8 +47,3 @@ class InputHandler:
         Shuts down the input listener thread gracefully.
         """
         self.stop_input_listener = True
-        try:
-            import sys
-            sys.stdin.close()
-        except Exception:
-            pass

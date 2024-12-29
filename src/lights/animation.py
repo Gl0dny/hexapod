@@ -45,7 +45,7 @@ class Animation(abc.ABC):
         Stop the animation and wait for the thread to finish.
         """
         self.stop_event.set()
-        print(f"Animation {self.__class__.__name__} has been stopped.")  # Added debug print
+        print(f"Animation {self.__class__.__name__} stopping.")
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=0.01)
 
