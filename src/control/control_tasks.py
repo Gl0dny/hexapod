@@ -39,7 +39,7 @@ class ControlTask(abc.ABC):
         self.stop_event.set()
         print(f"Task {self.__class__.__name__} stopping.")
         if self.thread and self.thread.is_alive():
-            self.thread.join(timeout=0.01)
+            self.thread.join()
 
 class MonitorCalibrationStatusTask(ControlTask):
     def __init__(self, hexapod, lights_handler):

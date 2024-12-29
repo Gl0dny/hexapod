@@ -1,6 +1,5 @@
 import json
 import threading
-import logging
 from typing import Optional
 from interface.input_handler import InputHandler
 
@@ -13,7 +12,7 @@ class Calibration:
             hexapod (Hexapod): The Hexapod instance to be calibrated.
         """
         self.hexapod = hexapod
-        self.input_handler = InputHandler()
+        self.input_handler = None
         self.status = {}
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
@@ -27,19 +26,19 @@ class Calibration:
         Args:
             stop_event (threading.Event, optional): Event to signal stopping the calibration process.
         """
+        self.input_handler = InputHandler()
+
         self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
         try:
             for i, leg in enumerate(self.hexapod.legs):
                 if stop_event and stop_event.is_set():
                     print("Calibration interrupted before starting Leg {}.".format(i))
-                    self.input_handler.shutdown()
                     return
 
                 self.status[i] = "calibrating"
                 for joint_name in ['coxa', 'femur', 'tibia']:
                     if stop_event and stop_event.is_set():
                         print("Calibration interrupted during calibration of Leg {}, Joint {}.".format(i, joint_name))
-                        self.input_handler.shutdown()
                         return
 
                     joint = getattr(leg, joint_name)
@@ -47,7 +46,6 @@ class Calibration:
                     while not calibration_success:
                         if stop_event and stop_event.is_set():
                             print("Calibration interrupted during calibration of Leg {}, Joint {}.".format(i, joint_name))
-                            self.input_handler.shutdown()
                             return
 
                         if joint.invert:
@@ -59,7 +57,6 @@ class Calibration:
 
                         if stop_event and stop_event.is_set():
                             print("Calibration interrupted after calibrating Leg {}, Joint {}.".format(i, joint_name))
-                            self.input_handler.shutdown()
                             return
 
                         calibration_success = self.check_zero_angle(i, joint_name, stop_event)
@@ -69,10 +66,13 @@ class Calibration:
                 
                 self.status[i] = "calibrated"
             self.save_calibration()
-            self.input_handler.shutdown()
         except Exception as e:
             print(f"Error during calibration: {e}")
-            self.input_handler.shutdown()
+        finally:
+            if self.input_handler:
+                print("Killing input handler")
+                self.input_handler.shutdown()
+                self.input_handler = None
 
     def get_calibration_status(self):
         """
