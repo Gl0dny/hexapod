@@ -142,7 +142,10 @@ class LightsInteractionHandler:
         Args:
             calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
         """
-        self.stop_animation()
+        if self.animation:
+        # Current animation in progress; skip updating LEDs.
+            return
+        
         for leg_index, led_index in self.leg_to_led.items():
             status = calibration_status.get(leg_index, "not_calibrated")
             if status == "calibrating":

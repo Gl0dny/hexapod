@@ -96,6 +96,7 @@ class VoiceControl(threading.Thread):
             print('Stopping control tasks and animations due to keyboard interrupt...')
             self._control_interface.stop_control_task()
             self._control_interface.lights_handler.off()
+            self._control_interface.hexapod.controller.go_home()
         finally:
             if recorder is not None:
                 recorder.delete()
