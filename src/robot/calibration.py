@@ -29,11 +29,16 @@ class Calibration:
         self.input_handler = InputHandler()
 
         self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
+        self.hexapod.controller.go_home()
+
         try:
             for i, leg in enumerate(self.hexapod.legs):
                 if stop_event and stop_event.is_set():
                     print("Calibration interrupted before starting Leg {}.".format(i))
                     return
+
+                self.hexapod.move_leg_to_angles_position(i,'rest')
+                print(f"Set Leg {i} to calibration position.")
 
                 self.status[i] = "calibrating"
                 for joint_name in ['coxa', 'femur', 'tibia']:
@@ -61,9 +66,10 @@ class Calibration:
 
                         calibration_success = self.check_zero_angle(i, joint_name, stop_event)
                     
-                    self.hexapod.controller.go_home()
-                    print(f"Set Leg {i} to default position (0, 0, 0).")
+                    self.hexapod.move_leg_to_angles_position(i,'rest')
+                    print(f"Set Leg {i} to calibration position.")
                 
+                self.hexapod.controller.go_home()
                 self.status[i] = "calibrated"
             self.hexapod.controller.go_home()
             self.save_calibration()
