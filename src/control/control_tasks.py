@@ -55,7 +55,8 @@ class MonitorCalibrationStatusTask(ControlTask):
             while not self.stop_event.is_set():
                 updated_status = self.hexapod.calibration.get_calibration_status()
                 self.lights_handler.update_calibration_leds_status(updated_status)
-                if all(status == "calibrated" for status in updated_status.values()):
+                if updated_status and all(status == "calibrated" for status in updated_status.values()):
+                    print(updated_status)
                     print("All legs calibrated. Stopping calibration status monitoring.")
                     self.stop_event.set()
                 self.stop_event.wait(timeout=2)
