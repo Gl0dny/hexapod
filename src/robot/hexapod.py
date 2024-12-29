@@ -54,15 +54,17 @@ class Hexapod:
         )
 
         self.legs: List[Leg] = []
-        for i in range(6):
-            coxa = coxa_params.copy()
-            coxa['channel'] = i * 3
-            femur = femur_params.copy()
-            femur['channel'] = i * 3 + 1
-            tibia = tibia_params.copy()
-            tibia['channel'] = i * 3 + 2
 
-            leg = Leg(coxa, femur, tibia, self.controller, self.end_effector_offset)
+        coxa_channel_map = [0, 3, 6, 15, 18, 21]
+        femur_channel_map = [1, 4, 7, 16, 19, 22]
+        tibia_channel_map = [2, 5, 8, 17, 20, 23]
+
+        for i in range(6):
+            coxa_params['channel'] = coxa_channel_map[i]
+            femur_params['channel'] = femur_channel_map[i]
+            tibia_params['channel'] = tibia_channel_map[i]
+
+            leg = Leg(coxa_params, femur_params, tibia_params, self.controller, self.end_effector_offset)
             self.legs.append(leg)
 
         self.leg_to_led: Dict[int, int] = {
@@ -90,62 +92,19 @@ class Hexapod:
             'sitting': [
                 # ...positions for sitting...
             ],
-            'edge': [
-                # ...positions for edge...
-            ],
         }
-
-        self.predefined_positions.update({
-            'tripod1': [
-                (-30.0, 5.0, 0.0),
-                (-25.0, -5.0, 10.0),
-                (0.0, 0.0, 15.0),
-                (-25.0, -10.0, 0.0),
-                (-30.0, 10.0, 5.0),
-                (0.0, 5.0, 5.0),
-            ],
-            'tripod2': [
-                (-20.0, 0.0, 5.0),
-                (-20.0, -5.0, 0.0),
-                (-5.0, 10.0, 10.0),
-                (-10.0, -5.0, 10.0),
-                (-15.0, 0.0, 5.0),
-                (0.0, 15.0, 0.0),
-            ],
-            # ...add other coordinate-based positions if needed...
-        })
 
         self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = {
             'rest': [
-                (0.0, 0.0, 0.0),
-                (0.0, 0.0, 0.0),
-                (0.0, 0.0, 0.0),
-                (0.0, 0.0, 0.0),
-                (0.0, 0.0, 0.0),
-                (0.0, 0.0, 0.0),
+                (0.0, 0.0, 45.0),
+                (0.0, 0.0, 45.0),
+                (0.0, 0.0, 45.0),
+                (0.0, 0.0, 45.0),
+                (0.0, 0.0, 45.0),
+                (0.0, 0.0, 45.0),
             ],
             # ...add more positions as needed...
         }
-
-        self.predefined_angle_positions.update({
-            'standing': [
-                (5.0, -15.0, -70.0),
-                (5.0, -15.0, -70.0),
-                (5.0, -15.0, -70.0),
-                (5.0, -15.0, -70.0),
-                (5.0, -15.0, -70.0),
-                (5.0, -15.0, -70.0),
-            ],
-            'crawl': [
-                (10.0, -20.0, -60.0),
-                (0.0, -20.0, -70.0),
-                (-5.0, -15.0, -75.0),
-                (0.0, -20.0, -70.0),
-                (10.0, -15.0, -65.0),
-                (5.0, -20.0, -70.0),
-            ],
-            # ...add more angle-based positions as needed...
-        })
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
@@ -192,6 +151,27 @@ class Hexapod:
             x, y, z = pos
             self.move_leg(i, x, y, z, speed, accel)
 
+    def move_leg_to_position(self, leg_index: int, position_name: str) -> None:
+        positions = self.predefined_positions.get(position_name)
+        if positions:
+            x, y, z = positions[leg_index]
+            self.move_leg(leg_index, x, y, z)
+        else:
+            print(f"Error: Unknown position '{position_name}'.")
+
+    def move_to_position(self, position_name: str) -> None:
+        """
+        Move the hexapod to a predefined position.
+        
+        Args:
+            position_name (str): Name of the predefined position.
+        """
+        positions = self.predefined_positions.get(position_name)
+        if positions:
+            self.move_all_legs(positions)
+        else:
+            print(f"Error: Unknown position '{position_name}'. Available positions: {list(self.predefined_positions.keys())}")
+
     def move_leg_angles(self, leg_index: int, coxa_angle: float, femur_angle: float, tibia_angle: float, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
         if speed is None:
             speed = self.speed
@@ -208,34 +188,6 @@ class Hexapod:
             c_angle, f_angle, t_angle = angles
             self.move_leg_angles(i, c_angle, f_angle, t_angle, speed, accel)
 
-    def move_to_position(self, position_name: str) -> None:
-        """
-        Move the hexapod to a predefined position.
-        
-        Args:
-            position_name (str): Name of the predefined position.
-        """
-        positions = self.predefined_positions.get(position_name)
-        if positions:
-            self.move_all_legs(positions)
-        else:
-            print(f"Error: Unknown position '{position_name}'. Available positions: {list(self.predefined_positions.keys())}")
-
-    def move_to_angles_position(self, position_name: str) -> None:
-        angles = self.predefined_angle_positions.get(position_name)
-        if angles:
-            self.move_all_legs_angles(angles)
-        else:
-            print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {list(self.predefined_angle_positions.keys())}")
-
-    def move_leg_to_position(self, leg_index: int, position_name: str) -> None:
-        positions = self.predefined_positions.get(position_name)
-        if positions:
-            x, y, z = positions[leg_index]
-            self.move_leg(leg_index, x, y, z)
-        else:
-            print(f"Error: Unknown position '{position_name}'.")
-
     def move_leg_to_angles_position(self, leg_index: int, position_name: str) -> None:
         angles = self.predefined_angle_positions.get(position_name)
         if angles:
@@ -244,16 +196,26 @@ class Hexapod:
         else:
             print(f"Error: Unknown angles position '{position_name}'.")
 
+    def move_to_angles_position(self, position_name: str) -> None:
+        angles = self.predefined_angle_positions.get(position_name)
+        if angles:
+            self.move_all_legs_angles(angles)
+        else:
+            print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {list(self.predefined_angle_positions.keys())}")
+
 if __name__ == '__main__':
     hexapod = Hexapod()
     # Calibrate hexapod
-    # hexapod.calibrate_all_servos()
-    hexapod.move_to_position('home')
+    hexapod.calibrate_all_servos()
+
+    # Move a single leg to a new predefined coordinate position
+    # hexapod.move_leg_to_position(2, 'home')
+
     # Move all legs to a new predefined coordinate position
-    # hexapod.move_to_position('tripod1')
+    # hexapod.move_to_position('home')
+
+    # Move a single leg to a new predefined angle position
+    # hexapod.move_leg_to_angles_position(5, 'rest')
+
     # # Move all legs to a new predefined angle position
-    # hexapod.move_to_angles_position('standing')
-    # # Move a single leg to a new predefined coordinate position
-    # hexapod.move_leg_to_position(2, 'tripod2')
-    # # Move a single leg to a new predefined angle position
-    # hexapod.move_leg_to_angles_position(4, 'crawl')
+    # hexapod.move_to_angles_position('rest')
