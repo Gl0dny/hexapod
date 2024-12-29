@@ -37,7 +37,7 @@ class Calibration:
                     print("Calibration interrupted before starting Leg {}.".format(i))
                     return
 
-                self.hexapod.move_leg_to_angles_position(i,'rest')
+                self.hexapod.move_leg_to_angles_position(i,'calibration')
                 print(f"Set Leg {i} to calibration position.")
 
                 self.status[i] = "calibrating"
@@ -66,7 +66,7 @@ class Calibration:
 
                         calibration_success = self.check_zero_angle(i, joint_name, stop_event)
                     
-                    self.hexapod.move_leg_to_angles_position(i,'rest')
+                    self.hexapod.move_leg_to_angles_position(i,'calibration')
                     print(f"Set Leg {i} to calibration position.")
                 
                 self.hexapod.controller.go_home()

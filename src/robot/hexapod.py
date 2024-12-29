@@ -95,7 +95,7 @@ class Hexapod:
         }
 
         self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = {
-            'rest': [
+            'calibration': [
                 (0.0, 45.0, 45.0),
                 (0.0, 45.0, 45.0),
                 (0.0, 45.0, 45.0),
@@ -205,8 +205,6 @@ class Hexapod:
 
 if __name__ == '__main__':
     hexapod = Hexapod()
-    # Calibrate hexapod
-    hexapod.calibrate_all_servos()
 
     # Move a single leg to a new predefined coordinate position
     # hexapod.move_leg_to_position(2, 'home')
