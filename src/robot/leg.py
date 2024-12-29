@@ -110,3 +110,19 @@ class Leg:
         self.femur.set_angle(femur_angle, speed, accel)
         self.tibia.set_angle(tibia_angle, speed, accel)
         print(f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
+
+    def move_to_angles(self, coxa_angle: float, femur_angle: float, tibia_angle: float, speed: int = 32, accel: int = 5) -> None:
+        """
+        Move the leg's end effector to the specified angles.
+
+        Args:
+            coxa_angle (float): Target angle for the coxa joint in degrees.
+            femur_angle (float): Target angle for the femur joint in degrees.
+            tibia_angle (float): Target angle for the tibia joint in degrees.
+            speed (int, optional): Speed setting for servo movement. Defaults to 32.
+            accel (int, optional): Acceleration setting for servo movement. Defaults to 5.
+        """
+        self.coxa.set_angle(coxa_angle, speed, accel)
+        self.femur.set_angle(femur_angle, speed, accel)
+        self.tibia.set_angle(tibia_angle, speed, accel)
+        print(f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
