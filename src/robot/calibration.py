@@ -1,5 +1,6 @@
 import json
 import threading
+import time
 from typing import Optional
 from interface.input_handler import InputHandler
 
@@ -124,7 +125,10 @@ class Calibration:
                             print("\nInvalid input. Please enter an integer value for servo_min.")
                             print(prompt, end='', flush=True)  # Re-prompt once for valid input
                     else:
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if not (992 <= servo_min_input <= 2000):
                     print("\nError: servo_min must be between 992 and 2000.")
@@ -149,7 +153,10 @@ class Calibration:
                     if confirm_min_str is not None:
                         confirm_min = confirm_min_str.strip().lower()
                     else:
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if confirm_min == 'y':
                     calibrated_min = True
@@ -193,8 +200,10 @@ class Calibration:
                             print("\nInvalid input. Please enter an integer value for servo_max.")
                             print(prompt, end='', flush=True)  # Re-prompt once for valid input
                     else:
-                        # No input yet, wait briefly
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if not (992 <= servo_max_input <= 2000):
                     print("\nError: servo_max must be between 992 and 2000.")
@@ -224,7 +233,10 @@ class Calibration:
                     if confirm_max_str is not None:
                         confirm_max = confirm_max_str.strip().lower()
                     else:
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if confirm_max == 'y':
                     calibrated_max = True
@@ -273,7 +285,10 @@ class Calibration:
                             print(f"\nInvalid input. Please enter an integer value for servo_max. Error: {e}")
                             print(prompt, end='', flush=True)  # Re-prompt once for valid input
                     else:
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if not (992 <= servo_max_input <= 2000):
                     print("\nError: servo_max must be between 992 and 2000.")
@@ -298,7 +313,10 @@ class Calibration:
                     if confirm_min_str is not None:
                         confirm_min = confirm_min_str.strip().lower()
                     else:
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if confirm_min == 'y':
                     calibrated_min = True
@@ -347,7 +365,10 @@ class Calibration:
                             print("\nInvalid input. Please enter an integer value for servo_min.")
                             print(prompt, end='', flush=True)  # Re-prompt once for valid input
                     else:
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if not (992 <= servo_min_input <= 2000):
                     print("\nError: servo_min must be between 992 and 2000.")
@@ -376,7 +397,10 @@ class Calibration:
                     if confirm_max_str is not None:
                         confirm_max = confirm_max_str.strip().lower()
                     else:
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if confirm_max == 'y':
                     calibrated_max = True
@@ -420,7 +444,10 @@ class Calibration:
                     if confirm_zero_str is not None:
                         confirm_zero = confirm_zero_str.strip().lower()
                     else:
-                        stop_event.wait(timeout=0.1)
+                        if stop_event:
+                            stop_event.wait(timeout=0.1)
+                        else:
+                            time.sleep(0.1)
 
                 if confirm_zero == 'y':
                     calibrated_zero = True
