@@ -47,7 +47,7 @@ class Animation(abc.ABC):
         self.stop_event.set()
         print(f"Animation {self.__class__.__name__} forcefully stopping.")
         if self.thread and self.thread.is_alive():
-            self.thread.join(timeout=0.01)
+            self.thread.join()
 
 class AlternateRotateAnimation(Animation):
     """

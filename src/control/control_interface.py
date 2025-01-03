@@ -186,18 +186,17 @@ class ControlInterface:
     #     # Implement logic to set upright mode
 
     @inject_hexapod
+    @inject_lights_handler
     @control_task
-    def helix(self, hexapod) -> None:
+    def helix(self, hexapod, lights_handler) -> None:
         """
         Initiates the helix maneuver using HelixTask.
         """
         try:
             print("Initiating helix maneuver.")
-            self.lights_handler.think()
-            logger.info("Starting helix maneuver.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = HelixTask(hexapod)
+            self.control_task = HelixTask(hexapod, lights_handler)
             self.control_task.start()
             print("Helix maneuver initiated.")
         except Exception as e:
@@ -212,7 +211,6 @@ class ControlInterface:
         """
         try:
             print("Initiating calibration process.")
-            logger.info("Starting calibration.")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = CompositeCalibrationTask(hexapod, lights_handler)

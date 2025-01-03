@@ -97,9 +97,10 @@ class CompositeCalibrationTask(ControlTask):
         super().stop_task()
 
 class HelixTask(ControlTask):
-    def __init__(self, hexapod):
+    def __init__(self, hexapod, lights_handler):
         super().__init__()
         self.hexapod = hexapod
+        self.lights_handler = lights_handler
 
         helix_min_positions = []
         helix_max_positions = []
@@ -120,6 +121,8 @@ class HelixTask(ControlTask):
         Performs a helix maneuver by moving to helix_minimum and then to helix_maximum positions.
         """
         try:
+            self.lights_handler.think()
+
             print("Starting helix maneuver: Moving to 'helix_minimum'")
             self.hexapod.move_to_angles_position('helix_minimum', self.helix_positions)
             
@@ -135,3 +138,6 @@ class HelixTask(ControlTask):
 
         except Exception as e:
             print(f"Error in HelixTask: {e}")
+            
+        finally:
+            self.lights_handler.off()
