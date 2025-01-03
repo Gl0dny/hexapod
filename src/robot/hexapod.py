@@ -97,14 +97,6 @@ class Hexapod:
 
         self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = {
             'home': [
-                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
-                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
-                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
-                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
-                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
-                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
-            ],
-            'hardware_home': [
                 (0.0, 35, -35),
                 (0.0, 35, -35),
                 (0.0, 35, -26),
@@ -308,7 +300,7 @@ if __name__ == '__main__':
     # hexapod.move_leg_to_angles_position(5, 'rest')
 
     # Move all legs to a new predefined angle position
-    hexapod.move_to_angles_position('hardware_home')
+    hexapod.move_to_angles_position('home')
 
     # Move all servos to hardware home position saved in the controler
     # hexapod.controller.go_home()

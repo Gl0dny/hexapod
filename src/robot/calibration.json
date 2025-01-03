@@ -1,0 +1,86 @@
+{
+    "leg_0": {
+        "coxa": {
+            "servo_min": 3968,
+            "servo_max": 8000
+        },
+        "femur": {
+            "servo_min": 4080,
+            "servo_max": 8000
+        },
+        "tibia": {
+            "servo_min": 3968,
+            "servo_max": 7920
+        }
+    },
+    "leg_1": {
+        "coxa": {
+            "servo_min": 3968,
+            "servo_max": 7008
+        },
+        "femur": {
+            "servo_min": 3968,
+            "servo_max": 7872
+        },
+        "tibia": {
+            "servo_min": 3968,
+            "servo_max": 7920
+        }
+    },
+    "leg_2": {
+        "coxa": {
+            "servo_min": 3968,
+            "servo_max": 8000
+        },
+        "femur": {
+            "servo_min": 4032,
+            "servo_max": 7968
+        },
+        "tibia": {
+            "servo_min": 4320,
+            "servo_max": 8000
+        }
+    },
+    "leg_3": {
+        "coxa": {
+            "servo_min": 3968,
+            "servo_max": 8000
+        },
+        "femur": {
+            "servo_min": 4320,
+            "servo_max": 8000
+        },
+        "tibia": {
+            "servo_min": 4048,
+            "servo_max": 7680
+        }
+    },
+    "leg_4": {
+        "coxa": {
+            "servo_min": 3968,
+            "servo_max": 7760
+        },
+        "femur": {
+            "servo_min": 4160,
+            "servo_max": 8000
+        },
+        "tibia": {
+            "servo_min": 4800,
+            "servo_max": 8000
+        }
+    },
+    "leg_5": {
+        "coxa": {
+            "servo_min": 3968,
+            "servo_max": 7600
+        },
+        "femur": {
+            "servo_min": 4080,
+            "servo_max": 7840
+        },
+        "tibia": {
+            "servo_min": 3968,
+            "servo_max": 7600
+        }
+    }
+}
