@@ -162,26 +162,33 @@ class Hexapod:
             x, y, z = pos
             self.move_leg(i, x, y, z, speed, accel)
 
-    def move_leg_to_position(self, leg_index: int, position_name: str) -> None:
-        positions = self.predefined_positions.get(position_name)
+    def move_leg_to_position(self, leg_index: int, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
+        print(f"Setting leg {leg_index} to position '{position_name}'")
+        positions = positions_dict.get(position_name) if positions_dict else self.predefined_positions.get(position_name)
         if positions:
             x, y, z = positions[leg_index]
             self.move_leg(leg_index, x, y, z)
         else:
-            print(f"Error: Unknown position '{position_name}'.")
+            available = list(positions_dict.keys()) if positions_dict else list(self.predefined_positions.keys())
+            print(f"Error: Unknown position '{position_name}'. Available positions: {available}")
 
-    def move_to_position(self, position_name: str) -> None:
+    def move_to_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
         """
-        Move the hexapod to a predefined position.
+        Move the hexapod to a predefined position using an external dictionary if provided.
         
         Args:
             position_name (str): Name of the predefined position.
+            positions_dict (Dict[str, List[Tuple[float, float, float]]], optional): 
+                External dictionary mapping position names to coordinate configurations.
+                If not provided, uses self.predefined_positions.
         """
-        positions = self.predefined_positions.get(position_name)
+        print(f"Setting all legs to position '{position_name}'")
+        positions = positions_dict.get(position_name) if positions_dict else self.predefined_positions.get(position_name)
         if positions:
             self.move_all_legs(positions)
         else:
-            print(f"Error: Unknown position '{position_name}'. Available positions: {list(self.predefined_positions.keys())}")
+            available = list(positions_dict.keys()) if positions_dict else list(self.predefined_positions.keys())
+            print(f"Error: Unknown position '{position_name}'. Available positions: {available}")
 
     def move_leg_angles(self, leg_index: int, coxa_angle: float, femur_angle: float, tibia_angle: float, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
         if speed is None:
@@ -199,13 +206,18 @@ class Hexapod:
             c_angle, f_angle, t_angle = angles
             self.move_leg_angles(i, c_angle, f_angle, t_angle, speed, accel)
 
-    def move_leg_to_angles_position(self, leg_index: int, position_name: str) -> None:
-        angles = self.predefined_angle_positions.get(position_name)
+    def move_leg_to_angles_position(self, leg_index: int, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
+        print(f"Setting leg {leg_index} to angles position '{position_name}'")
+        if positions_dict and position_name in positions_dict:
+            angles = positions_dict.get(position_name)
+        else:
+            angles = self.predefined_angle_positions.get(position_name)
         if angles:
             c_angle, f_angle, t_angle = angles[leg_index]
             self.move_leg_angles(leg_index, c_angle, f_angle, t_angle)
         else:
-            print(f"Error: Unknown angles position '{position_name}'.")
+            available = list(positions_dict.keys()) if positions_dict else list(self.predefined_angle_positions.keys())
+            print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {available}")
 
     def move_to_angles_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
         """
@@ -217,15 +229,13 @@ class Hexapod:
                 External dictionary mapping position names to angle configurations.
                 If not provided, uses self.predefined_angle_positions.
         """
-        if positions_dict and position_name in positions_dict:
-            angles = positions_dict.get(position_name)
-        else:
-            angles = self.predefined_angle_positions.get(position_name)
-        
+        print(f"Setting all legs to angles position '{position_name}'")
+        angles = positions_dict.get(position_name) if positions_dict else self.predefined_angle_positions.get(position_name)
         if angles:
             self.move_all_legs_angles(angles)
         else:
-            print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {list(self.predefined_angle_positions.keys())}")
+            available = list(positions_dict.keys()) if positions_dict else list(self.predefined_angle_positions.keys())
+            print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {available}")
 
     def get_moving_state(self) -> bool:
         """

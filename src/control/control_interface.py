@@ -192,13 +192,14 @@ class ControlInterface:
         Initiates the helix maneuver using HelixTask.
         """
         try:
+            print("Initiating helix maneuver.")
             self.lights_handler.think()
             logger.info("Starting helix maneuver.")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = HelixTask(hexapod)
             self.control_task.start()
-            self.lights_handler.off()
+            print("Helix maneuver initiated.")
         except Exception as e:
             logger.error(f"Helix maneuver failed: {e}")
 
@@ -210,11 +211,13 @@ class ControlInterface:
         Initiates the calibration process in a separate thread to avoid blocking other activities.
         """
         try:
+            print("Initiating calibration process.")
             logger.info("Starting calibration.")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = CompositeCalibrationTask(hexapod, lights_handler)
             self.control_task.start()
+            print("Calibration process started.")
         
         except Exception as e:
             logger.error(f"Calibration failed: {e}")

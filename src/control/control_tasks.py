@@ -125,6 +125,7 @@ class HelixTask(ControlTask):
         Performs a helix maneuver by moving to helix_minimum and then to helix_maximum positions.
         """
         try:
+            print("Starting helix maneuver: Moving to 'helix_minimum'")
             self.hexapod.move_to_angles_position('helix_minimum', self.helix_positions)
             
             while not self.stop_event.is_set():
@@ -134,6 +135,7 @@ class HelixTask(ControlTask):
             if self.stop_event.is_set():
                 return
 
+            print("Helix maneuver: Moving to 'helix_maximum'")
             self.hexapod.move_to_angles_position('helix_maximum', self.helix_positions)
             
             while not self.stop_event.is_set():
