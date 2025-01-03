@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
-from control.control_tasks import ControlTask, CompositeCalibrationTask, RunCalibrationTask, MonitorCalibrationStatusTask
+from control.control_tasks import ControlTask, CompositeCalibrationTask, HelixTask
 
 logger = logging.getLogger(__name__)
 
@@ -185,13 +185,22 @@ class ControlInterface:
     #     logger.info("Setting robot to upright mode.")
     #     # Implement logic to set upright mode
 
-    def helix(self):
-        logger.info("Performing helix maneuver.")
-        # Implement helix maneuver
-
-    # # def change_mode(self, mode):
-    # #     logger.info(f"Changing mode to: {mode}")
-    # #     # Implement mode change logic here
+    @inject_hexapod
+    @control_task
+    def helix(self, hexapod) -> None:
+        """
+        Initiates the helix maneuver using HelixTask.
+        """
+        try:
+            self.lights_handler.think()
+            logger.info("Starting helix maneuver.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = HelixTask(hexapod)
+            self.control_task.start()
+            self.lights_handler.off()
+        except Exception as e:
+            logger.error(f"Helix maneuver failed: {e}")
 
     @inject_hexapod
     @inject_lights_handler

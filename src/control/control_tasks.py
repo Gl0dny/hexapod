@@ -1,5 +1,6 @@
 import threading
 import abc
+from typing import List, Tuple, Dict
 
 class ControlTask(abc.ABC):
     """
@@ -94,3 +95,51 @@ class CompositeCalibrationTask(ControlTask):
         self.run_calibration_task.stop_task()
         self.monitor_calibration_task.stop_task()
         super().stop_task()
+
+class HelixTask(ControlTask):
+    def __init__(self, hexapod):
+        super().__init__()
+        self.hexapod = hexapod
+
+        self.helix_positions: Dict[str, List[Tuple[float, float, float]]] = {
+            'helix_minimum': [
+                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+            ],
+            'helix_maximum': [
+                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
+            ],
+        }
+
+    def run(self) -> None:
+        """
+        Performs a helix maneuver by moving to helix_minimum and then to helix_maximum positions.
+        """
+        try:
+            self.hexapod.move_to_angles_position('helix_minimum', self.helix_positions)
+            
+            while not self.stop_event.is_set():
+                if not self.hexapod.get_moving_state():
+                    break
+                self.stop_event.wait(timeout=0.1)
+            if self.stop_event.is_set():
+                return
+
+            self.hexapod.move_to_angles_position('helix_maximum', self.helix_positions)
+            
+            while not self.stop_event.is_set():
+                if not self.hexapod.get_moving_state():
+                    break
+                self.stop_event.wait(timeout=0.1)
+
+        except Exception as e:
+            print(f"Error in HelixTask: {e}")

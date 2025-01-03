@@ -111,23 +111,11 @@ class Hexapod:
                 (0.0, femur_params['angle_max'], tibia_params['angle_min']),
                 (0.0, femur_params['angle_max'], tibia_params['angle_min']),
             ],
-            'helix_maximum': [
-                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
-            ],
-            'helix_minimum': [
-                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
-                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
-            ],
         }
+
+        self.coxa_params = coxa_params
+        self.femur_params = femur_params
+        self.tibia_params = tibia_params
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
@@ -219,8 +207,21 @@ class Hexapod:
         else:
             print(f"Error: Unknown angles position '{position_name}'.")
 
-    def move_to_angles_position(self, position_name: str) -> None:
-        angles = self.predefined_angle_positions.get(position_name)
+    def move_to_angles_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
+        """
+        Move the hexapod to a predefined angle position using an external dictionary if provided.
+        
+        Args:
+            position_name (str): Name of the predefined angle position.
+            positions_dict (Dict[str, List[Tuple[float, float, float]]], optional): 
+                External dictionary mapping position names to angle configurations.
+                If not provided, uses self.predefined_angle_positions.
+        """
+        if positions_dict and position_name in positions_dict:
+            angles = positions_dict.get(position_name)
+        else:
+            angles = self.predefined_angle_positions.get(position_name)
+        
         if angles:
             self.move_all_legs_angles(angles)
         else:
