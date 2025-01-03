@@ -123,20 +123,14 @@ class HelixTask(ControlTask):
             print("Starting helix maneuver: Moving to 'helix_minimum'")
             self.hexapod.move_to_angles_position('helix_minimum', self.helix_positions)
             
-            while not self.stop_event.is_set():
-                if not self.hexapod.get_moving_state():
-                    break
-                self.stop_event.wait(timeout=0.1)
+            self.hexapod.wait_until_motion_complete(self.stop_event)
             if self.stop_event.is_set():
                 return
 
             print("Helix maneuver: Moving to 'helix_maximum'")
             self.hexapod.move_to_angles_position('helix_maximum', self.helix_positions)
             
-            while not self.stop_event.is_set():
-                if not self.hexapod.get_moving_state():
-                    break
-                self.stop_event.wait(timeout=0.1)
+            self.hexapod.wait_until_motion_complete(self.stop_event)
 
         except Exception as e:
             print(f"Error in HelixTask: {e}")

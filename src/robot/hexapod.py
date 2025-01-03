@@ -2,6 +2,7 @@ import os
 import sys
 from typing import Optional, List, Tuple, Dict
 import threading
+import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg, Calibration
@@ -263,12 +264,36 @@ class Hexapod:
             True: If at least one servo is still moving.
             False: If no servos are moving or failed to retrieve the moving state.
         """
-        try:
-            moving_state = self.controller.get_moving_state()
-            return moving_state == 0x01
-        except Exception as e:
-            print(f"Error retrieving moving state: {e}")
+        moving_state = self.controller.get_moving_state()
+        if moving_state == 0x01:
+            return True
+        else:
             return False
+
+    def wait_until_motion_complete(self, stop_event: Optional[threading.Event] = None) -> None:
+        """
+        Waits up to 1 second for the robot to start moving. This short wait is required
+        due to the Maestro controller's response delay over UART. Then remains waiting
+        until all servos have stopped or a stop event is set.
+
+        Args:
+            stop_event (threading.Event, optional): Event to signal stopping the wait.
+        """
+        start_time = time.time()
+        # Wait for at most 1 second to see if the robot starts moving
+        while (time.time() - start_time < 1) and not (stop_event and stop_event.is_set()):
+            if self.get_moving_state():
+                break
+            if stop_event:
+                stop_event.wait(timeout=0.1)
+        if stop_event and stop_event.is_set():
+            return
+        # Wait until the robot stops the motion
+        while not (stop_event.is_set() if stop_event else False):
+            if not self.get_moving_state():
+                break
+            if stop_event:
+                stop_event.wait(timeout=0.1)
 
 if __name__ == '__main__':
     hexapod = Hexapod()
