@@ -108,7 +108,7 @@ class HelixTask(ControlTask):
             # Read the current angles
             _, femur_angle, tibia_angle = self.hexapod.current_leg_angles[i]
             # Use coxa min or max, keep femur/tibia from the cache
-            helix_min_positions.append((self.hexapod.coxa_params['angle_min']+10, femur_angle, tibia_angle))
+            helix_min_positions.append((self.hexapod.coxa_params['angle_min']+15, femur_angle, tibia_angle))
             helix_max_positions.append((self.hexapod.coxa_params['angle_max'], femur_angle, tibia_angle))
 
         self.helix_positions = {
@@ -122,18 +122,23 @@ class HelixTask(ControlTask):
         """
         try:
             self.lights_handler.think()
-
-            print("Starting helix maneuver: Moving to 'helix_maximum'")
-            self.hexapod.move_to_angles_position('helix_maximum', self.helix_positions)
             
-            self.hexapod.wait_until_motion_complete(self.stop_event)
-            if self.stop_event.is_set():
-                return
+            for _ in range(2):
+                
+                print("Helix maneuver: Moving to 'helix_maximum'")
+                self.hexapod.move_to_angles_position('helix_maximum', self.helix_positions)
+                
+                self.hexapod.wait_until_motion_complete(self.stop_event)
+                if self.stop_event.is_set():
+                    return
 
-            print("Helix maneuver: Moving to 'helix_minimum'")
-            self.hexapod.move_to_angles_position('helix_minimum', self.helix_positions)
-            
-            self.hexapod.wait_until_motion_complete(self.stop_event)
+                print("Helix maneuver: Moving to 'helix_minimum'")
+                self.hexapod.move_to_angles_position('helix_minimum', self.helix_positions)
+                
+                self.hexapod.wait_until_motion_complete(self.stop_event)
+                if self.stop_event.is_set():
+                    return
+                
             print("Helix maneuver: Finished.")
 
         except Exception as e:
