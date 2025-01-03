@@ -16,6 +16,17 @@ class Calibration:
         self.input_handler = None
         self.status = {}
 
+        self.calibration_positions = {
+            'calibration_init': [
+                (0.0, self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_max']),
+                (0.0, self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_max']),
+                (0.0, self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_max']),
+                (0.0, self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_max']),
+                (0.0, self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_max']),
+                (0.0, self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_max']),
+            ],
+        }
+
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
         Calibrates all servos for each leg and joint of the hexapod.
@@ -38,7 +49,7 @@ class Calibration:
                     print("Calibration interrupted before starting Leg {}.".format(i))
                     return
 
-                self.hexapod.move_leg_to_angles_position(i,'calibration')
+                self.hexapod.move_leg_to_angles_position(i,'calibration_init', self.calibration_positions)
                 print(f"Set Leg {i} to calibration position.")
 
                 self.status[i] = "calibrating"
@@ -67,7 +78,7 @@ class Calibration:
 
                         calibration_success = self.check_zero_angle(i, joint_name, stop_event)
                     
-                    self.hexapod.move_leg_to_angles_position(i,'calibration')
+                    self.hexapod.move_leg_to_angles_position(i,'calibration_init', self.calibration_positions)
                     print(f"Set Leg {i} to calibration position.")
                 
                 self.hexapod.controller.go_home()

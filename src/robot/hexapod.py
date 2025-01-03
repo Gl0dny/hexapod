@@ -96,14 +96,6 @@ class Hexapod:
         }
 
         self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = {
-            'calibration': [
-                (0.0, 45.0, 45.0),
-                (0.0, 45.0, 45.0),
-                (0.0, 45.0, 45.0),
-                (0.0, 45.0, 45.0),
-                (0.0, 45.0, 45.0),
-                (0.0, 45.0, 45.0),
-            ],
             'home': [
                 (0.0, femur_params['angle_max'], tibia_params['angle_min']),
                 (0.0, femur_params['angle_max'], tibia_params['angle_min']),

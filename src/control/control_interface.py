@@ -199,6 +199,7 @@ class ControlInterface:
             self.control_task = HelixTask(hexapod, lights_handler)
             self.control_task.start()
             print("Helix maneuver initiated.")
+            
         except Exception as e:
             logger.error(f"Helix maneuver failed: {e}")
 
