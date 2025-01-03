@@ -43,7 +43,7 @@ class Hexapod:
         }
         tibia_params: Dict[str, float] = {
             'length': 140.0,
-            'angle_min': -30,
+            'angle_min': -45,
             'angle_max': 45,
             'x_offset': 22.5
         }
@@ -77,9 +77,6 @@ class Hexapod:
             5: 10
         }
 
-        self.calibration: Calibration = Calibration(self)
-        self.calibration.load_calibration()
-
         # Define predefined positions as an instance attribute
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = {
             'zero': [
@@ -89,9 +86,6 @@ class Hexapod:
                 (-25.0, 0.0, 0.0),
                 (-25.0, 0.0, 0.0),
                 (-25.0, 0.0, 0.0),
-            ],
-            'sitting': [
-                # ...positions for sitting...
             ],
         }
 
@@ -104,13 +98,23 @@ class Hexapod:
                 (0.0, femur_params['angle_max'], tibia_params['angle_min']),
                 (0.0, femur_params['angle_max'], tibia_params['angle_min']),
             ],
+            'hardware_home': [
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -26),
+                (0.0, 35, -35),
+                (0.0, 35, -17.5),
+                (0.0, 35, -35),
+            ],
         }
 
         self.coxa_params = coxa_params
         self.femur_params = femur_params
         self.tibia_params = tibia_params
 
-        # Initialize angle and position caches with 'home' positions
+        self.calibration: Calibration = Calibration(self)
+        self.calibration.load_calibration()
+
         self.current_leg_angles = list(self.predefined_angle_positions['home'])
         self.current_leg_positions = list(self.predefined_positions['zero'])
 
@@ -299,5 +303,8 @@ if __name__ == '__main__':
     # Move a single leg to a new predefined angle position
     # hexapod.move_leg_to_angles_position(5, 'rest')
 
-    # # Move all legs to a new predefined angle position
-    # hexapod.move_to_angles_position('rest')
+    # Move all legs to a new predefined angle position
+    hexapod.move_to_angles_position('hardware_home')
+
+    # Move all servos to hardware home position saved in the controler
+    # hexapod.controller.go_home()
