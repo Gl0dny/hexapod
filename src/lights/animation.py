@@ -81,15 +81,15 @@ class AlternateRotateAnimation(Animation):
         """
         Run the animation logic.
         """
+
+        for i in range(self.lights.num_led):
+            if self.stop_event.wait(self.delay):
+                return
+            
+            color = self.color_even if i % 2 == 0 else self.color_odd
+            self.lights.set_color(color, led_index=i)
+            
         while not self.stop_event.is_set():
-            for i in range(self.lights.num_led):
-                if self.stop_event.wait(self.delay):
-                    return
-                
-                color = self.color_even if i % 2 == 0 else self.color_odd
-                self.lights.set_color(color, led_index=i)
-
-
             for _ in range(self.positions):
                 if self.stop_event.wait(self.delay):
                     return

@@ -61,8 +61,12 @@ class MonitorCalibrationStatusTask(ControlTask):
                     print("All legs calibrated. Stopping calibration status monitoring.")
                     self.stop_event.set()
                 self.stop_event.wait(timeout=0.5)
+                
         except Exception as e:
             print(f"Error in calibration status monitoring thread: {e}")
+
+        finally:
+            self.lights_handler.off()
 
 class RunCalibrationTask(ControlTask):
     def __init__(self, hexapod):
@@ -73,7 +77,14 @@ class RunCalibrationTask(ControlTask):
         """
         Runs the calibration process.
         """
-        self.hexapod.calibrate_all_servos(stop_event=self.stop_event)
+        try:
+            self.hexapod.calibrate_all_servos(stop_event=self.stop_event)
+
+        except Exception as e:
+            print(f"Error in RunCalibrationTask thread: {e}")
+        
+        finally:
+            self.hexapod.move_to_angles_position('home')
 
 class CompositeCalibrationTask(ControlTask):
     def __init__(self, hexapod, lights_handler):

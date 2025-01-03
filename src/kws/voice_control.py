@@ -85,6 +85,7 @@ class VoiceControl(threading.Thread):
             recorder.start()
 
             print('[Listening ...]')
+            self._control_interface.lights_handler.ready()
 
             while True:
                 pcm = recorder.read()

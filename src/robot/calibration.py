@@ -41,7 +41,7 @@ class Calibration:
         self.input_handler = InputHandler()
 
         self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
-        self.hexapod.controller.go_home()
+        self.hexapod.move_to_angles_position('home')
 
         try:
             for i, leg in enumerate(self.hexapod.legs):
@@ -81,9 +81,9 @@ class Calibration:
                     self.hexapod.move_leg_to_angles_position(i,'calibration_init', self.calibration_positions)
                     print(f"Set Leg {i} to calibration position.")
                 
-                self.hexapod.controller.go_home()
+                self.hexapod.move_to_angles_position('home')
                 self.status[i] = "calibrated"
-            self.hexapod.controller.go_home()
+            self.hexapod.move_to_angles_position('home')
             self.save_calibration()
         except Exception as e:
             print(f"Error during calibration: {e}")

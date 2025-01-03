@@ -173,9 +173,17 @@ class ControlInterface:
     #     logger.info("Waking up robot.")
     #     # Implement wake-up logic
 
-    # def sleep(self):
-    #     logger.info("Putting robot to sleep.")
-    #     # Implement sleep logic
+    def sleep(self):
+        try:
+            logger.info("Deactivating robot...")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.hexapod.wait_until_motion_complete()
+            self.hexapod.deactivate_all_servos()
+            print("Robot deactivated")
+            
+        except Exception as e:
+            logger.error(f"Deactivating robot failed: {e}")
 
     # def set_low_profile_mode(self):
     #     logger.info("Setting robot to low profile mode.")

@@ -286,6 +286,15 @@ class Hexapod:
             if stop_event:
                 stop_event.wait(timeout=0.1)
 
+    def deactivate_all_servos(self) -> None:
+        """
+        Sets all servos to 0 to deactivate them.
+        """
+        for leg in self.legs:
+            self.controller.set_target(leg.coxa_params['channel'], 0)
+            self.controller.set_target(leg.femur_params['channel'], 0)
+            self.controller.set_target(leg.tibia_params['channel'], 0)
+
 if __name__ == '__main__':
     hexapod = Hexapod()
 

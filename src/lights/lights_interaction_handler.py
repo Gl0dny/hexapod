@@ -1,6 +1,6 @@
 from typing import Callable, Any, Optional, Dict
 from lights import Lights
-from .animation import Animation, OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
+from .animation import Animation, OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation, AlternateRotateAnimation
 from .lights import ColorRGB
 
 class LightsInteractionHandler:
@@ -72,7 +72,7 @@ class LightsInteractionHandler:
             color (ColorRGB, optional): The color to use if not using rainbow colors.
             interval (float): The interval between filling LEDs.
         """
-        self.stop_animation()
+        self.off()
         self.animation = WheelFillAnimation(
             lights=self.lights,
             use_rainbow=use_rainbow,
@@ -82,26 +82,51 @@ class LightsInteractionHandler:
         self.animation.start()
 
     @animation
-    def listen(
+    def ready(
         self,
         base_color: ColorRGB = ColorRGB.BLUE,
         pulse_color: ColorRGB = ColorRGB.GREEN,
         pulse_speed: float = 0.05
-    ) -> None:
+        ) -> None:
         """
-        Start the listen animation.
+        Start the ready animation.
 
         Args:
             base_color (ColorRGB): The base color of the LEDs.
             pulse_color (ColorRGB): The color to pulse.
             pulse_speed (float): The speed of the pulse.
         """
-        self.stop_animation()
+        self.off()
         self.animation = PulseSmoothlyAnimation(
             lights=self.lights,
             base_color=base_color,
             pulse_color=pulse_color,
             pulse_speed=pulse_speed
+        )
+        self.animation.start()
+
+
+    @animation
+    def listen(
+        self,
+        color_even: ColorRGB = ColorRGB.INDIGO,
+        color_odd: ColorRGB = ColorRGB.GREEN,
+        delay: float = 0.15
+    ) -> None:
+        """
+        Start the listen animation.
+
+        Args:
+            color_even (ColorRGB): Initial color for even LEDs.
+            color_odd (ColorRGB): Initial color for odd LEDs.
+            delay (float): Delay between rotations.
+        """
+        self.off()
+        self.animation = AlternateRotateAnimation(
+            lights=self.lights,
+            color_even=color_even,
+            color_odd=color_odd,
+            delay=delay
         )
         self.animation.start()
 
@@ -118,7 +143,7 @@ class LightsInteractionHandler:
             color (ColorRGB): The color of the LEDs.
             interval (float): The delay between updates.
         """
-        self.stop_animation()
+        self.off()
         self.animation = OppositeRotateAnimation(
             lights=self.lights,
             interval=interval,
@@ -131,7 +156,7 @@ class LightsInteractionHandler:
         """
         Start the speak animation.
         """
-        self.stop_animation()
+        self.off()
         self.animation = None  # Ensure animation is set to avoid AttributeError
         raise NotImplementedError("The 'speak' method is not implemented yet.")
 
