@@ -81,7 +81,7 @@ class Hexapod:
 
         # Define predefined positions as an instance attribute
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = {
-            'home': [
+            'zero': [
                 (-25.0, 0.0, 0.0),
                 (-25.0, 0.0, 0.0),
                 (-25.0, 0.0, 0.0),
@@ -117,10 +117,9 @@ class Hexapod:
         self.femur_params = femur_params
         self.tibia_params = tibia_params
 
-        # Create a simple angle cache. Initialize each leg with (0,0,0) or a known default.
-        self.current_leg_angles = [(0.0, 0.0, 0.0)] * 6
-        # Cache for coordinates
-        self.current_leg_positions = [(0.0, 0.0, 0.0)] * 6
+        # Initialize angle and position caches with 'home' positions
+        self.current_leg_angles = list(self.predefined_angle_positions['home'])
+        self.current_leg_positions = list(self.predefined_positions['zero'])
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
