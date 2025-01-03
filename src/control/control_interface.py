@@ -185,9 +185,9 @@ class ControlInterface:
     #     logger.info("Setting robot to upright mode.")
     #     # Implement logic to set upright mode
 
-    @inject_hexapod
-    @inject_lights_handler
     @control_task
+    @inject_lights_handler
+    @inject_hexapod
     def helix(self, hexapod, lights_handler) -> None:
         """
         Initiates the helix maneuver using HelixTask.
@@ -202,9 +202,9 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Helix maneuver failed: {e}")
 
-    @inject_hexapod
-    @inject_lights_handler
     @control_task
+    @inject_lights_handler
+    @inject_hexapod
     def calibrate(self, hexapod, lights_handler) -> None:
         """
         Initiates the calibration process in a separate thread to avoid blocking other activities.

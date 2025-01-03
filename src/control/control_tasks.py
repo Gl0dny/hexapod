@@ -140,4 +140,5 @@ class HelixTask(ControlTask):
             print(f"Error in HelixTask: {e}")
             
         finally:
+            self.hexapod.move_to_angles_position('home')
             self.lights_handler.off()
