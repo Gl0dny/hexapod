@@ -101,23 +101,18 @@ class HelixTask(ControlTask):
         super().__init__()
         self.hexapod = hexapod
 
-        self.helix_positions: Dict[str, List[Tuple[float, float, float]]] = {
-            'helix_minimum': [
-                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_min'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-            ],
-            'helix_maximum': [
-                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-                (self.hexapod.coxa_params['angle_max'], self.hexapod.femur_params['angle_max'], self.hexapod.tibia_params['angle_min']),
-            ],
+        helix_min_positions = []
+        helix_max_positions = []
+        for i in range(6):
+            # Read the current angles
+            _, femur_angle, tibia_angle = self.hexapod.current_leg_angles[i]
+            # Use coxa min or max, keep femur/tibia from the cache
+            helix_min_positions.append((self.hexapod.coxa_params['angle_min'], femur_angle, tibia_angle))
+            helix_max_positions.append((self.hexapod.coxa_params['angle_max'], femur_angle, tibia_angle))
+
+        self.helix_positions = {
+            'helix_minimum': helix_min_positions,
+            'helix_maximum': helix_max_positions,
         }
 
     def run(self) -> None:

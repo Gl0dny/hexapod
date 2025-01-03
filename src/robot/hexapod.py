@@ -117,6 +117,11 @@ class Hexapod:
         self.femur_params = femur_params
         self.tibia_params = tibia_params
 
+        # Create a simple angle cache. Initialize each leg with (0,0,0) or a known default.
+        self.current_leg_angles = [(0.0, 0.0, 0.0)] * 6
+        # Cache for coordinates
+        self.current_leg_positions = [(0.0, 0.0, 0.0)] * 6
+
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
         Calibrate all servo motors using the Calibration module.
@@ -144,6 +149,8 @@ class Hexapod:
         if accel is None:
             accel = self.accel
         self.legs[leg_index].move_to(x, y, z, speed, accel)
+        # Store the new positions
+        self.current_leg_positions[leg_index] = (x, y, z)
 
     def move_all_legs(self, positions: List[Tuple[float, float, float]], speed: Optional[int] = None, accel: Optional[int] = None) -> None:
         """
@@ -190,13 +197,25 @@ class Hexapod:
             available = list(positions_dict.keys()) if positions_dict else list(self.predefined_positions.keys())
             print(f"Error: Unknown position '{position_name}'. Available positions: {available}")
 
-    def move_leg_angles(self, leg_index: int, coxa_angle: float, femur_angle: float, tibia_angle: float, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
+    def move_leg_angles(
+        self,
+        leg_index: int,
+        coxa_angle: float,
+        femur_angle: float,
+        tibia_angle: float,
+        speed: Optional[int] = None,
+        accel: Optional[int] = None
+    ) -> None:
         if speed is None:
             speed = self.speed
         if accel is None:
             accel = self.accel
-        self.legs[leg_index].move_to_angles(coxa_angle, femur_angle, tibia_angle, speed, accel)
 
+        # Command the move
+        self.legs[leg_index].move_to_angles(coxa_angle, femur_angle, tibia_angle, speed, accel)
+        # Update the cached angles
+        self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
+        
     def move_all_legs_angles(self, angles_list: List[Tuple[float, float, float]], speed: Optional[int] = None, accel: Optional[int] = None) -> None:
         if speed is None:
             speed = self.speed
