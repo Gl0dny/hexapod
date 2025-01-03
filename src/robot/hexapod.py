@@ -77,10 +77,10 @@ class Hexapod:
         self.leg_to_led: Dict[int, int] = {
             0: 2,
             1: 0,
-            2: 4,
-            3: 6,
-            4: 8,
-            5: 10
+            2: 10,
+            3: 8,
+            4: 6,
+            5: 4
         }
 
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = {
