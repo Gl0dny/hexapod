@@ -33,18 +33,24 @@ class Hexapod:
             'length': 27.5,
             'angle_min': -45,
             'angle_max': 45,
+            'angle_limit_min': None,
+            'angle_limit_max': None,
             'z_offset': 22.5
         }
         femur_params: Dict[str, float] = {
             'length': 52.5,
             'angle_min': -45,
             'angle_max': 45,
+            'angle_limit_min': None,
+            'angle_limit_max': None,
             'invert': True
         }
         tibia_params: Dict[str, float] = {
             'length': 140.0,
             'angle_min': -45,
             'angle_max': 45,
+            'angle_limit_min': -35,
+            'angle_limit_max': None,
             'x_offset': 22.5
         }
 
@@ -207,9 +213,7 @@ class Hexapod:
         if accel is None:
             accel = self.accel
 
-        # Command the move
         self.legs[leg_index].move_to_angles(coxa_angle, femur_angle, tibia_angle, speed, accel)
-        # Update the cached angles
         self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
         
     def move_all_legs_angles(self, angles_list: List[Tuple[float, float, float]], speed: Optional[int] = None, accel: Optional[int] = None) -> None:
