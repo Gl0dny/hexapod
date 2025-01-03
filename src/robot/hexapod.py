@@ -83,7 +83,6 @@ class Hexapod:
             5: 10
         }
 
-        # Define predefined positions as an instance attribute
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = {
             'zero': [
                 (-25.0, 0.0, 0.0),
@@ -111,7 +110,7 @@ class Hexapod:
         self.tibia_params = tibia_params
 
         self.calibration: Calibration = Calibration(self)
-        self.calibration.load_calibration()
+        self.calibration.load_calibration('/home/hexapod/hexapod/src/robot/calibration.json')
 
         self.current_leg_angles = list(self.predefined_angle_positions['home'])
         self.current_leg_positions = list(self.predefined_positions['zero'])

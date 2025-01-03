@@ -499,13 +499,15 @@ class Calibration:
         except IOError as e:
             print(f"Failed to save calibration data: {e}")
 
-    def load_calibration(self):
+    def load_calibration(self, path):
         """
-        Loads calibration data from the calibration.json file and updates servo parameters.
-        Validates that servo_min and servo_max are within acceptable ranges before applying.
+        Load calibration data from a specified JSON file.
+        
+        Args:
+            path (str): Path to the calibration JSON file.
         """
         try:
-            with open("calibration.json", "r") as f:
+            with open(path, "r") as f:
                 calibration_data = json.load(f)
             for i, leg in enumerate(self.hexapod.legs):
                 leg_data = calibration_data.get(f"leg_{i}", {})
