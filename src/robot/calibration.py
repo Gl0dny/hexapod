@@ -150,7 +150,7 @@ class Calibration:
                 
                 self.calibrate_servo(leg_index, joint_name, servo_min, joint.servo_max)
                 
-                joint.set_angle(joint.angle_min)
+                joint.set_angle(joint.angle_min, check_custom_limits=False)
                 print(f"Set {joint_name} of Leg {leg_index} to angle_min: {joint.angle_min}°")
 
                 confirm_min = None
@@ -230,7 +230,7 @@ class Calibration:
 
                 self.calibrate_servo(leg_index, joint_name, joint.servo_min, servo_max)
 
-                joint.set_angle(joint.angle_max)
+                joint.set_angle(joint.angle_max, check_custom_limits=False)
                 print(f"Set {joint_name} of Leg {leg_index} to angle_max: {joint.angle_max}°")
 
                 confirm_max = None
@@ -310,7 +310,7 @@ class Calibration:
 
                 self.calibrate_servo(leg_index, joint_name, joint.servo_min, servo_max)
 
-                joint.set_angle(joint.angle_min)
+                joint.set_angle(joint.angle_min, check_custom_limits=False)
                 print(f"Set {joint_name} of Leg {leg_index} to angle_min: {joint.angle_min}°")
 
                 confirm_min = None
@@ -394,7 +394,7 @@ class Calibration:
 
                 self.calibrate_servo(leg_index, joint_name, servo_min, joint.servo_max)
 
-                joint.set_angle(joint.angle_max)
+                joint.set_angle(joint.angle_max, check_custom_limits=False)
                 print(f"Set {joint_name} of Leg {leg_index} to angle_max: {joint.angle_max}°")
 
                 confirm_max = None
@@ -441,7 +441,7 @@ class Calibration:
                 return False
             try:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
-                joint.set_angle(0)
+                joint.set_angle(0, check_custom_limits=False)
                 print(f"Set {joint_name} of Leg {leg_index} to angle_zero: 0°")
                 
                 prompt = "Is the zero angle calibration correct? (y/n): "

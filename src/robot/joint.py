@@ -29,7 +29,7 @@ class Joint:
         self.angle_limit_max = angle_limit_max
         self.invert = invert
 
-    def set_angle(self, angle, speed=DEFAULT_SPEED, accel=DEFAULT_ACCEL):
+    def set_angle(self, angle, speed=DEFAULT_SPEED, accel=DEFAULT_ACCEL, check_custom_limits=True):
         """
         Set the joint to a specific angle.
 
@@ -37,14 +37,16 @@ class Joint:
             angle (float): Target angle in degrees.
             speed (int): Speed setting for the servo.
             accel (int): Acceleration setting for the servo.
+            check_custom_limits (bool): Whether to enforce angle limits.
         """
         if self.invert:
             angle = -angle
 
-        if self.angle_limit_min is not None and angle < self.angle_limit_min:
-            raise ValueError(f"Angle {angle}° is below custom limit ({self.angle_limit_min}°).")
-        if self.angle_limit_max is not None and angle > self.angle_limit_max:
-            raise ValueError(f"Angle {angle}° is above custom limit ({self.angle_limit_max}°).")
+        if check_custom_limits:
+            if self.angle_limit_min is not None and angle < self.angle_limit_min:
+                raise ValueError(f"Angle {angle}° is below custom limit ({self.angle_limit_min}°).")
+            if self.angle_limit_max is not None and angle > self.angle_limit_max:
+                raise ValueError(f"Angle {angle}° is above custom limit ({self.angle_limit_max}°).")
 
         if angle < self.angle_min or angle > self.angle_max:
             raise ValueError(f"Angle {angle}° is out of limits ({self.angle_min}° to {self.angle_max}°).")
