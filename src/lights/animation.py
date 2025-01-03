@@ -49,12 +49,6 @@ class Animation(abc.ABC):
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=0.01)
 
-    def __del__(self):
-        """
-        Destructor that informs which animation is stopping.
-        """
-        print(f"Animation {self.__class__.__name__} is being destroyed and stopping.")
-
 class AlternateRotateAnimation(Animation):
     """
     Animation that alternates colors and rotates the LEDs.

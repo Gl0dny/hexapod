@@ -42,12 +42,6 @@ class ControlTask(abc.ABC):
             print(f"Task {self.__class__.__name__} forcefully stopping.")
             self.thread.join()
 
-    def __del__(self):
-        """
-        Destructor that informs which task is stopping.
-        """
-        print(f"Task {self.__class__.__name__} is being destroyed and stopping.")
-
 class MonitorCalibrationStatusTask(ControlTask):
     def __init__(self, hexapod, lights_handler):
         super().__init__()
@@ -137,6 +131,7 @@ class HelixTask(ControlTask):
             self.hexapod.move_to_angles_position('helix_maximum', self.helix_positions)
             
             self.hexapod.wait_until_motion_complete(self.stop_event)
+            print("Helix maneuver: Finished.")
 
         except Exception as e:
             print(f"Error in HelixTask: {e}")
