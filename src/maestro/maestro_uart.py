@@ -274,8 +274,8 @@ class MaestroUART(object):
 			0x00: if no servos are moving
 			0x01: if at least one servo is still moving
 
-		Raises:
-			RuntimeError: If no response is received from the serial port.
+		Returns:
+			Optional[int]: The moving state or None if no response is received.
 		"""
 		# The command is: 0xAA, device number (0x0C for default), 0x13
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_MOVING_STATE])
@@ -284,7 +284,7 @@ class MaestroUART(object):
 		# Read a single byte response indicating the moving state
 		response = self.ser.read(1)
 		if response == b'':
-			raise RuntimeError("Failed to read moving state: No response received.")
+			return None
 		return ord(response)
 
 	def close(self) -> None:
