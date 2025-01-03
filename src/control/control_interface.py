@@ -185,16 +185,18 @@ class ControlInterface:
     #     logger.info("Setting robot to upright mode.")
     #     # Implement logic to set upright mode
 
-    # def helix(self):
-    #     logger.info("Performing helix maneuver.")
-    #     # Implement helix maneuver
+    def helix(self):
+        logger.info("Performing helix maneuver.")
+        # Implement helix maneuver
 
     # # def change_mode(self, mode):
     # #     logger.info(f"Changing mode to: {mode}")
     # #     # Implement mode change logic here
 
+    @inject_hexapod
+    @inject_lights_handler
     @control_task
-    def calibrate(self) -> None:
+    def calibrate(self, hexapod, lights_handler) -> None:
         """
         Initiates the calibration process in a separate thread to avoid blocking other activities.
         """
@@ -202,9 +204,8 @@ class ControlInterface:
             logger.info("Starting calibration.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = CompositeCalibrationTask(self.hexapod, self.lights_handler)
+            self.control_task = CompositeCalibrationTask(hexapod, lights_handler)
             self.control_task.start()
         
         except Exception as e:
             logger.error(f"Calibration failed: {e}")
-            self.lights_handler.lights.set_color(ColorRGB.RED)

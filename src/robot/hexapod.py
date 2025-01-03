@@ -103,7 +103,30 @@ class Hexapod:
                 (0.0, 45.0, 45.0),
                 (0.0, 45.0, 45.0),
             ],
-            # ...add more positions as needed...
+            'home': [
+                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
+                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
+                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
+                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
+                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
+                (0.0, femur_params['angle_max'], tibia_params['angle_min']),
+            ],
+            'helix_maximum': [
+                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_max'], femur_params['angle_max'], tibia_params['angle_min']),
+            ],
+            'helix_minimum': [
+                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
+                (coxa_params['angle_min'], femur_params['angle_max'], tibia_params['angle_min']),
+            ],
         }
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
@@ -202,6 +225,21 @@ class Hexapod:
             self.move_all_legs_angles(angles)
         else:
             print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {list(self.predefined_angle_positions.keys())}")
+
+    def get_moving_state(self) -> bool:
+        """
+        Returns the moving state of the hexapod by querying the Maestro controller.
+
+        Returns:
+            True: If at least one servo is still moving.
+            False: If no servos are moving or failed to retrieve the moving state.
+        """
+        try:
+            moving_state = self.controller.get_moving_state()
+            return moving_state == 0x01
+        except Exception as e:
+            print(f"Error retrieving moving state: {e}")
+            return False
 
 if __name__ == '__main__':
     hexapod = Hexapod()
