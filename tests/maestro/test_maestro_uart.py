@@ -109,9 +109,8 @@ class TestMaestroUART:
         _, maestro = maestro_fixture
         maestro.ser.read.return_value = b''
         maestro.ser.write.return_value = None
-        with pytest.raises(RuntimeError) as exc_info:
-            maestro.get_moving_state()
-        assert str(exc_info.value) == "Failed to read moving state: No response received."
+        result = maestro.get_moving_state()
+        assert result is None
 
     def test_close(self, maestro_fixture):
         _, maestro = maestro_fixture

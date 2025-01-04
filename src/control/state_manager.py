@@ -3,8 +3,7 @@ from enum import Enum, auto
 class RobotState(Enum):
     IDLE = auto()
     MOVING = auto()
-    TURNING = auto()
-    CHANGING_MODE = auto()
+    MAINTENANCE = auto()
     # Add other states as needed
 
 class StateManager:
@@ -20,8 +19,13 @@ class StateManager:
         # Example: Allow any command if idle
         if self.state == RobotState.IDLE:
             return True
-        # Example: Prevent new commands while moving
+        # For example, only allow calibrate if MAINTENANCE
+        if intent == 'calibrate':
+            return self.state == RobotState.MAINTENANCE
+        # Restrict commands while moving, etc.
         if self.state == RobotState.MOVING and intent not in ['stop']:
             return False
+        return True
+
         # Add more conditions as needed
         return True
