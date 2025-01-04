@@ -36,6 +36,7 @@ COMMAND_SET_ACCELERATION: int = 0x89 & 0x7F
 COMMAND_SET_TARGET: int = 0x84 & 0x7F
 COMMAND_GO_HOME: int = 0x22 & 0x7F
 COMMAND_GET_MOVING_STATE: int = 0x93 & 0x7F
+COMMAND_SET_MULTIPLE_TARGETS: int = 0x1F
 
 class MaestroUART(object):
 	def __init__(self, device: str = '/dev/ttyS0', baudrate: int = 9600) -> None:
@@ -241,6 +242,37 @@ class MaestroUART(object):
 			none
 		"""
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_TARGET, channel, target & 0x7F, (target >> 7) & 0x7F])
+		self.ser.write(command)
+
+	def set_multiple_targets(self, targets: list[tuple[int, int]]) -> None:
+		"""
+
+		This command simultaneously sets the targets for a contiguous block of channels.
+		The first byte specifies how many channels are in the contiguous block; this is the 
+		number of target values you will need to send. The second byte specifies the lowest 
+		channel number in the block. The subsequent bytes contain the target values for each 
+		of the channels, in order by channel number, in the same format as the Set Target 
+		command above.
+
+		For example, to set channel 3 to 0 (off) and channel 4 to 6000 (neutral), you would 
+		send the following bytes:
+		0x9F, 0x02, 0x03, 0x00, 0x00, 0x70, 0x2E
+
+		The Set Multiple Targets command allows high-speed updates to your Maestro, which 
+		is especially useful when controlling a large number of servos in a chained configuration. 
+		For example, using the Pololu protocol at 115.2 kbps, sending the Set Multiple Targets 
+		command lets you set the targets of 24 servos in 4.6 ms, while sending 24 individual Set 
+		Target commands would take 12.5 ms.
+
+		Args:
+			targets (list of tuples): Each tuple contains (channel, target).
+				Example: [(3, 0), (4, 6000)]
+		"""
+		num_targets = len(targets)
+		first_channel = targets[0][0]
+		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_MULTIPLE_TARGETS, num_targets, first_channel])
+		for _, target in targets:
+			command += bytes([target & 0x7F, (target >> 7) & 0x7F])
 		self.ser.write(command)
 
 	def go_home(self) -> None:

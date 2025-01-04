@@ -1,6 +1,6 @@
 class Joint:
-    DEFAULT_SPEED = 32
-    DEFAULT_ACCEL = 5
+    DEFAULT_SPEED = 32  # Speed setting for the servo in units of (0.25us/10ms). A speed of 32 means 0.8064us/ms.
+    DEFAULT_ACCEL = 5   # Acceleration setting for the servo in units of (0.25us/10ms/80ms). A value of 5 means 0.0016128us/ms/ms.
 
     def __init__(self, controller, length, channel, angle_min, angle_max, servo_min=992*4, servo_max=2000*4, angle_limit_min=None, angle_limit_max=None, invert=False):
         """

@@ -5,7 +5,7 @@ import threading
 import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
-from robot import Leg, Calibration
+from robot import Leg, Calibration, Joint
 
 class Hexapod:
     def __init__(self) -> None:
@@ -17,41 +17,45 @@ class Hexapod:
             speed (int): Default speed setting for servo movements.
             accel (int): Default acceleration setting for servo movements.
             legs (List[Leg]): List of Leg instances representing each of the hexapod's legs.
-            coxa_params (Dict[str, float]): Parameters for the coxa joint, including length, channel, angle limits, and servo settings.
-            femur_params (Dict[str, float]): Parameters for the femur joint, including length, channel, angle limits, and servo settings.
-            tibia_params (Dict[str, float]): Parameters for the tibia joint, including length, channel, angle limits, and servo settings.
-            end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z).
+            coxa_params (Dict[str, float]): Parameters for the coxa joint, including length (mm), channel, angle limits (degrees), and servo settings.
+            femur_params (Dict[str, float]): Parameters for the femur joint, including length (mm), channel, angle limits (degrees), and servo settings.
+            tibia_params (Dict[str, float]): Parameters for the tibia joint, including length (mm), channel, angle limits (degrees), and servo settings.
+            end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z) in mm.
             leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
             calibration (Calibration): Instance managing servo calibrations and related processes.
+            predefined_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined positions for the legs.
+            predefined_angle_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined angle positions for the legs.
+            current_leg_angles (List[Tuple[float, float, float]]): Current angles of the legs.
+            current_leg_positions (List[Tuple[float, float, float]]): Current positions of the legs.
         """
         self.controller: MaestroUART = MaestroUART('/dev/ttyS0', 9600)
         
-        self.speed: int = 32
-        self.accel: int = 5
+        self.speed: int = Joint.DEFAULT_SPEED # Speed setting for the servo in units of (0.25us/10ms). A speed of 32 means 0.8064us/ms.
+        self.accel: int = Joint.DEFAULT_ACCEL # Acceleration setting for the servo in units of (0.25us/10ms/80ms). A value of 5 means 0.0016128us/ms/ms.
 
         coxa_params: Dict[str, float] = {
-            'length': 27.5,
-            'angle_min': -45,
-            'angle_max': 45,
-            'angle_limit_min': None,
-            'angle_limit_max': None,
-            'z_offset': 22.5
+            'length': 27.5,  # mm
+            'angle_min': -45,  # degrees
+            'angle_max': 45,  # degrees
+            'angle_limit_min': None,  # degrees
+            'angle_limit_max': None,  # degrees
+            'z_offset': 22.5  # mm
         }
         femur_params: Dict[str, float] = {
-            'length': 52.5,
-            'angle_min': -45,
-            'angle_max': 45,
-            'angle_limit_min': None,
-            'angle_limit_max': None,
+            'length': 52.5,  # mm
+            'angle_min': -45,  # degrees
+            'angle_max': 45,  # degrees
+            'angle_limit_min': None,  # degrees
+            'angle_limit_max': None,  # degrees
             'invert': True
         }
         tibia_params: Dict[str, float] = {
-            'length': 140.0,
-            'angle_min': -45,
-            'angle_max': 45,
-            'angle_limit_min': -35,
-            'angle_limit_max': None,
-            'x_offset': 22.5
+            'length': 140.0,  # mm
+            'angle_min': -45,  # degrees
+            'angle_max': 45,  # degrees
+            'angle_limit_min': -35,  # degrees
+            'angle_limit_max': None,  # degrees
+            'x_offset': 22.5  # mm
         }
 
         self.end_effector_offset: Tuple[float, float, float] = (
@@ -112,8 +116,8 @@ class Hexapod:
         self.calibration: Calibration = Calibration(self)
         self.calibration.load_calibration('/home/hexapod/hexapod/src/robot/calibration.json')
 
-        self.current_leg_angles = list(self.predefined_angle_positions['home'])
-        self.current_leg_positions = list(self.predefined_positions['zero'])
+        self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['home'])
+        self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['zero'])
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
@@ -124,6 +128,42 @@ class Hexapod:
             stop_event (threading.Event, optional): Event to signal stopping the calibration process.
         """
         self.calibration.calibrate_all_servos(stop_event=stop_event)
+
+    def set_all_servos_speed(self, speed: int = Joint.DEFAULT_SPEED) -> None:
+        """
+        Set speed for all servos.
+        
+        Args:
+            speed (int, optional): The speed to set for all servos.
+        """
+        for leg in self.legs:
+            self.controller.set_speed(leg.coxa.channel, speed)
+            self.controller.set_speed(leg.femur.channel, speed)
+            self.controller.set_speed(leg.tibia.channel, speed)
+
+    def set_all_servos_accel(self, accel: int = Joint.DEFAULT_ACCEL) -> None:
+        """
+        Set acceleration for all servos.
+        
+        Args:
+            accel (int, optional): The acceleration to set for all servos.
+        """
+        for leg in self.legs:
+            self.controller.set_acceleration(leg.coxa.channel, accel)
+            self.controller.set_acceleration(leg.femur.channel, accel)
+            self.controller.set_acceleration(leg.tibia.channel, accel)
+
+    def deactivate_all_servos(self) -> None:
+        """
+        Sets all servos to 0 to deactivate them.
+        """
+        targets = []
+        for leg in self.legs:
+            targets.append((leg.coxa_params['channel'], 0))
+            targets.append((leg.femur_params['channel'], 0))
+            targets.append((leg.tibia_params['channel'], 0))
+        
+        self.controller.set_multiple_targets(targets)
 
     def move_leg(self, leg_index: int, x: float, y: float, z: float, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
         """
@@ -141,8 +181,8 @@ class Hexapod:
             speed = self.speed
         if accel is None:
             accel = self.accel
+            
         self.legs[leg_index].move_to(x, y, z, speed, accel)
-        # Store the new positions
         self.current_leg_positions[leg_index] = (x, y, z)
 
     def move_all_legs(self, positions: List[Tuple[float, float, float]], speed: Optional[int] = None, accel: Optional[int] = None) -> None:
@@ -158,19 +198,36 @@ class Hexapod:
             speed = self.speed
         if accel is None:
             accel = self.accel
+        
         for i, pos in enumerate(positions):
             x, y, z = pos
-            self.move_leg(i, x, y, z, speed, accel)
-
-    def move_leg_to_position(self, leg_index: int, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
-        print(f"Setting leg {leg_index} to position '{position_name}'")
-        positions = positions_dict.get(position_name) if positions_dict else self.predefined_positions.get(position_name)
-        if positions:
-            x, y, z = positions[leg_index]
-            self.move_leg(leg_index, x, y, z)
-        else:
-            available = list(positions_dict.keys()) if positions_dict else list(self.predefined_positions.keys())
-            print(f"Error: Unknown position '{position_name}'. Available positions: {available}")
+            coxa_angle, femur_angle, tibia_angle = self.legs[i].compute_inverse_kinematics(x, y, z)
+            
+            if not (self.coxa_params['angle_min'] <= coxa_angle <= self.coxa_params['angle_max']):
+                raise ValueError(f"Coxa angle {coxa_angle}° for leg {i} is out of limits ({self.coxa_params['angle_min']}° to {self.coxa_params['angle_max']}°).")
+            
+            if not (self.femur_params['angle_min'] <= femur_angle <= self.femur_params['angle_max']):
+                raise ValueError(f"Femur angle {femur_angle}° for leg {i} is out of limits ({self.femur_params['angle_min']}° to {self.femur_params['angle_max']}°).")
+            
+            if not (self.tibia_params['angle_min'] <= tibia_angle <= self.tibia_params['angle_max']):
+                raise ValueError(f"Tibia angle {tibia_angle}° for leg {i} is out of limits ({self.tibia_params['angle_min']}° to {self.tibia_params['angle_max']}°).")
+        
+        targets = []
+        for i, pos in enumerate(positions):
+            x, y, z = pos
+            coxa_angle, femur_angle, tibia_angle = self.legs[i].compute_inverse_kinematics(x, y, z)
+            coxa_target = self.legs[i].coxa.angle_to_servo_target(coxa_angle)
+            femur_target = self.legs[i].femur.angle_to_servo_target(femur_angle)
+            tibia_target = self.legs[i].tibia.angle_to_servo_target(tibia_angle)
+            targets.append((self.legs[i].coxa.channel, coxa_target))
+            targets.append((self.legs[i].femur.channel, femur_target))
+            targets.append((self.legs[i].tibia.channel, tibia_target))
+        
+        self.set_all_servos_speed(speed)
+        self.set_all_servos_accel(accel)
+        
+        self.controller.set_multiple_targets(targets)
+        self.current_leg_positions = positions
 
     def move_to_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
         """
@@ -199,6 +256,17 @@ class Hexapod:
         speed: Optional[int] = None,
         accel: Optional[int] = None
     ) -> None:
+        """
+        Move a specific leg to the given joint angles.
+        
+        Args:
+            leg_index (int): Index of the leg (0-5).
+            coxa_angle (float): Target angle for the coxa joint.
+            femur_angle (float): Target angle for the femur joint.
+            tibia_angle (float): Target angle for the tibia joint.
+            speed (int, optional): Overrides the default servo speed.
+            accel (int, optional): Overrides the default servo acceleration.
+        """
         if speed is None:
             speed = self.speed
         if accel is None:
@@ -208,26 +276,46 @@ class Hexapod:
         self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
         
     def move_all_legs_angles(self, angles_list: List[Tuple[float, float, float]], speed: Optional[int] = None, accel: Optional[int] = None) -> None:
+        """
+        Move all legs' angles simultaneously.
+        
+        Args:
+            angles_list (List[Tuple[float, float, float]]): List of (coxa_angle, femur_angle, tibia_angle) tuples for each leg.
+            speed (int, optional): Overrides default servo speed.
+            accel (int, optional): Overrides default servo acceleration.
+        """
         if speed is None:
             speed = self.speed
         if accel is None:
             accel = self.accel
+        
         for i, angles in enumerate(angles_list):
             c_angle, f_angle, t_angle = angles
-            self.move_leg_angles(i, c_angle, f_angle, t_angle, speed, accel)
-
-    def move_leg_to_angles_position(self, leg_index: int, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
-        print(f"Setting leg {leg_index} to angles position '{position_name}'")
-        if positions_dict and position_name in positions_dict:
-            angles = positions_dict.get(position_name)
-        else:
-            angles = self.predefined_angle_positions.get(position_name)
-        if angles:
-            c_angle, f_angle, t_angle = angles[leg_index]
-            self.move_leg_angles(leg_index, c_angle, f_angle, t_angle)
-        else:
-            available = list(positions_dict.keys()) if positions_dict else list(self.predefined_angle_positions.keys())
-            print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {available}")
+            
+            if not (self.coxa_params['angle_min'] <= c_angle <= self.coxa_params['angle_max']):
+                raise ValueError(f"Coxa angle {c_angle}° for leg {i} is out of limits ({self.coxa_params['angle_min']}° to {self.coxa_params['angle_max']}°).")
+            
+            if not (self.femur_params['angle_min'] <= f_angle <= self.femur_params['angle_max']):
+                raise ValueError(f"Femur angle {f_angle}° for leg {i} is out of limits ({self.femur_params['angle_min']}° to {self.femur_params['angle_max']}°).")
+            
+            if not (self.tibia_params['angle_min'] <= t_angle <= self.tibia_params['angle_max']):
+                raise ValueError(f"Tibia angle {t_angle}° for leg {i} is out of limits ({self.tibia_params['angle_min']}° to {self.tibia_params['angle_max']}°).")
+        
+        targets = []
+        for i, angles in enumerate(angles_list):
+            c_angle, f_angle, t_angle = angles
+            coxa_target = self.legs[i].coxa.angle_to_servo_target(c_angle)
+            femur_target = self.legs[i].femur.angle_to_servo_target(f_angle)
+            tibia_target = self.legs[i].tibia.angle_to_servo_target(t_angle)
+            targets.append((self.legs[i].coxa.channel, coxa_target))
+            targets.append((self.legs[i].femur.channel, femur_target))
+            targets.append((self.legs[i].tibia.channel, tibia_target))
+        
+        self.set_all_servos_speed(speed)
+        self.set_all_servos_accel(accel)
+        
+        self.controller.set_multiple_targets(targets)
+        self.current_leg_angles = angles_list
 
     def move_to_angles_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
         """
@@ -252,8 +340,7 @@ class Hexapod:
         Returns the moving state of the hexapod by querying the Maestro controller.
 
         Returns:
-            True: If at least one servo is still moving.
-            False: If no servos are moving or failed to retrieve the moving state.
+            bool: True if at least one servo is still moving, False otherwise.
         """
         moving_state = self.controller.get_moving_state()
         if moving_state == 0x01:
@@ -271,8 +358,9 @@ class Hexapod:
             stop_event (threading.Event, optional): Event to signal stopping the wait.
         """
         start_time = time.time()
-        # Wait for at most 1 second to see if the robot starts moving
-        while (time.time() - start_time < 1) and not (stop_event and stop_event.is_set()):
+        # Wait for at most <motion_timeout> second to see if the robot starts moving
+        motion_timeout = 1
+        while (time.time() - start_time < motion_timeout) and not (stop_event and stop_event.is_set()):
             if self.get_moving_state():
                 break
             if stop_event:
@@ -285,15 +373,6 @@ class Hexapod:
                 break
             if stop_event:
                 stop_event.wait(timeout=0.1)
-
-    def deactivate_all_servos(self) -> None:
-        """
-        Sets all servos to 0 to deactivate them.
-        """
-        for leg in self.legs:
-            self.controller.set_target(leg.coxa_params['channel'], 0)
-            self.controller.set_target(leg.femur_params['channel'], 0)
-            self.controller.set_target(leg.tibia_params['channel'], 0)
 
 if __name__ == '__main__':
     hexapod = Hexapod()

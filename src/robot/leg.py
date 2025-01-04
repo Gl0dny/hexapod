@@ -1,7 +1,9 @@
 import math
 from robot import Joint
+from typing import Optional
 
 class Leg:
+
     def __init__(self, coxa_params, femur_params, tibia_params, controller, end_effector_offset):
         """
         Initialize a single leg of the hexapod robot.
@@ -91,7 +93,7 @@ class Leg:
         print(f"Calculated angles - coxa_angle_deg: {coxa_angle_deg}, femur_angle_deg: {femur_angle_deg}, tibia_angle_deg: {tibia_angle_deg}")
         return coxa_angle_deg, femur_angle_deg, tibia_angle_deg
 
-    def move_to(self, x, y, z, speed=32, accel=5):
+    def move_to(self, x, y, z, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
         """
         Move the leg's end effector to the specified (x, y, z) coordinates.
 
@@ -104,6 +106,11 @@ class Leg:
         """
         print(f"Moving to x: {x}, y: {y}, z: {z} with speed: {speed}, accel: {accel}")
 
+        if speed is None:
+            speed = Joint.DEFAULT_SPEED
+        if accel is None:
+            accel = Joint.DEFAULT_ACCEL
+
         coxa_angle, femur_angle, tibia_angle = self.compute_inverse_kinematics(x, y, z)
 
         self.coxa.set_angle(coxa_angle, speed, accel)
@@ -111,7 +118,14 @@ class Leg:
         self.tibia.set_angle(tibia_angle, speed, accel)
         print(f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
 
-    def move_to_angles(self, coxa_angle: float, femur_angle: float, tibia_angle: float, speed: int = 32, accel: int = 5) -> None:
+    def move_to_angles(
+        self,
+        coxa_angle: float,
+        femur_angle: float,
+        tibia_angle: float,
+        speed: Optional[int] = None,
+        accel: Optional[int] = None
+    ) -> None:
         """
         Move the leg's end effector to the specified angles.
 
@@ -122,6 +136,11 @@ class Leg:
             speed (int, optional): Speed setting for servo movement. Defaults to 32.
             accel (int, optional): Acceleration setting for servo movement. Defaults to 5.
         """
+        if speed is None:
+            speed = Joint.DEFAULT_SPEED
+        if accel is None:
+            accel = Joint.DEFAULT_ACCEL
+
         self.coxa.set_angle(coxa_angle, speed, accel)
         self.femur.set_angle(femur_angle, speed, accel)
         self.tibia.set_angle(tibia_angle, speed, accel)
