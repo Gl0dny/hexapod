@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
-from control.control_tasks import ControlTask, CompositeCalibrationTask, HelixTask
+from control.control_tasks import *
 
 logger = logging.getLogger(__name__)
 
@@ -173,13 +173,15 @@ class ControlInterface:
     #     logger.info("Waking up robot.")
     #     # Implement wake-up logic
 
-    def sleep(self):
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def sleep(self, hexapod, lights_handler) -> None:
         try:
             logger.info("Deactivating robot...")
             if self.control_task:
                 self.control_task.stop_task()
-            self.hexapod.wait_until_motion_complete()
-            self.hexapod.deactivate_all_servos()
+            self.control_task = SleepTask(hexapod, lights_handler)
             print("Robot deactivated")
             
         except Exception as e:

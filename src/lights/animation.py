@@ -1,8 +1,7 @@
 import threading
 import abc
 from typing import Optional
-from lights import Lights
-from .lights import ColorRGB
+from lights import Lights, ColorRGB 
 
 class Animation(abc.ABC):
     """

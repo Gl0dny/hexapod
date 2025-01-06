@@ -1,7 +1,6 @@
 from typing import Callable, Any, Optional, Dict
-from lights import Lights
-from .animation import Animation, OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation, AlternateRotateAnimation
-from .lights import ColorRGB
+from lights import Lights, ColorRGB
+from .animation import *
 
 class LightsInteractionHandler:
     """
