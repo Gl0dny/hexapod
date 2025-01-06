@@ -37,10 +37,10 @@ class Hexapod:
         
         # Speed setting for the servo in percent. Speed unit - (0.25us/10ms).
         # The speed parameter can be set to a maximum value of 255, corresponding to a change of 63.75 μs every 10 ms.
-        self.speed: int = 20
+        self.speed: int = 25
         # Acceleration setting for the servo percent. Acceleration units - (0.25us/10ms/80ms).
         # The maximum acceleration setting is 255, allowing the speed to change by 63.75 μs per 10 ms interval every 80 ms.
-        self.accel: int = 20
+        self.accel: int = 10
 
         self.imu = Imu()
 
@@ -150,9 +150,8 @@ class Hexapod:
         if speed == 0:
             print("Setting all servos speed to: Unlimited")
         else:
-            # Map speed from 1-255 to 1-100%
-            speed = map_range(speed, 1, 255, 1, 100)
             print(f"Setting all servos speed to: {speed}%")
+            speed = map_range(speed, 1, 100, 1, 255)
         
         used_channels = self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map
         for channel in used_channels:
@@ -168,9 +167,8 @@ class Hexapod:
         if accel == 0:
             print("Setting all servos acceleration to: Unlimited")
         else:
-            # Map acceleration from 1-255 to 1-100%
-            accel = map_range(accel, 1, 255, 1, 100)
             print(f"Setting all servos acceleration to: {accel}%")
+            accel = map_range(accel, 1, 100, 1, 255)
         
         used_channels = self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map
         for channel in used_channels:
