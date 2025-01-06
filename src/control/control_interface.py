@@ -169,9 +169,20 @@ class ControlInterface:
     #     logger.info("Shutting down robot.")
     #     # Implement shutdown logic
 
-    # def wake_up(self):
-    #     logger.info("Waking up robot.")
-    #     # Implement wake-up logic
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def wake_up(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Activating robot...")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = WakeUpTask(hexapod, lights_handler)
+            self.control_task.start()
+            print("Robot activated")
+            
+        except Exception as e:
+            logger.error(f"Aactivating robot failed: {e}")
 
     @control_task
     @inject_lights_handler
@@ -182,6 +193,7 @@ class ControlInterface:
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = SleepTask(hexapod, lights_handler)
+            self.control_task.start()
             print("Robot deactivated")
             
         except Exception as e:

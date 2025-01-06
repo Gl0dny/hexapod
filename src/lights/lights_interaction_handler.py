@@ -66,6 +66,15 @@ class LightsInteractionHandler:
         """
         self.lights.set_color(color, led_index=led_index)
 
+    def set_brightness(self, brightness: int) -> None:
+        """
+        Set the brightness of the LEDs.
+
+        Args:
+            brightness (int): The brightness level (0-100).
+        """
+        self.lights.set_brightness(brightness)
+
     @animation
     def wakeup(
         self,

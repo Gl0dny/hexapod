@@ -167,9 +167,26 @@ class SleepTask(ControlTask):
 
     def run(self):
         try:
+            self.lights_handler.set_brightness(5)
+            self.lights_handler.set_single_color(ColorRGB.GRAY)
             self.hexapod.wait_until_motion_complete()
             self.hexapod.deactivate_all_servos()
-            self.lights_handler.set_single_color(ColorRGB.RED)
 
         except Exception as e:
             print(f"Error in Sleep task: {e}")
+
+class WakeUpTask(ControlTask):
+    def __init__(self, hexapod, lights_handler):
+        super().__init__()
+        self.hexapod = hexapod
+        self.lights_handler = lights_handler
+
+    def run(self):
+        try:
+            self.lights_handler.set_brightness(50)
+            self.lights_handler.wakeup()
+            self.hexapod.move_to_angles_position("home")
+            self.hexapod.wait_until_motion_complete()
+
+        except Exception as e:
+            print(f"Error in Wake up task: {e}")
