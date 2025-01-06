@@ -1,5 +1,54 @@
 context:
   expressions:
+    help:
+      - "[Help, I need help, Help me, Assistance]"
+      - "Show commands"
+    system_status:
+      - "(What is, Show me) (a, the) system [status, condition]"
+    shut_down:
+      - "[Shut down, Power off] (now, immediately)"
+      - "[Turn off, Deactivate] [the system, the robot]"
+    emergency_stop:
+      - "[Emergency stop, Stop everything] (now, immediately)"
+      - "[Abort, Cancel] [all actions, current operations, operations, activities] (now, immediately)"
+    wake_up:
+      - "[Activate, Wake up]"
+    sleep:
+      - (Go) (to) [sleep, deactivate]
+    calibrate:
+      - "Calibration"
+      - "[Calibrate, Recalibrate, Adjust] (the) (motors)"
+      - "[Initiate, Begin, Start] (the) calibration (process)"
+      - "[Run, Perform] (a) (system) calibration"
+    run_sequence:
+      - "(Start, Run, Activate, Trigger, Begin) (a, the) $sequence_name:sequence [sequence, program]"
+      - "(Start, Run, Activate, Trigger, Begin) (a, the) [sequence, program] $sequence_name:sequence"
+    repeat:
+      - (Repeat, Do) [last command, that, it] (again)
+    turn_lights:
+      - "[switch, turn] $switch_state:switch_state (all) (the) [light, lights]"
+      - "[switch, turn] (all) (the) [light, lights] $switch_state:switch_state"
+    change_color:
+      - "[change, set, switch] (all) (the) (light, lights) (color) (to)
+        $color:color"
+    set_brightness:
+      - "[Set, Adjust] (the) (lights) brightness (to)
+        $pv.Percent:brightness_percentage"
+    set_speed:
+      - "[Set, Adjust] (the) speed (to) $pv.Percent:speed_percentage"
+    set_accel:
+      - "[Set, Adjust] (the) acceleration (to) $pv.Percent:accel_percentage"
+    low_profle_mode:
+      - Move (in) (a, the) low profile (position)
+      - (Move in) (a, the) [crawl, low profile] mode
+      - Sit down
+    upright_mode:
+      - (Move in) (a, an, the) [upright, high profile] mode
+      - Move (in) (a, an, the) [high, upright] profile (position)
+      - Stand up
+    idle_stance:
+      - (Return, Set, Move, Go) (to) (the) [neutral, default, home, idle]
+        (stance, position)
     move:
       - "[Move, Go, Walk, Proceed] (in, to) (the) $direction:move_direction
         (direction) (for, by) $pv.TwoDigitInteger:move_time
@@ -11,9 +60,6 @@ context:
         (direction)"
     stop:
       - "[Stop, Halt, Pause]"
-    idle_stance:
-      - (Return, Set, Move, Go) (to) (the) [neutral, default, home, zero, idle]
-        (stance, position)
     rotate:
       - "[Turn, Rotate, Spin] (in, to) (the) $turn_direction:turn_direction
         (direction) (for, by) $angle:rotate_angle (degree, degrees)"
@@ -22,49 +68,34 @@ context:
         $time_unit:time_unit"
       - "[Turn, Rotate, Spin] (in, to) (the) $turn_direction:turn_direction
         (direction)"
-    turn_lights:
-      - "[switch, turn] $switch_state:switch_state (all) (the) [light, lights]"
-      - "[switch, turn] (all) (the) [light, lights] $switch_state:switch_state"
-    change_color:
-      - "[change, set, switch] (all) (the) (light, lights) (color) (to)
-        $color:color"
-    repeat:
-      - (Repeat, Do) [last command, that, it] (again)
-    hello:
-      - Say [hello, hi, hey]
-    show_off:
-      - "[Show off, Let them see]"
+    follow:
+      - "[Follow, Come to me, Follow me, Track me]"
+    sound_source_analysis:
+      - "[Run, Start, Perform, Execute, Begin, Initiate] (a, the) sound source [analysis, tracking]"
+      - "[Run, Start, Execute, Use, Activate, Launch] (a, the) sound source analysis [tool, system]"
+      - "(Run, Start, Execute, Use, Activate, Launch) (a, the) ODAS (process, system)"
+      - "[Locate, Identify, Track] sound sources (in the area)"
+      - "[Analyze, Scan] (the) environment for sound sources"
+    direction_of_arrival:
+      - "[Where, From where, What direction, From which direction] (is, does) (the) sound (come from, coming from)"
+      - "[Detect, Locate] (the) [direction, source] (of) (the) sound"
+      - "[Detect, Locate] (the) sound [direction, source]"
+      - "(Use, Activate) [DOA, Direction of Arrival]"
+    police:
+      - "(Activate, Switch to) police (mode)"
+      - "(Turn on, Enable) police lights"
+    sit_up:
+      - "(Perform, Do, Make) (some, a set) (of) sit ups"
     dance:
       - Dance
-    set_speed:
-      - "[Set, Adjust] (the) speed (to) $pv.Percent:speed_percentage"
-    set_accel:
-      - "[Set, Adjust] (the) acceleration (to) $pv.Percent:accel_percentage"
-    set_brightness:
-      - "[Set, Adjust] (the) (lights) brightness (to)
-        $pv.Percent:brightness_percentage"
-    shut_down:
-      - "[Power, Shut] [off, down]"
-    wake_up:
-      - "[Activate, Wake up]"
-    sleep:
-      - (Go) (to) [sleep, deactivate]
-    low_profle_mode:
-      - Move (in) (a, the) low profile (position)
-      - (Move in) (a, the) [crawl, low profile] mode
-    upright_mode:
-      - (Move in) (a, an, the) [upright, high profile] mode
-      - Move (in) (a, an, the) [high, upright] profile (position)
     helix:
       - "[Helix, Spiral]"
-    calibrate:
-      - "Calibration"
-      - "[Calibrate, Recalibrate, Adjust] (the) (motors)"
-      - "[Initiate, Begin, Start] (the) calibration (process)"
-      - "[Run, Perform] (a) (system) calibration"
+    show_off:
+      - "[Show off, Let them see]"
+    hello:
+      - Say [hello, hi, hey]
   slots:
     direction:
-      - back
       - right
       - left
       - backward
@@ -101,7 +132,6 @@ context:
       - red
       - gray
       - white
-
     angle:
       - minus three hundred sixty
       - minus three hundred
@@ -119,4 +149,6 @@ context:
       - two hundred seventy
       - three hundred
       - three hundred sixty
+    sequence_name:
+      - pass
   macros: {}
