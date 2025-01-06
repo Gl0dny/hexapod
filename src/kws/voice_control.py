@@ -107,9 +107,10 @@ class VoiceControl(threading.Thread):
             print("  ", flush=True)
             print('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
             self.control_interface.stop_control_task()
+        finally:
             self.control_interface.lights_handler.off()
             self.control_interface.hexapod.deactivate_all_servos()
-        finally:
+
             if recorder is not None:
                 recorder.delete()
 
