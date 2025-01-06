@@ -6,6 +6,7 @@ import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg, Calibration, Joint
+from imu import Imu
 
 class Hexapod:
     CONTROLLER_CHANNELS = 24

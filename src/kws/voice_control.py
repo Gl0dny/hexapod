@@ -81,6 +81,8 @@ class VoiceControl(threading.Thread):
         recorder = None
 
         try:
+            self.control_interface.hexapod.move_to_angles_position("home")
+
             recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             recorder.start()
 
@@ -92,17 +94,15 @@ class VoiceControl(threading.Thread):
                 self.picovoice.process(pcm)
 
                 # Check for MaestroUART errors
-                # error_code = self.control_interface.hexapod.controller.get_error()
-                # if error_code != 0:
-                #     print(f"MaestroUART Error detected with code: {error_code}")
+                self.control_interface.hexapod.controller.get_error()
 
         except KeyboardInterrupt:
             sys.stdout.write('\b' * 2)
             print("  ", flush=True)
-            print('Stopping control tasks and animations due to keyboard interrupt...')
+            print('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
             self.control_interface.stop_control_task()
             self.control_interface.lights_handler.off()
-            self.control_interface.hexapod.move_to_angles_position('home')
+            self.control_interface.hexapod.deactivate_all_servos()
         finally:
             if recorder is not None:
                 recorder.delete()

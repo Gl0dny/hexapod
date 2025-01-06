@@ -107,9 +107,7 @@ class MaestroUART(object):
 
 		error_code = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
 
-		if error_code == 0:
-			print("No error detected.")
-		else:
+		if error_code != 0:
 			print("Error detected with code:", error_code)
 			if error_code & (1 << 0):
 				print("Serial signal error: Stop bit not detected at the expected place.")
