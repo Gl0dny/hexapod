@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg, Calibration, Joint
 from imu import Imu
+from utils import map_range
 
 class Hexapod:
     CONTROLLER_CHANNELS = 24
@@ -34,8 +35,12 @@ class Hexapod:
         """
         self.controller: MaestroUART = MaestroUART('/dev/ttyS0', 9600)
         
-        self.speed: int = Joint.DEFAULT_SPEED # Speed setting for the servo in units of (0.25us/10ms). A speed of 32 means 0.8064us/ms.
-        self.accel: int = Joint.DEFAULT_ACCEL # Acceleration setting for the servo in units of (0.25us/10ms/80ms). A value of 5 means 0.0016128us/ms/ms.
+        # Speed setting for the servo in percent. Speed unit - (0.25us/10ms).
+        # The speed parameter can be set to a maximum value of 255, corresponding to a change of 63.75 μs every 10 ms.
+        self.speed: int = 20
+        # Acceleration setting for the servo percent. Acceleration units - (0.25us/10ms/80ms).
+        # The maximum acceleration setting is 255, allowing the speed to change by 63.75 μs per 10 ms interval every 80 ms.
+        self.accel: int = 20
 
         self.imu = Imu()
 
@@ -142,7 +147,13 @@ class Hexapod:
         Args:
             speed (int, optional): The speed to set for all servos.
         """
-        print(f"Setting all servos speed to: {speed}")
+        if speed == 0:
+            print("Setting all servos speed to: Unlimited")
+        else:
+            # Map speed from 1-255 to 1-100%
+            speed = map_range(speed, 1, 255, 1, 100)
+            print(f"Setting all servos speed to: {speed}%")
+        
         used_channels = self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map
         for channel in used_channels:
             self.controller.set_speed(channel, speed)
@@ -154,7 +165,13 @@ class Hexapod:
         Args:
             accel (int, optional): The acceleration to set for all servos.
         """
-        print(f"Setting all servos acceleration to: {accel}")
+        if accel == 0:
+            print("Setting all servos acceleration to: Unlimited")
+        else:
+            # Map acceleration from 1-255 to 1-100%
+            accel = map_range(accel, 1, 255, 1, 100)
+            print(f"Setting all servos acceleration to: {accel}%")
+        
         used_channels = self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map
         for channel in used_channels:
             self.controller.set_acceleration(channel, accel)

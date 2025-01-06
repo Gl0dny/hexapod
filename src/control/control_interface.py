@@ -133,37 +133,37 @@ class ControlInterface:
     #     logger.info("Performing dance routine.")
     #     # Implement dance routine
 
-    # def set_speed(self, speed_percentage):
-    #     logger.info(f"Setting speed to {speed_percentage}%.")
-    #     # Implement logic to set speed
+    def set_speed(self, speed_percentage):
+        logger.info(f"Setting speed to {speed_percentage}%.")
+        self.hexapod.set_all_servos_speed(speed_percentage)
 
-    # def set_acceleration(self, accel_percentage):
-    #     logger.info(f"Setting acceleration to {accel_percentage}%.")
-    #     # Implement logic to set acceleration
+    def set_acceleration(self, accel_percentage):
+        logger.info(f"Setting acceleration to {accel_percentage}%.")
+        self.hexapod.set_all_servos_accel(accel_percentage)
 
-    # @inject_lights_handler
-    # def set_brightness(self, lights_handler, brightness_percentage):
-    #     """
-    #     Sets the brightness of the lights.
+    @inject_lights_handler
+    def set_brightness(self, lights_handler, brightness_percentage):
+        """
+        Sets the brightness of the lights.
         
-    #     Args:
-    #         lights_handler (LightsInteractionHandler): The lights handler instance.
-    #         brightness_percentage (int or str): Brightness level (0-100 or '0%-100%').
-    #     """
-    #     try:
-    #         if isinstance(brightness_percentage, str) and brightness_percentage.endswith('%'):
-    #             brightness_value = int(brightness_percentage.rstrip('%'))
-    #         else:
-    #             brightness_value = int(brightness_percentage)
+        Args:
+            lights_handler (LightsInteractionHandler): The lights handler instance.
+            brightness_percentage (int or str): Brightness level (0-100 or '0%-100%').
+        """
+        try:
+            if isinstance(brightness_percentage, str) and brightness_percentage.endswith('%'):
+                brightness_value = int(brightness_percentage.rstrip('%'))
+            else:
+                brightness_value = int(brightness_percentage)
             
-    #         if not 0 <= brightness_value <= 100:
-    #             raise ValueError("Brightness percentage must be between 0 and 100.")
+            if not 0 <= brightness_value <= 100:
+                raise ValueError("Brightness percentage must be between 0 and 100.")
             
-    #         logger.info(f"Setting brightness to {brightness_value}%.")
-    #         lights_handler.lights.set_brightness(brightness_value)
-    #     except ValueError as e:
-    #         logger.error(f"Invalid brightness_percentage value: {brightness_percentage}. Error: {e}")
-    #         print(f"Error: {e}")
+            logger.info(f"Setting brightness to {brightness_value}%.")
+            lights_handler.set_brightness(brightness_value)
+        except ValueError as e:
+            logger.error(f"Invalid brightness_percentage value: {brightness_percentage}. Error: {e}")
+            print(f"Error: {e}")
 
     # def shut_down(self):
     #     logger.info("Shutting down robot.")
