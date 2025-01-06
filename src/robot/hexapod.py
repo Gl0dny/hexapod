@@ -19,12 +19,13 @@ class Hexapod:
             controller (MaestroUART): Serial controller for managing servo motors.
             speed (int): Default speed setting for servo movements.
             accel (int): Default acceleration setting for servo movements.
+            imu (Imu): Instance of the Imu class for imu sensor data.
             legs (List[Leg]): List of Leg instances representing each of the hexapod's legs.
+            leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
             coxa_params (Dict[str, float]): Parameters for the coxa joint, including length (mm), channel, angle limits (degrees), and servo settings.
             femur_params (Dict[str, float]): Parameters for the femur joint, including length (mm), channel, angle limits (degrees), and servo settings.
             tibia_params (Dict[str, float]): Parameters for the tibia joint, including length (mm), channel, angle limits (degrees), and servo settings.
             end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z) in mm.
-            leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
             calibration (Calibration): Instance managing servo calibrations and related processes.
             predefined_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined positions for the legs.
             predefined_angle_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined angle positions for the legs.
@@ -35,6 +36,8 @@ class Hexapod:
         
         self.speed: int = Joint.DEFAULT_SPEED # Speed setting for the servo in units of (0.25us/10ms). A speed of 32 means 0.8064us/ms.
         self.accel: int = Joint.DEFAULT_ACCEL # Acceleration setting for the servo in units of (0.25us/10ms/80ms). A value of 5 means 0.0016128us/ms/ms.
+
+        self.imu = Imu()
 
         coxa_params: Dict[str, float] = {
             'length': 27.5,  # mm
@@ -61,6 +64,10 @@ class Hexapod:
             'x_offset': 22.5  # mm
         }
 
+        self.coxa_channel_map = [0, 3, 6, 15, 18, 21]
+        self.femur_channel_map = [1, 4, 7, 16, 19, 22]
+        self.tibia_channel_map = [2, 5, 8, 17, 20, 23]
+
         self.end_effector_offset: Tuple[float, float, float] = (
             tibia_params['x_offset'],
             femur_params['length'] + coxa_params['length'],
@@ -68,10 +75,6 @@ class Hexapod:
         )
 
         self.legs: List[Leg] = []
-
-        self.coxa_channel_map = [0, 3, 6, 15, 18, 21]
-        self.femur_channel_map = [1, 4, 7, 16, 19, 22]
-        self.tibia_channel_map = [2, 5, 8, 17, 20, 23]
 
         for i in range(6):
             coxa_params['channel'] = self.coxa_channel_map[i]
@@ -89,6 +92,13 @@ class Hexapod:
             4: 6,
             5: 4
         }
+
+        self.coxa_params = coxa_params
+        self.femur_params = femur_params
+        self.tibia_params = tibia_params
+
+        self.calibration: Calibration = Calibration(self)
+        self.calibration.load_calibration('/home/hexapod/hexapod/src/robot/calibration.json')
 
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = {
             'zero': [
@@ -111,13 +121,6 @@ class Hexapod:
                 (0.0, 35, -35),
             ],
         }
-
-        self.coxa_params = coxa_params
-        self.femur_params = femur_params
-        self.tibia_params = tibia_params
-
-        self.calibration: Calibration = Calibration(self)
-        self.calibration.load_calibration('/home/hexapod/hexapod/src/robot/calibration.json')
 
         self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['home'])
         self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['zero'])
@@ -426,3 +429,16 @@ if __name__ == '__main__':
     hexapod.move_to_angles_position('home')
     # hexapod.controller.go_home()
     # hexapod.deactivate_all_servos()
+
+    # while True:
+    #     ax, ay, az = hexapod.imu.get_acceleration()
+    #     gx, gy, gz = hexapod.imu.get_gyroscope()
+    #     mag_x, mag_y, mag_z = hexapod.imu.get_magnetometer()
+    #     temp = hexapod.imu.get_temperature()
+
+    #     print(f"""
+    # Accel: {ax:05.2f} {ay:05.2f} {az:05.2f}
+    # Gyro:  {gx:05.2f} {gy:05.2f} {gz:05.2f}
+    # Mag:   {mag_x:05.2f} {mag_y:05.2f} {mag_z:05.2f}
+    # Temp:  {temp:05.2f}""")
+    #     time.sleep(1)

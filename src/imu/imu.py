@@ -35,7 +35,7 @@ class Imu:
         
     def __init__(self):
         """Initialize the Imu class by creating an instance of ICM20948."""
-        self._imu = ICM20948()
+        self.imu = ICM20948()
 
     def get_acceleration(self):
         """Retrieve acceleration data along the x, y, and z axes.
@@ -43,7 +43,7 @@ class Imu:
         Returns:
             tuple: A tuple containing acceleration values (ax, ay, az).
         """
-        ax, ay, az, gx, gy, gz = self._imu.read_accelerometer_gyro_data()
+        ax, ay, az, gx, gy, gz = self.imu.read_accelerometer_gyro_data()
         return ax, ay, az
 
     def get_gyroscope(self):
@@ -52,7 +52,7 @@ class Imu:
         Returns:
             tuple: A tuple containing gyroscopic values (gx, gy, gz).
         """
-        ax, ay, az, gx, gy, gz = self._imu.read_accelerometer_gyro_data()
+        ax, ay, az, gx, gy, gz = self.imu.read_accelerometer_gyro_data()
         return gx, gy, gz
 
     def get_magnetometer(self):
@@ -61,7 +61,7 @@ class Imu:
         Returns:
             tuple: A tuple containing magnetometer values (x, y, z).
         """
-        return self._imu.read_magnetometer_data()
+        return self.imu.read_magnetometer_data()
 
     def get_temperature(self):
         """Retrieve the temperature reading from the IMU sensor.
@@ -69,7 +69,7 @@ class Imu:
         Returns:
             float: The temperature value.
         """
-        return self._imu.read_temperature()
+        return self.imu.read_temperature()
 
 
 if __name__ == "__main__":
