@@ -246,8 +246,9 @@ class MaestroUART(object):
 
 	def set_multiple_targets(self, targets: list[tuple[int, int]]) -> None:
 		"""
-
 		This command simultaneously sets the targets for a contiguous block of channels.
+		**Note:** Targets must be provided in sequential order by channel number.
+
 		The first byte specifies how many channels are in the contiguous block; this is the 
 		number of target values you will need to send. The second byte specifies the lowest 
 		channel number in the block. The subsequent bytes contain the target values for each 
@@ -264,13 +265,14 @@ class MaestroUART(object):
 		command lets you set the targets of 24 servos in 4.6 ms, while sending 24 individual Set 
 		Target commands would take 12.5 ms.
 
-		Caution: It sets the targets in sequence so if you provide number of targets to set this will 
-		set this number of targets succeeding from the first channel in the list.
-
 		Args:
 			targets (list of tuples): Each tuple contains (channel, target).
 				Example: [(3, 0), (4, 6000)]
 		"""
+		# Check if channels are sequential
+		channels = [channel for channel, _ in targets]
+		if channels != list(range(min(channels), min(channels) + len(channels))):
+			raise ValueError("Channels are not sequential.")
 		num_targets = len(targets)
 		first_channel = targets[0][0]
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_MULTIPLE_TARGETS, num_targets, first_channel])

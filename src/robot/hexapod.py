@@ -8,6 +8,8 @@ from maestro import MaestroUART
 from robot import Leg, Calibration, Joint
 
 class Hexapod:
+    CONTROLLER_CHANNELS = 24
+    
     def __init__(self) -> None:
         """
         Represents the hexapod robot with six legs.
@@ -66,14 +68,14 @@ class Hexapod:
 
         self.legs: List[Leg] = []
 
-        coxa_channel_map = [0, 3, 6, 15, 18, 21]
-        femur_channel_map = [1, 4, 7, 16, 19, 22]
-        tibia_channel_map = [2, 5, 8, 17, 20, 23]
+        self.coxa_channel_map = [0, 3, 6, 15, 18, 21]
+        self.femur_channel_map = [1, 4, 7, 16, 19, 22]
+        self.tibia_channel_map = [2, 5, 8, 17, 20, 23]
 
         for i in range(6):
-            coxa_params['channel'] = coxa_channel_map[i]
-            femur_params['channel'] = femur_channel_map[i]
-            tibia_params['channel'] = tibia_channel_map[i]
+            coxa_params['channel'] = self.coxa_channel_map[i]
+            femur_params['channel'] = self.femur_channel_map[i]
+            tibia_params['channel'] = self.tibia_channel_map[i]
 
             leg = Leg(coxa_params, femur_params, tibia_params, self.controller, self.end_effector_offset)
             self.legs.append(leg)
@@ -132,26 +134,24 @@ class Hexapod:
     def set_all_servos_speed(self, speed: int = Joint.DEFAULT_SPEED) -> None:
         """
         Set speed for all servos.
-        
+
         Args:
             speed (int, optional): The speed to set for all servos.
         """
-        for leg in self.legs:
-            self.controller.set_speed(leg.coxa.channel, speed)
-            self.controller.set_speed(leg.femur.channel, speed)
-            self.controller.set_speed(leg.tibia.channel, speed)
+        print(f"Setting all servos speed to: {speed}")
+        for channel in range(self.CONTROLLER_CHANNELS):
+            self.controller.set_speed(channel, speed)
 
     def set_all_servos_accel(self, accel: int = Joint.DEFAULT_ACCEL) -> None:
         """
         Set acceleration for all servos.
-        
+
         Args:
             accel (int, optional): The acceleration to set for all servos.
         """
-        for leg in self.legs:
-            self.controller.set_acceleration(leg.coxa.channel, accel)
-            self.controller.set_acceleration(leg.femur.channel, accel)
-            self.controller.set_acceleration(leg.tibia.channel, accel)
+        print(f"Setting all servos acceleration to: {accel}")
+        for channel in range(self.CONTROLLER_CHANNELS):
+            self.controller.set_acceleration(channel, accel)
 
     def deactivate_all_servos(self) -> None:
         """
@@ -194,6 +194,7 @@ class Hexapod:
             speed (int, optional): Overrides default servo speed.
             accel (int, optional): Overrides default servo acceleration.
         """
+        print(f"move_all_legs called with positions: {positions}, speed: {speed}, accel: {accel}")
         if speed is None:
             speed = self.speed
         if accel is None:
@@ -216,6 +217,15 @@ class Hexapod:
         for i, pos in enumerate(positions):
             x, y, z = pos
             coxa_angle, femur_angle, tibia_angle = self.legs[i].compute_inverse_kinematics(x, y, z)
+            
+            # Invert angles if required
+            if self.legs[i].coxa.invert:
+                coxa_angle *= -1
+            if self.legs[i].femur.invert:
+                femur_angle *= -1
+            if self.legs[i].tibia.invert:
+                tibia_angle *= -1
+
             coxa_target = self.legs[i].coxa.angle_to_servo_target(coxa_angle)
             femur_target = self.legs[i].femur.angle_to_servo_target(femur_angle)
             tibia_target = self.legs[i].tibia.angle_to_servo_target(tibia_angle)
@@ -226,6 +236,14 @@ class Hexapod:
         self.set_all_servos_speed(speed)
         self.set_all_servos_accel(accel)
         
+        # Add unused channels with 0
+        unused_channels = [ch for ch in range(self.CONTROLLER_CHANNELS) if ch not in (self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map)]
+        for channel in unused_channels:
+            targets.append((channel, 0))
+        
+        # Sort targets by channel number to ensure sequential order
+        targets = sorted(targets, key=lambda x: x[0])
+        print(f"set_multiple_targets called with targets: {targets}")
         self.controller.set_multiple_targets(targets)
         self.current_leg_positions = positions
 
@@ -284,6 +302,7 @@ class Hexapod:
             speed (int, optional): Overrides default servo speed.
             accel (int, optional): Overrides default servo acceleration.
         """
+        print(f"move_all_legs_angles called with angles_list: {angles_list}, speed: {speed}, accel: {accel}")
         if speed is None:
             speed = self.speed
         if accel is None:
@@ -304,6 +323,15 @@ class Hexapod:
         targets = []
         for i, angles in enumerate(angles_list):
             c_angle, f_angle, t_angle = angles
+            
+            # Invert angles if required
+            if self.legs[i].coxa.invert:
+                c_angle *= -1
+            if self.legs[i].femur.invert:
+                f_angle *= -1
+            if self.legs[i].tibia.invert:
+                t_angle *= -1
+
             coxa_target = self.legs[i].coxa.angle_to_servo_target(c_angle)
             femur_target = self.legs[i].femur.angle_to_servo_target(f_angle)
             tibia_target = self.legs[i].tibia.angle_to_servo_target(t_angle)
@@ -314,6 +342,14 @@ class Hexapod:
         self.set_all_servos_speed(speed)
         self.set_all_servos_accel(accel)
         
+        # Add unused channels with 0
+        unused_channels = [ch for ch in range(self.CONTROLLER_CHANNELS) if ch not in (self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map)]
+        for channel in unused_channels:
+            targets.append((channel, 0))
+        
+        # Sort targets by channel number to ensure sequential order
+        targets = sorted(targets, key=lambda x: x[0])
+        print(f"set_multiple_targets called with targets: {targets}")
         self.controller.set_multiple_targets(targets)
         self.current_leg_angles = angles_list
 
@@ -377,14 +413,8 @@ class Hexapod:
 if __name__ == '__main__':
     hexapod = Hexapod()
 
-    # Move a single leg to a new predefined coordinate position
-    # hexapod.move_leg_to_position(2, 'home')
-
     # Move all legs to a new predefined coordinate position
     # hexapod.move_to_position('home')
-
-    # Move a single leg to a new predefined angle position
-    # hexapod.move_leg_to_angles_position(5, 'rest')
 
     # Move all legs to a new predefined angle position
     hexapod.move_to_angles_position('home')

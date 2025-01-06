@@ -150,3 +150,11 @@ class TestMaestroUART:
             6000 & 0x7F, (6000 >> 7) & 0x7F  # Target for channel 4
         ])
         maestro.ser.write.assert_called_with(expected_command)
+
+    def test_set_multiple_targets_non_sequential(self, maestro_fixture):
+        # Test set_multiple_targets method with non-sequential channels
+        _, maestro = maestro_fixture
+        targets = [(3, 6000), (5, 7000)]  # Non-sequential channels
+        with pytest.raises(ValueError) as exc_info:
+            maestro.set_multiple_targets(targets)
+        assert "Channels are not sequential." in str(exc_info.value)
