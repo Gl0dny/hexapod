@@ -143,6 +143,7 @@ class MaestroUART(object):
 			0: error getting the position, check the connections, could also be
 			low power
 		""" 
+		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_POSITION, channel])
 
 		self.ser.write(command)
@@ -303,18 +304,22 @@ class MaestroUART(object):
 	def get_moving_state(self) -> Optional[int]:
 		"""
 		Checks if any servos are still moving.
+		This command is used to determine whether the servo outputs have reached 
+		their targets or are still changing and will return 1 as long as there is 
+		at least one servo that is limited by a speed or acceleration setting still moving.
+		Using this command together with the Set Target command, you can initiate several 
+		servo movements and wait for all the movements to finish before moving on to the 
+		next step of your program.
 
 		Args:
 			none
 
 		Returns:
+			Optional[int]: The moving state or None if no response is received.
 			0x00: if no servos are moving
 			0x01: if at least one servo is still moving
-
-		Returns:
-			Optional[int]: The moving state or None if no response is received.
 		"""
-		# The command is: 0xAA, device number (0x0C for default), 0x13
+		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_MOVING_STATE])
 		self.ser.write(command)
 

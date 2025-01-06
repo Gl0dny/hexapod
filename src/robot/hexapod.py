@@ -104,9 +104,9 @@ class Hexapod:
             'home': [
                 (0.0, 35, -35),
                 (0.0, 35, -35),
-                (0.0, 35, -26),
                 (0.0, 35, -35),
-                (0.0, 35, -17.5),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
                 (0.0, 35, -35),
             ],
         }
@@ -139,7 +139,8 @@ class Hexapod:
             speed (int, optional): The speed to set for all servos.
         """
         print(f"Setting all servos speed to: {speed}")
-        for channel in range(self.CONTROLLER_CHANNELS):
+        used_channels = self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map
+        for channel in used_channels:
             self.controller.set_speed(channel, speed)
 
     def set_all_servos_accel(self, accel: int = Joint.DEFAULT_ACCEL) -> None:
@@ -150,7 +151,8 @@ class Hexapod:
             accel (int, optional): The acceleration to set for all servos.
         """
         print(f"Setting all servos acceleration to: {accel}")
-        for channel in range(self.CONTROLLER_CHANNELS):
+        used_channels = self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map
+        for channel in used_channels:
             self.controller.set_acceleration(channel, accel)
 
     def deactivate_all_servos(self) -> None:
@@ -163,6 +165,12 @@ class Hexapod:
             targets.append((leg.femur_params['channel'], 0))
             targets.append((leg.tibia_params['channel'], 0))
         
+        # Add unused channels with 0
+        unused_channels = [ch for ch in range(self.CONTROLLER_CHANNELS) if ch not in (self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map)]
+        for channel in unused_channels:
+            targets.append((channel, 0))
+
+        targets = sorted(targets, key=lambda target: target[0])
         self.controller.set_multiple_targets(targets)
 
     def move_leg(self, leg_index: int, x: float, y: float, z: float, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
@@ -400,7 +408,8 @@ class Hexapod:
             if self.get_moving_state():
                 break
             if stop_event:
-                stop_event.wait(timeout=0.1)
+                stop_event.wait(timeout=0.2)
+
         if stop_event and stop_event.is_set():
             return
         # Wait until the robot stops the motion
@@ -408,16 +417,11 @@ class Hexapod:
             if not self.get_moving_state():
                 break
             if stop_event:
-                stop_event.wait(timeout=0.1)
+                stop_event.wait(timeout=0.2)
 
 if __name__ == '__main__':
     hexapod = Hexapod()
-
-    # Move all legs to a new predefined coordinate position
-    # hexapod.move_to_position('home')
-
-    # Move all legs to a new predefined angle position
+    # hexapod.calibrate_all_servos()
     hexapod.move_to_angles_position('home')
-
-    # Move all servos to hardware home position saved in the controler
     # hexapod.controller.go_home()
+    # hexapod.deactivate_all_servos()

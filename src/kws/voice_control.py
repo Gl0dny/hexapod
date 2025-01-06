@@ -29,7 +29,7 @@ class VoiceControl(threading.Thread):
         def inference_callback(inference):
             return self._inference_callback(inference)
 
-        self._picovoice = Picovoice(
+        self.picovoice = Picovoice(
             access_key=access_key,
             keyword_path=keyword_path,
             wake_word_callback=self._wake_word_callback,
@@ -38,23 +38,23 @@ class VoiceControl(threading.Thread):
             porcupine_sensitivity=porcupine_sensitivity,
             rhino_sensitivity=rhino_sensitivity)
 
-        self._context = self._picovoice.context_info
-        self._device_index = device_index
+        self.context = self.picovoice.context_info
+        self.device_index = device_index
 
-        self._control_interface = ControlInterface()
-        self._intent_dispatcher = IntentDispatcher(self._control_interface)
-        # self._state_manager = StateManager()
+        self.control_interface = ControlInterface()
+        self.intent_dispatcher = IntentDispatcher(self.control_interface)
+        # self.state_manager = StateManager()
 
     def print_context(self):
-        print(self._context)
+        print(self.context)
 
     def _wake_word_callback(self):
         print('[wake word]\n')
-        self._control_interface.lights_handler.listen()
+        self.control_interface.lights_handler.listen()
 
     def _inference_callback(self, inference):
 
-        self._control_interface.lights_handler.off()
+        self.control_interface.lights_handler.off()
 
         print('{')
         print("  is_understood : '%s'," % ('true' if inference.is_understood else 'false'))
@@ -69,40 +69,46 @@ class VoiceControl(threading.Thread):
 
         if inference.is_understood:
             # if self.state_manager.can_execute(inference.intent):
-                # self._control_interface.lights_handler.think()
-                self._intent_dispatcher.dispatch(inference.intent, inference.slots)
+                # self.control_interface.lights_handler.think()
+                self.intent_dispatcher.dispatch(inference.intent, inference.slots)
             # else:
             #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
 
-                # self._control_interface.lights_handler.off()
+                # self.control_interface.lights_handler.off()
                 print('\n[Listening ...]')
 
     def run(self):
         recorder = None
 
         try:
-            recorder = PvRecorder(device_index=self._device_index, frame_length=self._picovoice.frame_length)
+            recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             recorder.start()
 
             print('[Listening ...]')
-            self._control_interface.lights_handler.ready()
+            self.control_interface.lights_handler.ready()
 
             while True:
                 pcm = recorder.read()
-                self._picovoice.process(pcm)
+                self.picovoice.process(pcm)
+
+                # Check for MaestroUART errors
+                # error_code = self.control_interface.hexapod.controller.get_error()
+                # if error_code != 0:
+                #     print(f"MaestroUART Error detected with code: {error_code}")
 
         except KeyboardInterrupt:
             sys.stdout.write('\b' * 2)
             print("  ", flush=True)
             print('Stopping control tasks and animations due to keyboard interrupt...')
-            self._control_interface.stop_control_task()
-            self._control_interface.lights_handler.off()
-            self._control_interface.hexapod.move_to_angles_position('home')
+            self.control_interface.stop_control_task()
+            self.control_interface.lights_handler.off()
+            self.control_interface.hexapod.move_to_angles_position('home')
         finally:
             if recorder is not None:
                 recorder.delete()
 
-            self._picovoice.delete()
+            self.picovoice.delete()
+            self.control_interface.hexapod.controller.close()
 
 
 def main():
