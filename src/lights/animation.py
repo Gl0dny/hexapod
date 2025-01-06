@@ -1,8 +1,7 @@
 import threading
 import abc
 from typing import Optional
-from lights import Lights
-from .lights import ColorRGB
+from lights import Lights, ColorRGB 
 
 class Animation(abc.ABC):
     """
@@ -22,7 +21,7 @@ class Animation(abc.ABC):
             lights (Lights): The Lights object to control the LEDs.
         """
         self.lights: Lights = lights
-        self.thread: threading.Thread = None  # Temporarily set to None until initialized
+        self.thread: threading.Thread = None
         self.stop_event: threading.Event = threading.Event()
 
     def start(self) -> None:
@@ -45,8 +44,9 @@ class Animation(abc.ABC):
         Stop the animation and wait for the thread to finish.
         """
         self.stop_event.set()
+        print(f"Animation {self.__class__.__name__} forcefully stopping.")
         if self.thread and self.thread.is_alive():
-            self.thread.join(timeout=0.01)
+            self.thread.join()
 
 class AlternateRotateAnimation(Animation):
     """
@@ -80,15 +80,15 @@ class AlternateRotateAnimation(Animation):
         """
         Run the animation logic.
         """
+
+        for i in range(self.lights.num_led):
+            if self.stop_event.wait(self.delay):
+                return
+            
+            color = self.color_even if i % 2 == 0 else self.color_odd
+            self.lights.set_color(color, led_index=i)
+            
         while not self.stop_event.is_set():
-            for i in range(self.lights.num_led):
-                if self.stop_event.wait(self.delay):
-                    return
-                
-                color = self.color_even if i % 2 == 0 else self.color_odd
-                self.lights.set_color(color, led_index=i)
-
-
             for _ in range(self.positions):
                 if self.stop_event.wait(self.delay):
                     return
