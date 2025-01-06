@@ -57,6 +57,16 @@ class LightsInteractionHandler:
         self.stop_animation()
         self.lights.clear()
 
+    def set_single_color(self, color: ColorRGB, led_index: Optional[int] = None) -> None:
+        """
+        Set a single LED or all LEDs to a single color.
+
+        Args:
+            color (ColorRGB): The color to set.
+            led_index (int, optional): The index of the LED to set. If None, sets all LEDs.
+        """
+        self.lights.set_color(color, led_index=led_index)
+
     @animation
     def wakeup(
         self,
@@ -167,15 +177,15 @@ class LightsInteractionHandler:
         Args:
             calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
         """
-        if self.animation:
         # Current animation in progress; skip updating LEDs.
+        if self.animation:
             return
         
         for leg_index, led_index in self.leg_to_led.items():
             status = calibration_status.get(leg_index, "not_calibrated")
             if status == "calibrating":
-                self.lights.set_color(ColorRGB.YELLOW, led_index=led_index)
+                self.set_single_color(ColorRGB.YELLOW, led_index=led_index)
             elif status == "calibrated":
-                self.lights.set_color(ColorRGB.GREEN, led_index=led_index)
+                self.set_single_color(ColorRGB.GREEN, led_index=led_index)
             else:
-                self.lights.set_color(ColorRGB.RED, led_index=led_index)
+                self.set_single_color(ColorRGB.RED, led_index=led_index)

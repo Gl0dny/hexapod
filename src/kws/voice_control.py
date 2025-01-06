@@ -94,7 +94,13 @@ class VoiceControl(threading.Thread):
                 self.picovoice.process(pcm)
 
                 # Check for MaestroUART errors
-                self.control_interface.hexapod.controller.get_error()
+                controller_error_code = self.control_interface.hexapod.controller.get_error()
+                if controller_error_code != 0:
+                    print(f"Controller error: {controller_error_code}")
+                    self.control_interface.stop_control_task()
+                    # self.control_interface.lights_handler.set_single_color(ColorRGB.RED)
+                    self.control_interface.hexapod.deactivate_all_servos()
+                    break
 
         except KeyboardInterrupt:
             sys.stdout.write('\b' * 2)

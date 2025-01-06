@@ -127,7 +127,7 @@ class MaestroUART(object):
 				print("Script call stack error: Call stack overflow or underflow.")
 			if error_code & (1 << 8):
 				print("Script program counter error: Program counter went out of bounds.")
-
+				
 		return error_code
 
 	def get_position(self, channel: int) -> int:
