@@ -3,6 +3,7 @@ import argparse
 import threading
 import sys
 import logging
+from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -51,6 +52,7 @@ class VoiceControl(threading.Thread):
     def _wake_word_callback(self):
         print('[wake word]\n')
         self.control_interface.lights_handler.listen()
+        self.control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
     def _inference_callback(self, inference):
 
@@ -83,7 +85,7 @@ class VoiceControl(threading.Thread):
         recorder = None
 
         try:
-            self.control_interface.hexapod.move_to_angles_position("home")
+            self.control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
             recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             recorder.start()

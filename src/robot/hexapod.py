@@ -4,11 +4,20 @@ from typing import Optional, List, Tuple, Dict
 import threading
 import time
 import yaml
+from enum import Enum
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg, Calibration, Joint
 from imu import Imu
 from utils import map_range
+
+class PredefinedAnglePosition(Enum):
+    HOME = 'home'
+    LOW_PROFILE = 'low_profile'
+    UPRIGHT_MODE = 'upright_mode'
+
+class PredefinedPosition(Enum):
+    ZERO = 'zero'
 
 class Hexapod:
     CONTROLLER_CHANNELS = 24
@@ -75,8 +84,8 @@ class Hexapod:
         self.femur_params = femur_params
         self.tibia_params = tibia_params
 
-        self.calibration: Calibration = Calibration(self)
-        self.calibration.load_calibration('/home/hexapod/hexapod/src/robot/calibration.json')
+        self.calibration: Calibration = Calibration(self, config_file_path='/home/hxapod/hexapod/src/robot/config/calibration.json')
+        self.calibration.load_calibration()
 
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_positions']
 
@@ -229,23 +238,23 @@ class Hexapod:
         self.controller.set_multiple_targets(targets)
         self.current_leg_positions = positions
 
-    def move_to_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
+    def move_to_position(self, position_name: PredefinedPosition, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
         """
         Move the hexapod to a predefined position using an external dictionary if provided.
         
         Args:
-            position_name (str): Name of the predefined position.
+            position_name (PredefinedPosition): Enum member representing the predefined position.
             positions_dict (Dict[str, List[Tuple[float, float, float]]], optional): 
                 External dictionary mapping position names to coordinate configurations.
                 If not provided, uses self.predefined_positions.
         """
-        print(f"Setting all legs to position '{position_name}'")
-        positions = positions_dict.get(position_name) if positions_dict else self.predefined_positions.get(position_name)
+        print(f"Setting all legs to position '{position_name.value}'")
+        positions = positions_dict.get(position_name.value) if positions_dict else self.predefined_positions.get(position_name.value)
         if positions:
             self.move_all_legs(positions)
         else:
             available = list(positions_dict.keys()) if positions_dict else list(self.predefined_positions.keys())
-            print(f"Error: Unknown position '{position_name}'. Available positions: {available}")
+            print(f"Error: Unknown position '{position_name.value}'. Available positions: {available}")
 
     def move_leg_angles(
         self,
@@ -335,23 +344,23 @@ class Hexapod:
         self.controller.set_multiple_targets(targets)
         self.current_leg_angles = angles_list
 
-    def move_to_angles_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
+    def move_to_angles_position(self, position_name: PredefinedAnglePosition, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
         """
         Move the hexapod to a predefined angle position using an external dictionary if provided.
         
         Args:
-            position_name (str): Name of the predefined angle position.
+            position_name (PredefinedAnglePosition): Enum member representing the predefined angle position.
             positions_dict (Dict[str, List[Tuple[float, float, float]]], optional): 
                 External dictionary mapping position names to angle configurations.
                 If not provided, uses self.predefined_angle_positions.
         """
-        print(f"Setting all legs to angles position '{position_name}'")
-        angles = positions_dict.get(position_name) if positions_dict else self.predefined_angle_positions.get(position_name)
+        print(f"Setting all legs to angles position '{position_name.value}'")
+        angles = positions_dict.get(position_name.value) if positions_dict else self.predefined_angle_positions.get(position_name.value)
         if angles:
             self.move_all_legs_angles(angles)
         else:
             available = list(positions_dict.keys()) if positions_dict else list(self.predefined_angle_positions.keys())
-            print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {available}")
+            print(f"Error: Unknown angles position '{position_name.value}'. Available angle positions: {available}")
 
     def get_moving_state(self) -> bool:
         """
@@ -396,7 +405,7 @@ class Hexapod:
 if __name__ == '__main__':
     hexapod = Hexapod()
     # hexapod.calibrate_all_servos()
-    hexapod.move_to_angles_position('home')
+    hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
     # hexapod.controller.go_home()
     # hexapod.deactivate_all_servos()
 

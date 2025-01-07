@@ -3,16 +3,19 @@ import threading
 import time
 from typing import Optional
 from interface.input_handler import InputHandler
+from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
 
 class Calibration:
-    def __init__(self, hexapod):
+    def __init__(self, hexapod, config_file_path: str) -> None:
         """
-        Initializes the Calibration class with a reference to the Hexapod instance.
+        Initializes the Calibration class with a reference to the Hexapod instance and config file path.
         
         Args:
             hexapod (Hexapod): The Hexapod instance to be calibrated.
+            config_file_path (str): Path to save/read the calibration data.
         """
         self.hexapod = hexapod
+        self.config_file_path = config_file_path
         self.input_handler = None
         self.status = {}
 
@@ -41,7 +44,7 @@ class Calibration:
         self.input_handler = InputHandler()
 
         self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
-        self.hexapod.move_to_angles_position('home')
+        self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
         try:
             for i, leg in enumerate(self.hexapod.legs):
@@ -49,7 +52,12 @@ class Calibration:
                     print("Calibration interrupted before starting Leg {}.".format(i))
                     return
 
-                self.hexapod.move_leg_to_angles_position(i,'calibration_init', self.calibration_positions)
+                self.hexapod.move_leg_angles(
+                    leg_index=i,
+                    coxa_angle=self.calibration_positions['calibration_init'][i][0],
+                    femur_angle=self.calibration_positions['calibration_init'][i][1],
+                    tibia_angle=self.calibration_positions['calibration_init'][i][2]
+                )
                 print(f"Set Leg {i} to calibration position.")
 
                 self.status[i] = "calibrating"
@@ -78,12 +86,17 @@ class Calibration:
 
                         calibration_success = self.check_zero_angle(i, joint_name, stop_event)
                     
-                    self.hexapod.move_leg_to_angles_position(i,'calibration_init', self.calibration_positions)
+                    self.hexapod.move_leg_angles(
+                        leg_index=i,
+                        coxa_angle=self.calibration_positions['calibration_init'][i][0],
+                        femur_angle=self.calibration_positions['calibration_init'][i][1],
+                        tibia_angle=self.calibration_positions['calibration_init'][i][2]
+                    )
                     print(f"Set Leg {i} to calibration position.")
                 
-                self.hexapod.move_to_angles_position('home')
+                self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
                 self.status[i] = "calibrated"
-            self.hexapod.move_to_angles_position('home')
+            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             self.save_calibration()
         except Exception as e:
             print(f"Error during calibration: {e}")
@@ -473,7 +486,7 @@ class Calibration:
     def save_calibration(self):
         """
         Saves the current calibration settings to a JSON file.
-        Overwrites the existing calibration.json file with the latest calibration data.
+        Overwrites the existing file at self.config_file_path with the latest calibration data.
         """
         calibration_data = {}
         for i, leg in enumerate(self.hexapod.legs):
@@ -493,21 +506,18 @@ class Calibration:
             }
         
         try:
-            with open("calibration.json", "w") as f:
+            with open(self.config_file_path, "w") as f:
                 json.dump(calibration_data, f, indent=4)
-            print("Calibration data saved to calibration.json.")
+            print(f"Calibration data saved to {self.config_file_path}.")
         except IOError as e:
             print(f"Failed to save calibration data: {e}")
 
-    def load_calibration(self, path):
+    def load_calibration(self):
         """
-        Load calibration data from a specified JSON file.
-        
-        Args:
-            path (str): Path to the calibration JSON file.
+        Load calibration data from the save path.
         """
         try:
-            with open(path, "r") as f:
+            with open(self.config_file_path, "r") as f:
                 calibration_data = json.load(f)
             for i, leg in enumerate(self.hexapod.legs):
                 leg_data = calibration_data.get(f"leg_{i}", {})
@@ -526,9 +536,9 @@ class Calibration:
                             self.calibrate_servo(i, joint_name, 992 * 4, 2000 * 4)
                             print(f"Set to default: servo_min=3968, servo_max=8000")
         except FileNotFoundError:
-            print("calibration.json not found. Using default calibration values. Run calibrate_all_servos() to set new values.")
+            print(f"{self.config_file_path} not found. Using default calibration values. Run calibrate_all_servos() to set new values.")
         except json.JSONDecodeError as e:
-            print(f"Error decoding calibration.json: {e}")
+            print(f"Error decoding {self.config_file_path}: {e}")
             print("Using default calibration values. Run calibrate_all_servos() to set new values.")
 
     def calibrate_servo(self, leg_index, joint, servo_min, servo_max):

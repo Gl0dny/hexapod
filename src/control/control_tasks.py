@@ -2,6 +2,8 @@ import threading
 import abc
 from lights import ColorRGB
 import logging
+from typing import Callable, Any, Optional
+from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +56,12 @@ class EmergencyStopTask(ControlTask):
     def run(self) -> None:
         try:
             logger.info("Executing emergency stop.")
-            # self.hexapod.stop_all_movements()
+            self.hexapod.deactivate_all_servos()
             self.lights_handler.off()
         except Exception as e:
             logger.error(f"Emergency stop failed: {e}")
+        finally:
+            self.stop_task()
 
 class WakeUpTask(ControlTask):
     def __init__(self, hexapod, lights_handler):
@@ -69,11 +73,14 @@ class WakeUpTask(ControlTask):
         try:
             self.lights_handler.set_brightness(50)
             self.lights_handler.rainbow()
-            self.hexapod.move_to_angles_position("home")
+            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             self.hexapod.wait_until_motion_complete(self.stop_event)
 
         except Exception as e:
             print(f"Error in Wake up task: {e}")
+        finally:
+            # self.lights_handler.ready()
+            pass
 
 class SleepTask(ControlTask):
     def __init__(self, hexapod, lights_handler):
@@ -201,7 +208,7 @@ class LowProfileTask(ControlTask):
         """
         try:
             self.lights_handler.think()
-            self.hexapod.move_to_angles_position('low_profile')
+            self.hexapod.move_to_angles_position(PredefinedAnglePosition.LOW_PROFILE)
             self.hexapod.wait_until_motion_complete(self.stop_event)
 
         except Exception as e:
@@ -223,7 +230,7 @@ class UprightModeTask(ControlTask):
         """
         try:
             self.lights_handler.think()
-            self.hexapod.move_to_angles_position('upright_mode')
+            self.hexapod.move_to_angles_position(PredefinedAnglePosition.UPRIGHT_MODE)
             self.hexapod.wait_until_motion_complete(self.stop_event)
 
         except Exception as e:
@@ -244,7 +251,7 @@ class IdleStanceTask(ControlTask):
         """
         try:
             self.lights_handler.think()
-            self.hexapod.move_to_angles_position('home')
+            self.hexapod.move_to_position(PredefinedPosition.ZERO)
             self.hexapod.wait_until_motion_complete(self.stop_event)
 
         except Exception as e:
