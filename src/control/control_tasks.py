@@ -18,14 +18,14 @@ class ControlTask(abc.ABC):
 
     def __init__(self) -> None:
         """
-        Initialize the Task object.
+        Initializes the ControlTask with a thread and stop event.
         """
         self.thread: threading.Thread = None
         self.stop_event: threading.Event = threading.Event()
 
     def start(self) -> None:
         """
-        Start the task in a separate thread.
+        Starts the task in a separate thread.
         """
         self.stop_event.clear()
         self.thread = threading.Thread(target=self.run)
@@ -34,13 +34,13 @@ class ControlTask(abc.ABC):
     @abc.abstractmethod
     def run(self) -> None:
         """
-        The method to be implemented by subclasses to define the task logic.
+        The method that contains the task logic to be run.
         """
         pass
 
     def stop_task(self) -> None:
         """
-        Stop the task and wait for the thread to finish.
+        Signals the task to stop and joins the thread.
         """
         self.stop_event.set()
         if self.thread and self.thread.is_alive():
@@ -48,12 +48,23 @@ class ControlTask(abc.ABC):
             self.thread.join()
 
 class EmergencyStopTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to deactivate all servos and turn off lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Deactivates all servos and stops the task.
+        """
         try:
             logger.info("Executing emergency stop.")
             self.hexapod.deactivate_all_servos()
@@ -64,12 +75,23 @@ class EmergencyStopTask(ControlTask):
             self.stop_task()
 
 class WakeUpTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to wake up the hexapod and set lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Ramps up brightness, plays rainbow effect, and moves to HOME.
+        """
         try:
             self.lights_handler.set_brightness(50)
             self.lights_handler.rainbow()
@@ -83,12 +105,23 @@ class WakeUpTask(ControlTask):
             pass
 
 class SleepTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to reduce brightness, turn lights gray, and deactivate servos.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: Hexapod object to control.
+            lights_handler: Handles lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Sets brightness to low, grays out lights, and deactivates servos.
+        """
         try:
             self.lights_handler.set_brightness(5)
             self.lights_handler.set_single_color(ColorRGB.GRAY)
@@ -99,35 +132,51 @@ class SleepTask(ControlTask):
             print(f"Error in Sleep task: {e}")
 
 class CompositeCalibrationTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Orchestrates the execution of run and monitor calibration tasks.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: Hexapod object to calibrate.
+            lights_handler: Handles lights display during calibration.
+        """
         super().__init__()
         self.run_calibration_task = RunCalibrationTask(hexapod)
         self.monitor_calibration_task = MonitorCalibrationStatusTask(hexapod, lights_handler)
 
     def run(self) -> None:
         """
-        Starts both RunCalibrationTask and MonitorCalibrationStatusTask.
+        Starts RunCalibrationTask and MonitorCalibrationStatusTask.
         """
         self.run_calibration_task.start()
         self.monitor_calibration_task.start()
 
     def stop_task(self) -> None:
         """
-        Stops both RunCalibrationTask and MonitorCalibrationStatusTask.
+        Stops RunCalibrationTask and MonitorCalibrationStatusTask.
         """
         self.run_calibration_task.stop_task()
         self.monitor_calibration_task.stop_task()
         super().stop_task()
 
 class MonitorCalibrationStatusTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Continuously monitors calibration status and updates lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: Hexapod under calibration.
+            lights_handler: Manages the calibration LED status.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
         """
-        Monitors the calibration status and updates LEDs periodically.
+        Checks if all legs are calibrated and stops if so.
         """
         try:
             while not self.stop_event.is_set():
@@ -146,13 +195,20 @@ class MonitorCalibrationStatusTask(ControlTask):
             self.lights_handler.off()
 
 class RunCalibrationTask(ControlTask):
-    def __init__(self, hexapod):
+    """
+    Runs the calibration routine for all servos.
+    """
+    def __init__(self, hexapod: Any) -> None:
+        """
+        Args:
+            hexapod: Hexapod whose servos are being calibrated.
+        """
         super().__init__()
         self.hexapod = hexapod
 
     def run(self) -> None:
         """
-        Runs the calibration process.
+        Calibrates all servos and moves to 'home' upon completion.
         """
         try:
             self.hexapod.calibrate_all_servos(stop_event=self.stop_event)
@@ -164,7 +220,16 @@ class RunCalibrationTask(ControlTask):
             self.hexapod.move_to_angles_position('home')
 
 class RunSequenceTask(ControlTask):
-    def __init__(self, hexapod, lights_handler, sequence_name):
+    """
+    Executes a predefined sequence of tasks.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any, sequence_name: str) -> None:
+        """
+        Args:
+            hexapod: Hexapod object to control.
+            lights_handler: Handles lights activity.
+            sequence_name: Name of the sequence to run.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
@@ -178,7 +243,7 @@ class RunSequenceTask(ControlTask):
 
     def run(self) -> None:
         """
-        Executes a predefined sequence of tasks based on the sequence_name.
+        Runs the tasks associated with the selected sequence.
         """
         try:
             logger.info(f"Starting sequence: {self.sequence_name}")
@@ -195,8 +260,17 @@ class RunSequenceTask(ControlTask):
         finally:
             logger.info(f"Sequence '{self.sequence_name}' completed.")
             self.stop_task()
+
 class LowProfileTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to set the hexapod to a low-profile mode and manage related lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
@@ -218,7 +292,15 @@ class LowProfileTask(ControlTask):
             self.lights_handler.ready()
 
 class UprightModeTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to set the hexapod to an upright mode and manage related lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
@@ -240,7 +322,15 @@ class UprightModeTask(ControlTask):
             self.lights_handler.ready()
 
 class IdleStanceTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to set the hexapod to the home position and manage related lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
@@ -261,12 +351,23 @@ class IdleStanceTask(ControlTask):
             self.lights_handler.ready()
 
 class MoveTask(ControlTask):
-    def __init__(self, hexapod, direction):
+    """
+    Task to move the hexapod in a specified direction.
+    """
+    def __init__(self, hexapod: Any, direction: str) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            direction: Direction to move the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.direction = direction
 
     def run(self) -> None:
+        """
+        Moves the hexapod in the specified direction.
+        """
         try:
             logger.info(f"Moving {self.direction}.")
             # self.hexapod.move(direction=self.direction)
@@ -274,12 +375,23 @@ class MoveTask(ControlTask):
             logger.error(f"Move task failed: {e}")
 
 class StopTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to stop all ongoing tasks and deactivate the hexapod.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Stops all ongoing tasks, deactivates servos, and turns off lights.
+        """
         try:
             logger.info("Executing StopTask: Stopping all ongoing tasks.")
             if self.control_task and self.control_task.is_alive():
@@ -300,13 +412,25 @@ class StopTask(ControlTask):
             self.stop_task()
             
 class RotateTask(ControlTask):
-    def __init__(self, hexapod, angle=None, direction=None):
+    """
+    Task to rotate the hexapod by a certain angle or direction.
+    """
+    def __init__(self, hexapod: Any, angle: Optional[float] = None, direction: Optional[str] = None) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            angle: Angle in degrees to rotate.
+            direction: Direction to rotate the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.angle = angle
         self.direction = direction
 
     def run(self) -> None:
+        """
+        Rotates the hexapod based on the provided angle or direction.
+        """
         try:
             if self.angle:
                 logger.info(f"Rotating {self.angle} degrees.")
@@ -320,12 +444,23 @@ class RotateTask(ControlTask):
             logger.error(f"Rotate task failed: {e}")
 
 class FollowTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to make the hexapod follow a target and manage related lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Starts following a target and manages lights accordingly.
+        """
         try:
             logger.info("Starting follow task.")
             # self.hexapod.start_following()
@@ -334,12 +469,23 @@ class FollowTask(ControlTask):
             logger.error(f"Follow task failed: {e}")
 
 class SoundSourceAnalysisTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to analyze sound sources and manage related lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Analyzes sound sources and updates lights accordingly.
+        """
         try:
             logger.info("Starting sound source analysis.")
             # self.hexapod.analyze_sound_sources()
@@ -348,12 +494,23 @@ class SoundSourceAnalysisTask(ControlTask):
             logger.error(f"Sound source analysis task failed: {e}")
 
 class DirectionOfArrivalTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to calculate the direction of arrival of sounds and manage lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Calculates the direction of arrival of sounds and updates lights.
+        """
         try:
             logger.info("Calculating direction of arrival.")
             # direction = self.hexapod.calculate_direction_of_arrival()
@@ -363,12 +520,23 @@ class DirectionOfArrivalTask(ControlTask):
             logger.error(f"Direction of arrival task failed: {e}")
 
 class SitUpTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to perform sit-up routine with the hexapod and manage lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Performs the sit-up routine.
+        """
         try:
             logger.info("Performing sit-up routine.")
             # self.hexapod.perform_sit_up()
@@ -377,12 +545,23 @@ class SitUpTask(ControlTask):
             logger.error(f"Sit-up task failed: {e}")
 
 class DanceTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to perform dance routine with the hexapod and manage lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Performs the dance routine.
+        """
         try:
             logger.info("Starting dance routine.")
             # self.hexapod.perform_dance()
@@ -391,7 +570,15 @@ class DanceTask(ControlTask):
             logger.error(f"Dance task failed: {e}")
 
 class HelixTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to perform a helix maneuver with the hexapod and manage lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
@@ -441,13 +628,25 @@ class HelixTask(ControlTask):
         finally:
             self.hexapod.move_to_angles_position('home')
             self.lights_handler.ready()
+
 class ShowOffTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task to perform show-off routine with the hexapod and manage lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Performs the show-off routine.
+        """
         try:
             logger.info("Performing show-off routine.")
             # self.hexapod.show_off()
@@ -456,12 +655,23 @@ class ShowOffTask(ControlTask):
             logger.error(f"Show-off task failed: {e}")
 
 class SayHelloTask(ControlTask):
-    def __init__(self, hexapod, lights_handler):
+    """
+    Task for the hexapod to say hello and manage lights.
+    """
+    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+        """
+        Args:
+            hexapod: The hexapod object to control.
+            lights_handler: Manages lights on the hexapod.
+        """
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
     def run(self) -> None:
+        """
+        Makes the hexapod say hello.
+        """
         try:
             logger.info("Saying hello.")
             # self.hexapod.say_hello()
