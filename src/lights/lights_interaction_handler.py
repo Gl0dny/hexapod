@@ -1,4 +1,5 @@
 from typing import Callable, Any, Optional, Dict
+from functools import wraps
 from lights import Lights, ColorRGB
 from .animation import *
 
@@ -41,7 +42,7 @@ class LightsInteractionHandler:
         Returns:
             function: Wrapped method.
         """
-
+        @wraps(method)
         def wrapper(self, *args, **kwargs):
             method(self, *args, **kwargs)
             if not hasattr(self, 'animation') or self.animation is None:
@@ -177,6 +178,37 @@ class LightsInteractionHandler:
         self.off()
         self.animation = None  # Ensure animation is set to avoid AttributeError
         raise NotImplementedError("The 'speak' method is not implemented yet.")
+
+    @animation
+    def police(self, pulse_speed: float = 0.25) -> None:
+        """
+        Start the police pulsing animation.
+        
+        Args:
+            pulse_speed (float): The speed of the pulse.
+        """
+        self.off()
+        self.animation = PulseAnimation(
+            lights=self.lights,
+            base_color=ColorRGB.BLUE,
+            pulse_color=ColorRGB.RED,
+            pulse_speed=pulse_speed
+        )
+        self.animation.start()
+
+    @animation
+    def shutdown(self, interval: float = 1.2) -> None:
+        """
+        Start the shutdown animation using WheelFillAnimation with red color.
+        """
+        self.off()
+        self.animation = WheelFillAnimation(
+            lights=self.lights,
+            use_rainbow=False,
+            color=ColorRGB.RED,
+            interval=interval
+        )
+        self.animation.start()
 
     def update_calibration_leds_status(self, calibration_status: Dict[int, str]) -> None:
         """

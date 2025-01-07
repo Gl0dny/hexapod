@@ -183,7 +183,7 @@ class IntentDispatcher:
 
     def handle_police(self, slots):
         logger.info("Handling police_mode command.")
-        self.control_interface.police_mode()
+        self.control_interface.police()
     
     def handle_sit_up(self, slots):
         logger.info("Handling sit_up command.")

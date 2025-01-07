@@ -41,7 +41,7 @@ class VoiceControl(threading.Thread):
         self.context = self.picovoice.context_info
         self.device_index = device_index
 
-        self.control_interface = ControlInterface()
+        self.control_interface = ControlInterface(voice_control_context_info=self.context)
         self.intent_dispatcher = IntentDispatcher(self.control_interface)
         # self.state_manager = StateManager()
 
@@ -76,6 +76,8 @@ class VoiceControl(threading.Thread):
 
                 # self.control_interface.lights_handler.off()
                 print('\n[Listening ...]')
+        else:
+            self.control_interface.lights_handler.ready()
 
     def run(self):
         recorder = None
