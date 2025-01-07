@@ -1,7 +1,8 @@
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 import logging
 import sys
 import os
+import threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -13,10 +14,20 @@ from control.control_tasks import *
 logger = logging.getLogger(__name__)
 
 class ControlInterface:
-    def __init__(self):
+    def __init__(self, voice_control_context_info: Optional[str] = None):
+        """
+        Initialize the ControlInterface object.
+
+        Args:
+            voice_control_context_info (Optional[str]): The context information from Picovoice.
+        """
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
         self.control_task: ControlTask = None
+        self.voice_control_context_info = voice_control_context_info
+        self._last_command = None
+        self._last_args = None
+        self._last_kwargs = None
         logger.info("ControlInterface initialized with Lights and Hexapod.")
 
     def inject_hexapod(func):
@@ -54,6 +65,7 @@ class ControlInterface:
             function: Wrapped method.
         """
         def wrapper(self, *args, **kwargs):
+            self._store_last_command(method, *args, **kwargs)
             method(self, *args, **kwargs)
             if not hasattr(self, 'control_task') or self.control_task is None:
                 raise AttributeError(
@@ -62,9 +74,10 @@ class ControlInterface:
 
     def hexapod_help(self):
         logger.info("Executing help.")
-        # Implement help functionality
-        # Example: Provide list of available commands
-        raise NotImplementedError("The help method is not yet implemented.")
+        if self.voice_control_context_info:
+            print(f"Picovoice Context Info: {self.voice_control_context_info}")
+        else:
+            print("No context information available.")
 
     def system_status(self):
         logger.info("Executing system_status.")
@@ -73,9 +86,19 @@ class ControlInterface:
         raise NotImplementedError("The system_status method is not yet implemented.")
 
     def shut_down(self):
-        logger.info("Shutting down robot.")
-        # Implement shutdown logic
-        raise NotImplementedError("The shut_down method is not yet implemented.")
+        logger.info("Shutting down robot. System will power off in 10 seconds. Press any key to cancel.")
+        shutdown_timer = threading.Timer(10.0, self._perform_shutdown)
+        shutdown_timer.start()
+        try:
+            input("Press any key to cancel shutdown...\n")
+            shutdown_timer.cancel()
+            logger.info("Shutdown canceled by user.")
+        except:
+            pass
+
+    def _perform_shutdown(self):
+        logger.info("Shutting down the system now.")
+        os.system("sudo shutdown now")
 
     def emergency_stop(self):
         logger.info("Executing emergency_stop.")
@@ -136,12 +159,19 @@ class ControlInterface:
         # Implement run sequence logic here
         # Example: Trigger predefined action sequence
         raise NotImplementedError("The run_sequence method is not yet implemented.")
+    
+    def _store_last_command(self, func, *args, **kwargs):
+        self._last_command = func
+        self._last_args = args
+        self._last_kwargs = kwargs
 
     def repeat_last_command(self):
-        logger.info("Repeating last command.")
-        # Implement logic to repeat the last command
-        raise NotImplementedError("The repeat_last_command method is not yet implemented.")
-
+        if self._last_command:
+            logger.info(f"Repeating last command: {self._last_command.__name__}")
+            self._last_command(*self._last_args, **self._last_kwargs)
+        else:
+            logger.info("No last command to repeat.")
+            
     @inject_lights_handler
     def turn_lights(self, lights_handler, switch_state):
         """
@@ -189,15 +219,39 @@ class ControlInterface:
         logger.info(f"Setting acceleration to {accel_percentage}%.")
         hexapod.set_all_servos_accel(accel_percentage)
 
-    def set_low_profile_mode(self):
-        logger.info("Setting robot to low profile mode.")
-        # Implement logic to set low profile mode
-        raise NotImplementedError("The set_low_profile_mode method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def set_low_profile_mode(self, hexapod, lights_handler):
+        """
+        Initiates low-profile mode in a separate thread.
+        """
+        try:
+            logger.info("Setting robot to low profile mode.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = LowProfileTask(hexapod, lights_handler)
+            self.control_task.start()
 
-    def set_upright_mode(self):
-        logger.info("Setting robot to upright mode.")
-        # Implement logic to set upright mode
-        raise NotImplementedError("The set_upright_mode method is not yet implemented.")
+        except Exception as e:
+            logger.error(f"Setting low profile mode failed: {e}")
+
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def set_upright_mode(self, hexapod, lights_handler):
+        """
+        Initiates upright mode in a separate thread.
+        """
+        try:
+            logger.info("Setting robot to upright mode.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = UprightModeTask(hexapod, lights_handler)
+            self.control_task.start()
+            
+        except Exception as e:
+            logger.error(f"Setting upright mode failed: {e}")
 
     @control_task
     @inject_lights_handler

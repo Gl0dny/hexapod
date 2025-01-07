@@ -210,4 +210,50 @@ class IdleStanceTask(ControlTask):
             print(f"Error in IdleStanceTask: {e}")
 
         finally:
-            self.lights_handler.listen()
+            self.lights_handler.ready()
+
+class LowProfileTask(ControlTask):
+    def __init__(self, hexapod, lights_handler):
+        super().__init__()
+        self.hexapod = hexapod
+        self.lights_handler = lights_handler
+
+    def run(self) -> None:
+        """
+        Sets the hexapod to a low-profile mode position.
+        Positions not defined yet, placeholders only.
+        """
+        try:
+            self.lights_handler.think()
+            # Placeholder: move to a hypothetical "low_profile" angles set
+            self.hexapod.move_to_angles_position('low_profile')
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+
+        except Exception as e:
+            print(f"Error in LowProfileTask: {e}")
+
+        finally:
+            self.lights_handler.ready()
+
+class UprightModeTask(ControlTask):
+    def __init__(self, hexapod, lights_handler):
+        super().__init__()
+        self.hexapod = hexapod
+        self.lights_handler = lights_handler
+
+    def run(self) -> None:
+        """
+        Sets the hexapod to an upright mode position.
+        Positions not defined yet, placeholders only.
+        """
+        try:
+            self.lights_handler.think()
+            # Placeholder: move to a hypothetical "upright_mode" angles set
+            self.hexapod.move_to_angles_position('upright_mode')
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+
+        except Exception as e:
+            print(f"Error in UprightModeTask: {e}")
+            
+        finally:
+            self.lights_handler.ready()
