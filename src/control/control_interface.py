@@ -247,11 +247,17 @@ class ControlInterface:
         # Example: Determine sound direction
         raise NotImplementedError("The direction_of_arrival method is not yet implemented.")
 
-    def police(self):
-        logger.info("Executing police.")
-        # Implement police mode logic here
-        # Example: Activate police lights and sounds
-        raise NotImplementedError("The police method is not yet implemented.")
+    @inject_lights_handler
+    def police(self, lights_handler) -> None:
+        """
+        Initiates the police pulsing animation.
+        """
+        try:
+            logger.info("Turning on police lights...")
+            lights_handler.police()
+                
+        except Exception as e:
+            logger.error(f"Turning on police lights failed: {e}")
 
     def sit_up(self):
         logger.info("Executing sit_up.")
