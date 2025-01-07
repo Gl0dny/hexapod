@@ -3,6 +3,8 @@ import logging
 import sys
 import os
 import threading
+from functools import wraps
+from types import MethodType
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -34,6 +36,7 @@ class ControlInterface:
         """
         Decorator to inject self.hexapod into the decorated function.
         """
+        @wraps(func)
         def wrapper(self, *args, **kwargs):
             return func(self, self.hexapod, *args, **kwargs)
         return wrapper
@@ -42,6 +45,7 @@ class ControlInterface:
         """
         Decorator to inject self.lights_handler into the decorated function.
         """
+        @wraps(func)
         def wrapper(self, *args, **kwargs):
             return func(self, self.lights_handler, *args, **kwargs)
         return wrapper
@@ -64,6 +68,7 @@ class ControlInterface:
         Returns:
             function: Wrapped method.
         """
+        @wraps(method)
         def wrapper(self, *args, **kwargs):
             self._store_last_command(method, *args, **kwargs)
             method(self, *args, **kwargs)
@@ -180,6 +185,8 @@ class ControlInterface:
             lights_handler.ready()
         
     def _store_last_command(self, func, *args, **kwargs):
+        if not isinstance(func, MethodType):
+            func = MethodType(func, self)
         self._last_command = func
         self._last_args = args
         self._last_kwargs = kwargs

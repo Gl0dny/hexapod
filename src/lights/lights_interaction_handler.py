@@ -1,4 +1,5 @@
 from typing import Callable, Any, Optional, Dict
+from functools import wraps
 from lights import Lights, ColorRGB
 from .animation import *
 
@@ -41,7 +42,7 @@ class LightsInteractionHandler:
         Returns:
             function: Wrapped method.
         """
-
+        @wraps(method)
         def wrapper(self, *args, **kwargs):
             method(self, *args, **kwargs)
             if not hasattr(self, 'animation') or self.animation is None:
