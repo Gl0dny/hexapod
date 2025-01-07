@@ -3,8 +3,6 @@ import logging
 import sys
 import os
 import threading
-from functools import wraps
-from types import MethodType
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -36,7 +34,6 @@ class ControlInterface:
         """
         Decorator to inject self.hexapod into the decorated function.
         """
-        @wraps(func)
         def wrapper(self, *args, **kwargs):
             return func(self, self.hexapod, *args, **kwargs)
         return wrapper
@@ -45,7 +42,6 @@ class ControlInterface:
         """
         Decorator to inject self.lights_handler into the decorated function.
         """
-        @wraps(func)
         def wrapper(self, *args, **kwargs):
             return func(self, self.lights_handler, *args, **kwargs)
         return wrapper
@@ -68,7 +64,6 @@ class ControlInterface:
         Returns:
             function: Wrapped method.
         """
-        @wraps(method)
         def wrapper(self, *args, **kwargs):
             self._store_last_command(method, *args, **kwargs)
             method(self, *args, **kwargs)
@@ -115,11 +110,19 @@ class ControlInterface:
         logger.info("Shutting down the system now.")
         os.system("sudo shutdown now")
 
-    def emergency_stop(self):
-        logger.info("Executing emergency_stop.")
-        # Implement emergency stop logic here
-        # Example: Immediately halt all movements and actions
-        raise NotImplementedError("The emergency_stop method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def emergency_stop(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Executing emergency stop.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = EmergencyStopTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Emergency stop executed.")
+        except Exception as e:
+            logger.error(f"Emergency stop failed: {e}")
 
     @control_task
     @inject_lights_handler
@@ -168,12 +171,28 @@ class ControlInterface:
         
         except Exception as e:
             logger.error(f"Calibration failed: {e}")
+    
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def run_sequence(self, hexapod, lights_handler, sequence_name) -> None:
+        """
+        Executes a predefined sequence of tasks.
 
-    def run_sequence(self, sequence_name):
-        logger.info(f"Executing run_sequence: {sequence_name}.")
-        # Implement run sequence logic here
-        # Example: Trigger predefined action sequence
-        raise NotImplementedError("The run_sequence method is not yet implemented.")
+        Args:
+            hexapod (Hexapod): The hexapod instance.
+            lights_handler (LightsInteractionHandler): The lights handler instance.
+            sequence_name (str): The name of the sequence to execute.
+        """
+        try:
+            logger.info(f"Executing sequence: {sequence_name}")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = RunSequenceTask(hexapod, lights_handler, sequence_name)
+            # self.control_task.start()
+            print(f"Sequence '{sequence_name}' started.")
+        except Exception as e:
+            logger.error(f"Run sequence '{sequence_name}' failed: {e}")
 
     @inject_lights_handler
     def repeat_last_command(self, lights_handler):
@@ -185,8 +204,6 @@ class ControlInterface:
             lights_handler.ready()
         
     def _store_last_command(self, func, *args, **kwargs):
-        if not isinstance(func, MethodType):
-            func = MethodType(func, self)
         self._last_command = func
         self._last_args = args
         self._last_kwargs = kwargs
@@ -290,49 +307,93 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Setting idle stance failed: {e}")
 
-    def move(self, direction):
-        logger.info(f"Executing move: {direction}")
-        # Implement movement logic here
-        # Example: Send command to servo controller
-        # Update state if using StateManager
-        # self.state_manager.set_state(RobotState.MOVING)
-        raise NotImplementedError("The move method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def move(self, hexapod, lights_handler, direction) -> None:
+        try:
+            logger.info(f"Initiating move in direction: {direction}.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = MoveTask(hexapod, direction)
+            # self.control_task.start()
+            print(f"Moving {direction}.")
+        except Exception as e:
+            logger.error(f"Move task failed: {e}")
 
-    def stop(self):
-        logger.info("Executing stop.")
-        # Implement stop logic here
-        raise NotImplementedError("The stop method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def stop(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Executing stop.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = StopTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Stop executed.")
+        except Exception as e:
+            logger.error(f"Stop task failed: {e}")
 
-    def rotate(self, angle=None, direction=None):
-        if angle:
-            logger.info(f"Rotating robot by {angle} degrees.")
-            # Implement rotation logic based on angle
-        elif direction:
-            logger.info(f"Rotating robot to the {direction}.")
-            # Implement rotation logic based on direction
-        else:
-            logger.error("No angle or direction provided for rotation.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def rotate(self, hexapod, lights_handler, angle=None, direction=None) -> None:
+        try:
+            logger.info("Initiating rotate.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = RotateTask(hexapod, angle, direction)
+            # self.control_task.start()
+            if angle:
+                print(f"Rotating {angle} degrees.")
+            elif direction:
+                print(f"Rotating to the {direction}.")
+        except Exception as e:
+            logger.error(f"Rotate task failed: {e}")
 
-        raise NotImplementedError("The rotate method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def follow(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Initiating follow.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = FollowTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Follow task started.")
+        except Exception as e:
+            logger.error(f"Follow task failed: {e}")
 
-    def follow(self):
-        logger.info("Executing follow.")
-        # Implement follow logic here
-        # Example: Start tracking mode
-        raise NotImplementedError("The follow method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def sound_source_analysis(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Initiating sound source analysis.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = SoundSourceAnalysisTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Sound source analysis started.")
+        except Exception as e:
+            logger.error(f"Sound source analysis task failed: {e}")
 
-    def sound_source_analysis(self):
-        logger.info("Executing sound_source_analysis.")
-        # Implement sound source analysis logic here
-        # Example: Activate ODAS system
-        raise NotImplementedError("The sound_source_analysis method is not yet implemented.")
-
-    def direction_of_arrival(self):
-        logger.info("Executing direction_of_arrival.")
-        # Implement direction of arrival logic here
-        # Example: Determine sound direction
-        raise NotImplementedError("The direction_of_arrival method is not yet implemented.")
-
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def direction_of_arrival(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Calculating direction of arrival.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = DirectionOfArrivalTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Direction of arrival calculation started.")
+        except Exception as e:
+            logger.error(f"Direction of arrival task failed: {e}")
+            
     @inject_lights_handler
     def police(self, lights_handler) -> None:
         """
@@ -345,16 +406,33 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Turning on police lights failed: {e}")
 
-    def sit_up(self):
-        logger.info("Executing sit_up.")
-        # Implement sit-up routine
-        # Example: Control servos to perform sit-ups
-        raise NotImplementedError("The sit_up method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def sit_up(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Initiating sit-up routine.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = SitUpTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Sit-up routine started.")
+        except Exception as e:
+            logger.error(f"Sit-up task failed: {e}")
 
-    def dance(self):
-        logger.info("Performing dance routine.")
-        # Implement dance routine
-        raise NotImplementedError("The dance method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def dance(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Initiating dance routine.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = DanceTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Dance routine started.")
+        except Exception as e:
+            logger.error(f"Dance task failed: {e}")
 
     @control_task
     @inject_lights_handler
@@ -374,12 +452,30 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Helix maneuver failed: {e}")
 
-    def show_off(self):
-        logger.info("Performing show-off routine.")
-        # Implement show-off routine
-        raise NotImplementedError("The show_off method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def show_off(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Initiating show-off routine.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = ShowOffTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Show-off routine started.")
+        except Exception as e:
+            logger.error(f"Show-off task failed: {e}")
 
-    def say_hello(self):
-        logger.info("Saying hello.")
-        # Implement logic to say hello
-        raise NotImplementedError("The say_hello method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def say_hello(self, hexapod, lights_handler) -> None:
+        try:
+            logger.info("Executing say hello.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = SayHelloTask(hexapod, lights_handler)
+            # self.control_task.start()
+            print("Said hello.")
+        except Exception as e:
+            logger.error(f"Say hello task failed: {e}")
