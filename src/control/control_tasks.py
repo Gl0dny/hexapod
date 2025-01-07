@@ -68,7 +68,7 @@ class WakeUpTask(ControlTask):
     def run(self):
         try:
             self.lights_handler.set_brightness(50)
-            self.lights_handler.wakeup()
+            self.lights_handler.rainbow()
             self.hexapod.move_to_angles_position("home")
             self.hexapod.wait_until_motion_complete(self.stop_event)
 

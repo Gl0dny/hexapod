@@ -269,7 +269,7 @@ class ControlInterface:
             lights_handler.off()
         else:
             logger.info("Turning lights on")
-            lights_handler.wakeup()
+            lights_handler.ready()
 
     @voice_command
     @inject_lights_handler
@@ -454,6 +454,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Direction of arrival task failed: {e}")
             
+    @voice_command
     @inject_lights_handler
     def police(self, lights_handler) -> None:
         """
@@ -465,6 +466,12 @@ class ControlInterface:
                 
         except Exception as e:
             logger.error(f"Turning on police lights failed: {e}")
+
+    @voice_command
+    @inject_lights_handler
+    def rainbow(self, lights_handler):
+        logger.info("Executing rainbow command.")
+        lights_handler.rainbow()
 
     @voice_command
     @control_task

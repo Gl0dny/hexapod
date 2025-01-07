@@ -30,6 +30,7 @@ class IntentDispatcher:
             'sound_source_analysis': self.handle_sound_source_analysis,
             'direction_of_arrival': self.handle_direction_of_arrival,
             'police': self.handle_police,
+            'rainbow': self.handle_rainbow,
             'sit_up': self.handle_sit_up,
             'dance': self.handle_dance,
             'helix': self.handle_helix,
@@ -184,7 +185,11 @@ class IntentDispatcher:
     def handle_police(self, slots):
         logger.info("Handling police_mode command.")
         self.control_interface.police()
-    
+
+    def handle_rainbow(self, slots):
+        logger.info("Handling rainbow command.")
+        self.control_interface.rainbow()
+        
     def handle_sit_up(self, slots):
         logger.info("Handling sit_up command.")
         self.control_interface.sit_up()

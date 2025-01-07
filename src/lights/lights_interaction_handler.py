@@ -77,14 +77,14 @@ class LightsInteractionHandler:
         self.lights.set_brightness(brightness)
 
     @animation
-    def wakeup(
+    def rainbow(
         self,
         use_rainbow: bool = True,
         color: Optional[ColorRGB] = None,
         interval: float = 0.2
     ) -> None:
         """
-        Start the wakeup animation.
+        Start the rainbow animation.
 
         Args:
             use_rainbow (bool): Whether to use rainbow colors.
