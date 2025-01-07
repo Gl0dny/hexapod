@@ -84,7 +84,7 @@ class Hexapod:
         self.femur_params = femur_params
         self.tibia_params = tibia_params
 
-        self.calibration: Calibration = Calibration(self, config_file_path='/home/hxapod/hexapod/src/robot/config/calibration.json')
+        self.calibration: Calibration = Calibration(self, config_file_path='/home/hexapod/hexapod/src/robot/config/calibration.json')
         self.calibration.load_calibration()
 
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_positions']

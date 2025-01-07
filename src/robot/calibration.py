@@ -3,7 +3,7 @@ import threading
 import time
 from typing import Optional
 from interface.input_handler import InputHandler
-from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
+# from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
 
 class Calibration:
     def __init__(self, hexapod, config_file_path: str) -> None:
