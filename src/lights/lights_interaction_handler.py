@@ -179,7 +179,7 @@ class LightsInteractionHandler:
         raise NotImplementedError("The 'speak' method is not implemented yet.")
 
     @animation
-    def police(self, pulse_speed: float = 0.1) -> None:
+    def police(self, pulse_speed: float = 0.25) -> None:
         """
         Start the police pulsing animation.
         
