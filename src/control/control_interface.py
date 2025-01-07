@@ -2,6 +2,7 @@ from typing import Callable, Any, Optional
 import logging
 import sys
 import os
+import time
 import threading
 from functools import wraps
 from types import MethodType
@@ -108,22 +109,34 @@ class ControlInterface:
     @voice_command
     @inject_lights_handler
     def shut_down(self, lights_handler):
-        logger.info("Shutting down robot. System will power off in 10 seconds. Press any key to cancel.")
-        shutdown_timer = threading.Timer(10.0, self._perform_shutdown)
+        shutdown_delay = 30.0  # seconds
+        logger.info(f"Shutting down robot. System will power off in {shutdown_delay} seconds. Press any key+Enter to cancel.")
+        lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led))
+        shutdown_timer = threading.Timer(shutdown_delay, self._perform_shutdown)
         shutdown_timer.start()
-        lights_handler.shutdown()
+        
+        # Start a separate thread to monitor user input
+        shutdown_monitor_thread = threading.Thread(
+            target=self._shutdown_monitor,
+            args=(shutdown_timer, lights_handler),
+            daemon=True
+        )
+        shutdown_monitor_thread.start()
+    
+    def _shutdown_monitor(self, shutdown_timer, lights_handler):
         try:
-            user_input = self.input_handler.get_input(timeout=10.0)
-            if user_input:
-                shutdown_timer.cancel()
-                logger.info("Shutdown canceled by user.")
-                lights_handler.ready()
+            while shutdown_timer.is_alive():
+                user_input = self.input_handler.get_input()
+                if user_input:
+                    shutdown_timer.cancel()
+                    logger.info("Shutdown canceled by user.")
+                    lights_handler.ready()
+                    break
+                time.sleep(0.1)
             else:
                 logger.info("No input received. Proceeding with shutdown.")
-
         except Exception as e:
-            logger.error(f"Unexpected error occurred: {e}")
-
+            logger.error(f"Unexpected error occurred during shutdown monitoring: {e}")
         finally:
             logger.info("Shutdown sequence complete.")
 
