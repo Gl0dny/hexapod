@@ -108,22 +108,23 @@ class ControlInterface:
     
     @voice_command
     @inject_lights_handler
-    def shut_down(self, lights_handler):
-        shutdown_delay = 30.0  # seconds
+    @inject_hexapod
+    def shut_down(self, hexapod, lights_handler):
+        shutdown_delay = 15.0  # seconds
         logger.info(f"Shutting down robot. System will power off in {shutdown_delay} seconds. Press any key+Enter to cancel.")
-        lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led))
-        shutdown_timer = threading.Timer(shutdown_delay, self._perform_shutdown)
+        lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
+        shutdown_timer = threading.Timer(shutdown_delay, self._perform_shutdown, args=(hexapod, lights_handler))
         shutdown_timer.start()
         
         # Start a separate thread to monitor user input
         shutdown_monitor_thread = threading.Thread(
             target=self._shutdown_monitor,
-            args=(shutdown_timer, lights_handler),
+            args=(lights_handler, shutdown_timer),
             daemon=True
         )
         shutdown_monitor_thread.start()
     
-    def _shutdown_monitor(self, shutdown_timer, lights_handler):
+    def _shutdown_monitor(self, lights_handler, shutdown_timer):
         try:
             while shutdown_timer.is_alive():
                 user_input = self.input_handler.get_input()
@@ -135,13 +136,17 @@ class ControlInterface:
                 time.sleep(0.1)
             else:
                 logger.info("No input received. Proceeding with shutdown.")
+
         except Exception as e:
             logger.error(f"Unexpected error occurred during shutdown monitoring: {e}")
+
         finally:
             logger.info("Shutdown sequence complete.")
 
-    def _perform_shutdown(self):
+    def _perform_shutdown(self, hexapod, lights_handler):
         logger.info("Shutting down the system now.")
+        hexapod.deactivate_all_servos()
+        lights_handler.off()
         os.system("sudo shutdown now")
 
     @voice_command
