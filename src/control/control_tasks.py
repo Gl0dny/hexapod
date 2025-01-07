@@ -157,7 +157,7 @@ class HelixTask(ControlTask):
             
         finally:
             self.hexapod.move_to_angles_position('home')
-            self.lights_handler.listen()
+            self.lights_handler.ready()
 
 class SleepTask(ControlTask):
     def __init__(self, hexapod, lights_handler):

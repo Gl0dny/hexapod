@@ -76,6 +76,8 @@ class VoiceControl(threading.Thread):
 
                 # self.control_interface.lights_handler.off()
                 print('\n[Listening ...]')
+        else:
+            self.control_interface.lights_handler.ready()
 
     def run(self):
         recorder = None
