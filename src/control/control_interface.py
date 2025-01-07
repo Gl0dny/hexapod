@@ -199,10 +199,23 @@ class ControlInterface:
         # Implement logic to set upright mode
         raise NotImplementedError("The set_upright_mode method is not yet implemented.")
 
-    def idle_stance(self):
-        logger.info("Setting robot to idle stance.")
-        # Implement logic to set idle stance
-        raise NotImplementedError("The idle_stance method is not yet implemented.")
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def idle_stance(self, hexapod, lights_handler) -> None:
+        """
+        Initiates the idle stance by setting the hexapod to the home position.
+        """
+        try:
+            logger.info("Setting robot to idle stance...")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = IdleStanceTask(hexapod, lights_handler)
+            self.control_task.start()
+            print("Robot is now in idle stance.")
+                
+        except Exception as e:
+            logger.error(f"Setting idle stance failed: {e}")
 
     def move(self, direction):
         logger.info(f"Executing move: {direction}")

@@ -157,7 +157,7 @@ class HelixTask(ControlTask):
             
         finally:
             self.hexapod.move_to_angles_position('home')
-            self.lights_handler.off()
+            self.lights_handler.listen()
 
 class SleepTask(ControlTask):
     def __init__(self, hexapod, lights_handler):
@@ -170,7 +170,7 @@ class SleepTask(ControlTask):
             self.lights_handler.set_brightness(5)
             self.lights_handler.set_single_color(ColorRGB.GRAY)
             self.hexapod.wait_until_motion_complete()
-            self.hexapod.deactivate_all_servos()
+            self.hexapod.deactivate_all_servos(self.stop_event)
 
         except Exception as e:
             print(f"Error in Sleep task: {e}")
@@ -186,7 +186,28 @@ class WakeUpTask(ControlTask):
             self.lights_handler.set_brightness(50)
             self.lights_handler.wakeup()
             self.hexapod.move_to_angles_position("home")
-            self.hexapod.wait_until_motion_complete()
+            self.hexapod.wait_until_motion_complete(self.stop_event)
 
         except Exception as e:
             print(f"Error in Wake up task: {e}")
+
+class IdleStanceTask(ControlTask):
+    def __init__(self, hexapod, lights_handler):
+        super().__init__()
+        self.hexapod = hexapod
+        self.lights_handler = lights_handler
+
+    def run(self) -> None:
+        """
+        Sets the hexapod to the home position.
+        """
+        try:
+            self.lights_handler.think()
+            self.hexapod.move_to_angles_position('home')
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+
+        except Exception as e:
+            print(f"Error in IdleStanceTask: {e}")
+
+        finally:
+            self.lights_handler.listen()
