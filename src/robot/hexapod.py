@@ -3,6 +3,7 @@ import sys
 from typing import Optional, List, Tuple, Dict
 import threading
 import time
+import yaml
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg, Calibration, Joint
@@ -33,51 +34,30 @@ class Hexapod:
             current_leg_angles (List[Tuple[float, float, float]]): Current angles of the legs.
             current_leg_positions (List[Tuple[float, float, float]]): Current positions of the legs.
         """
-        self.controller: MaestroUART = MaestroUART('/dev/ttyS0', 9600)
+        
+        with open('/home/hexapod/hexapod/src/robot/config/hexapod_config.yaml', 'r') as config_file:
+            config = yaml.safe_load(config_file)
+        
+        self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
         
         # Speed setting for the servo in percent. Speed unit - (0.25us/10ms).
         # The speed parameter can be set to a maximum value of 255, corresponding to a change of 63.75 μs every 10 ms.
-        self.speed: int = 25
+        self.speed: int = config['speed']
         # Acceleration setting for the servo percent. Acceleration units - (0.25us/10ms/80ms).
         # The maximum acceleration setting is 255, allowing the speed to change by 63.75 μs per 10 ms interval every 80 ms.
-        self.accel: int = 10
+        self.accel: int = config['accel']
 
         self.imu = Imu()
 
-        coxa_params: Dict[str, float] = {
-            'length': 27.5,  # mm
-            'angle_min': -45,  # degrees
-            'angle_max': 45,  # degrees
-            'angle_limit_min': None,  # degrees
-            'angle_limit_max': None,  # degrees
-            'z_offset': 22.5  # mm
-        }
-        femur_params: Dict[str, float] = {
-            'length': 52.5,  # mm
-            'angle_min': -45,  # degrees
-            'angle_max': 45,  # degrees
-            'angle_limit_min': None,  # degrees
-            'angle_limit_max': None,  # degrees
-            'invert': True
-        }
-        tibia_params: Dict[str, float] = {
-            'length': 140.0,  # mm
-            'angle_min': -45,  # degrees
-            'angle_max': 45,  # degrees
-            'angle_limit_min': -35,  # degrees
-            'angle_limit_max': None,  # degrees
-            'x_offset': 22.5  # mm
-        }
+        coxa_params: Dict[str, float] = config['coxa_params']
+        femur_params: Dict[str, float] = config['femur_params']
+        tibia_params: Dict[str, float] = config['tibia_params']
 
-        self.coxa_channel_map = [0, 3, 6, 15, 18, 21]
-        self.femur_channel_map = [1, 4, 7, 16, 19, 22]
-        self.tibia_channel_map = [2, 5, 8, 17, 20, 23]
+        self.coxa_channel_map = config['coxa_channel_map']
+        self.femur_channel_map = config['femur_channel_map']
+        self.tibia_channel_map = config['tibia_channel_map']
 
-        self.end_effector_offset: Tuple[float, float, float] = (
-            tibia_params['x_offset'],
-            femur_params['length'] + coxa_params['length'],
-            tibia_params['length'] + coxa_params['z_offset']
-        )
+        self.end_effector_offset: Tuple[float, float, float] = tuple(config['end_effector_offset'])
 
         self.legs: List[Leg] = []
 
@@ -89,14 +69,7 @@ class Hexapod:
             leg = Leg(coxa_params, femur_params, tibia_params, self.controller, self.end_effector_offset)
             self.legs.append(leg)
 
-        self.leg_to_led: Dict[int, int] = {
-            0: 2,
-            1: 0,
-            2: 10,
-            3: 8,
-            4: 6,
-            5: 4
-        }
+        self.leg_to_led: Dict[int, int] = config['leg_to_led']
 
         self.coxa_params = coxa_params
         self.femur_params = femur_params
@@ -105,43 +78,9 @@ class Hexapod:
         self.calibration: Calibration = Calibration(self)
         self.calibration.load_calibration('/home/hexapod/hexapod/src/robot/calibration.json')
 
-        self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = {
-            'zero': [
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-            ],
-        }
+        self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_positions']
 
-        self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = {
-            'home': [
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-            ],
-            'low_profile': [
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-            ],
-            'upright_mode': [
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-            ],
-        }
+        self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_angle_positions']
 
         self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['home'])
         self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['zero'])
