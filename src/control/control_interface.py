@@ -72,12 +72,14 @@ class ControlInterface:
                     f"{method.__name__} must set 'self.control_task' attribute")
         return wrapper
 
-    def hexapod_help(self):
+    @inject_lights_handler
+    def hexapod_help(self, lights_handler):
         logger.info("Executing help.")
         if self.voice_control_context_info:
             print(f"Picovoice Context Info: {self.voice_control_context_info}")
         else:
             print("No context information available.")
+        lights_handler.ready()
 
     def system_status(self):
         logger.info("Executing system_status.")
@@ -85,7 +87,8 @@ class ControlInterface:
         # Example: Return current status of all modules
         raise NotImplementedError("The system_status method is not yet implemented.")
 
-    def shut_down(self):
+    @inject_lights_handler
+    def shut_down(self, lights_handler):
         logger.info("Shutting down robot. System will power off in 10 seconds. Press any key to cancel.")
         shutdown_timer = threading.Timer(10.0, self._perform_shutdown)
         shutdown_timer.start()
@@ -93,8 +96,15 @@ class ControlInterface:
             input("Press any key to cancel shutdown...\n")
             shutdown_timer.cancel()
             logger.info("Shutdown canceled by user.")
-        except:
-            pass
+            lights_handler.ready()
+
+        except EOFError:
+            logger.warning("Input stream closed. Shutdown will proceed.")
+        except Exception as e:
+            logger.error(f"Unexpected error occurred: {e}")
+            lights_handler.set_single_color(ColorRGB.RED)
+        finally:
+            logger.info("Shutdown sequence complete.")
 
     def _perform_shutdown(self):
         logger.info("Shutting down the system now.")
@@ -159,18 +169,20 @@ class ControlInterface:
         # Implement run sequence logic here
         # Example: Trigger predefined action sequence
         raise NotImplementedError("The run_sequence method is not yet implemented.")
-    
-    def _store_last_command(self, func, *args, **kwargs):
-        self._last_command = func
-        self._last_args = args
-        self._last_kwargs = kwargs
 
-    def repeat_last_command(self):
+    @inject_lights_handler
+    def repeat_last_command(self, lights_handler):
         if self._last_command:
             logger.info(f"Repeating last command: {self._last_command.__name__}")
             self._last_command(*self._last_args, **self._last_kwargs)
         else:
             logger.info("No last command to repeat.")
+            lights_handler.ready()
+        
+    def _store_last_command(self, func, *args, **kwargs):
+        self._last_command = func
+        self._last_args = args
+        self._last_kwargs = kwargs
             
     @inject_lights_handler
     def turn_lights(self, lights_handler, switch_state):

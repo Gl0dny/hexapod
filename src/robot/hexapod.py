@@ -125,6 +125,22 @@ class Hexapod:
                 (0.0, 35, -35),
                 (0.0, 35, -35),
             ],
+            'low_profile': [
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+            ],
+            'upright_mode': [
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+                (0.0, 35, -35),
+            ],
         }
 
         self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['home'])

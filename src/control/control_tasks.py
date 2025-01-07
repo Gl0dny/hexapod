@@ -225,7 +225,6 @@ class LowProfileTask(ControlTask):
         """
         try:
             self.lights_handler.think()
-            # Placeholder: move to a hypothetical "low_profile" angles set
             self.hexapod.move_to_angles_position('low_profile')
             self.hexapod.wait_until_motion_complete(self.stop_event)
 
@@ -248,7 +247,6 @@ class UprightModeTask(ControlTask):
         """
         try:
             self.lights_handler.think()
-            # Placeholder: move to a hypothetical "upright_mode" angles set
             self.hexapod.move_to_angles_position('upright_mode')
             self.hexapod.wait_until_motion_complete(self.stop_event)
 
