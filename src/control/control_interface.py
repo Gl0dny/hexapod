@@ -5,6 +5,7 @@ import os
 import threading
 from functools import wraps
 from types import MethodType
+from interface.input_handler import InputHandler
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -12,7 +13,6 @@ from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
 from control.control_tasks import *
-from control_tasks import voice_command
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class ControlInterface:
         self._last_command = None
         self._last_args = None
         self._last_kwargs = None
+        self.input_handler = InputHandler()
         logger.info("ControlInterface initialized with Lights and Hexapod.")
 
     def inject_hexapod(func):
@@ -110,17 +111,19 @@ class ControlInterface:
         logger.info("Shutting down robot. System will power off in 10 seconds. Press any key to cancel.")
         shutdown_timer = threading.Timer(10.0, self._perform_shutdown)
         shutdown_timer.start()
+        lights_handler.shutdown()
         try:
-            input("Press any key to cancel shutdown...\n")
-            shutdown_timer.cancel()
-            logger.info("Shutdown canceled by user.")
-            lights_handler.ready()
+            user_input = self.input_handler.get_input(timeout=10.0)
+            if user_input:
+                shutdown_timer.cancel()
+                logger.info("Shutdown canceled by user.")
+                lights_handler.ready()
+            else:
+                logger.info("No input received. Proceeding with shutdown.")
 
-        except EOFError:
-            logger.warning("Input stream closed. Shutdown will proceed.")
         except Exception as e:
             logger.error(f"Unexpected error occurred: {e}")
-            lights_handler.set_single_color(ColorRGB.RED)
+
         finally:
             logger.info("Shutdown sequence complete.")
 

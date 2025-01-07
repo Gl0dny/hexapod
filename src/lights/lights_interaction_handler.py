@@ -196,6 +196,20 @@ class LightsInteractionHandler:
         )
         self.animation.start()
 
+    @animation
+    def shutdown(self, interval: float = 1.2) -> None:
+        """
+        Start the shutdown animation using WheelFillAnimation with red color.
+        """
+        self.off()
+        self.animation = WheelFillAnimation(
+            lights=self.lights,
+            use_rainbow=False,
+            color=ColorRGB.RED,
+            interval=interval
+        )
+        self.animation.start()
+
     def update_calibration_leds_status(self, calibration_status: Dict[int, str]) -> None:
         """
         Update each leg's LED color based on calibration status.
