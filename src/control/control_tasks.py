@@ -217,7 +217,7 @@ class RunCalibrationTask(ControlTask):
             print(f"Error in RunCalibrationTask thread: {e}")
         
         finally:
-            self.hexapod.move_to_angles_position('home')
+            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
 class RunSequenceTask(ControlTask):
     """
@@ -607,14 +607,14 @@ class HelixTask(ControlTask):
             for _ in range(2):
                 
                 print("Helix maneuver: Moving to 'helix_maximum'")
-                self.hexapod.move_to_angles_position('helix_maximum', self.helix_positions)
+                self.hexapod.move_all_legs_angles(self.helix_positions['helix_maximum'])
                 
                 self.hexapod.wait_until_motion_complete(self.stop_event)
                 if self.stop_event.is_set():
                     return
 
                 print("Helix maneuver: Moving to 'helix_minimum'")
-                self.hexapod.move_to_angles_position('helix_minimum', self.helix_positions)
+                self.hexapod.move_all_legs_angles(self.helix_positions['helix_minimum'])
                 
                 self.hexapod.wait_until_motion_complete(self.stop_event)
                 if self.stop_event.is_set():
@@ -626,7 +626,7 @@ class HelixTask(ControlTask):
             print(f"Error in HelixTask: {e}")
             
         finally:
-            self.hexapod.move_to_angles_position('home')
+            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             self.lights_handler.ready()
 
 class ShowOffTask(ControlTask):
