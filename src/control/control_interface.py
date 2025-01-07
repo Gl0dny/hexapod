@@ -12,6 +12,7 @@ from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
 from control.control_tasks import *
+from control_tasks import voice_command
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +71,23 @@ class ControlInterface:
         """
         @wraps(method)
         def wrapper(self, *args, **kwargs):
-            self._store_last_command(method, *args, **kwargs)
             method(self, *args, **kwargs)
             if not hasattr(self, 'control_task') or self.control_task is None:
                 raise AttributeError(
                     f"{method.__name__} must set 'self.control_task' attribute")
         return wrapper
 
+    def voice_command(func):
+        """
+        Decorator to store the last voice command before executing the function.
+        """
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            self._store_last_command(func, *args, **kwargs)
+            return func(self, *args, **kwargs)
+        return wrapper
+
+    @voice_command
     @inject_lights_handler
     def hexapod_help(self, lights_handler):
         logger.info("Executing help.")
@@ -86,12 +97,14 @@ class ControlInterface:
             print("No context information available.")
         lights_handler.ready()
 
+    @voice_command
     def system_status(self):
         logger.info("Executing system_status.")
         # Implement system status reporting
         # Example: Return current status of all modules
         raise NotImplementedError("The system_status method is not yet implemented.")
-
+    
+    @voice_command
     @inject_lights_handler
     def shut_down(self, lights_handler):
         logger.info("Shutting down robot. System will power off in 10 seconds. Press any key to cancel.")
@@ -115,6 +128,7 @@ class ControlInterface:
         logger.info("Shutting down the system now.")
         os.system("sudo shutdown now")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -129,6 +143,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Emergency stop failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -144,6 +159,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Aactivating robot failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -159,6 +175,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Deactivating robot failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -177,6 +194,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Calibration failed: {e}")
     
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -214,7 +232,8 @@ class ControlInterface:
         self._last_command = func
         self._last_args = args
         self._last_kwargs = kwargs
-            
+
+    @voice_command            
     @inject_lights_handler
     def turn_lights(self, lights_handler, switch_state):
         """
@@ -231,6 +250,7 @@ class ControlInterface:
             logger.info("Turning lights on")
             lights_handler.wakeup()
 
+    @voice_command
     @inject_lights_handler
     def change_color(self, lights_handler, color):
         """
@@ -247,21 +267,25 @@ class ControlInterface:
         except KeyError:
             logger.error(f"Color '{color}' is not supported.")
 
+    @voice_command
     @inject_lights_handler
     def set_brightness(self, lights_handler, brightness_percentage):
         logger.info(f"Setting brightness to {brightness_percentage}%.")
         lights_handler.set_brightness(brightness_percentage)
 
+    @voice_command
     @inject_hexapod
     def set_speed(self, hexapod, speed_percentage):
         logger.info(f"Setting speed to {speed_percentage}%.")
         hexapod.set_all_servos_speed(speed_percentage)
-    
+   
+    @voice_command 
     @inject_hexapod
     def set_acceleration(self, hexapod, accel_percentage):
         logger.info(f"Setting acceleration to {accel_percentage}%.")
         hexapod.set_all_servos_accel(accel_percentage)
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -279,6 +303,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Setting low profile mode failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -296,6 +321,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Setting upright mode failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -314,6 +340,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Setting idle stance failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -328,6 +355,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Move task failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -342,6 +370,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Stop task failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -359,6 +388,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Rotate task failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -373,6 +403,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Follow task failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -387,6 +418,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Sound source analysis task failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -413,6 +445,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Turning on police lights failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -427,6 +460,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Sit-up task failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -441,6 +475,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Dance task failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -459,6 +494,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Helix maneuver failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod
@@ -473,6 +509,7 @@ class ControlInterface:
         except Exception as e:
             logger.error(f"Show-off task failed: {e}")
 
+    @voice_command
     @control_task
     @inject_lights_handler
     @inject_hexapod

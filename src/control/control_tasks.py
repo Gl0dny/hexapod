@@ -4,6 +4,7 @@ from lights import ColorRGB
 import logging
 
 logger = logging.getLogger(__name__)
+
 class ControlTask(abc.ABC):
     """
     Abstract base class for tasks.
