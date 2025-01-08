@@ -6,7 +6,6 @@ import time
 import threading
 from functools import wraps
 from types import MethodType
-from interface.input_handler import InputHandler
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -14,6 +13,7 @@ from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
 from control.control_tasks import *
+from interface.input_handler import InputHandler
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,6 @@ class ControlInterface:
         self._last_command = None
         self._last_args = None
         self._last_kwargs = None
-        self.input_handler = InputHandler()
         self.maintenance_mode_event = threading.Event()
         logger.info("ControlInterface initialized with Lights and Hexapod.")
 
@@ -149,6 +148,8 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        input_handler = InputHandler()
+        input_handler.start()
         self.maintenance_mode_event.set()  # Signal maintenance mode
         shutdown_delay = 15.0  # seconds
         lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
@@ -159,22 +160,23 @@ class ControlInterface:
         # Start a separate thread to monitor user input
         shutdown_monitor_thread = threading.Thread(
             target=self._shutdown_monitor,
-            args=(lights_handler, shutdown_timer),
+            args=(lights_handler, shutdown_timer, input_handler),
             daemon=True
         )
         shutdown_monitor_thread.start()
     
-    def _shutdown_monitor(self, lights_handler: LightsInteractionHandler, shutdown_timer: threading.Timer) -> None:
+    def _shutdown_monitor(self, lights_handler: LightsInteractionHandler, shutdown_timer: threading.Timer, input_handler: InputHandler) -> None:
         """
         Monitor shutdown to allow cancellation.
 
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
             shutdown_timer (threading.Timer): Timer for scheduled shutdown.
+            input_handler (InputHandler): Handles user input in a thread safe way.
         """
         try:
             while shutdown_timer.is_alive():
-                user_input = self.input_handler.get_input()
+                user_input = input_handler.get_input()
                 if user_input:
                     shutdown_timer.cancel()
                     self.maintenance_mode_event.clear()

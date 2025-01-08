@@ -3,7 +3,6 @@ import threading
 import time
 from typing import Optional
 from interface.input_handler import InputHandler
-# from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
 
 class Calibration:
     def __init__(self, hexapod, config_file_path: str) -> None:
@@ -41,7 +40,10 @@ class Calibration:
         Args:
             stop_event (threading.Event, optional): Event to signal stopping the calibration process.
         """
+        from robot import PredefinedAnglePosition
+        
         self.input_handler = InputHandler()
+        self.input_handler.start()
 
         self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
         self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
@@ -210,7 +212,7 @@ class Calibration:
                 print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_max: {2000}")
 
                 prompt = f"Enter servo_max for Leg {leg_index} {joint_name} (992-2000): "
-                print(prompt, end='', flush=True)  # Print prompt once
+                print(prompt, end='', flush=True)
                 servo_max_input = None
                 while servo_max_input is None:
                     if stop_event and stop_event.is_set():
@@ -222,7 +224,7 @@ class Calibration:
                             servo_max_input = int(servo_max_input_str)
                         except ValueError:
                             print("\nInvalid input. Please enter an integer value for servo_max.")
-                            print(prompt, end='', flush=True)  # Re-prompt once for valid input
+                            print(prompt, end='', flush=True)
                     else:
                         if stop_event:
                             stop_event.wait(timeout=0.1)
@@ -248,7 +250,7 @@ class Calibration:
 
                 confirm_max = None
                 confirm_prompt = "Is the servo_max calibration correct? (y/n): "
-                print(confirm_prompt, end='', flush=True)  # Print confirmation prompt once
+                print(confirm_prompt, end='', flush=True)
                 while confirm_max is None:
                     if stop_event and stop_event.is_set():
                         print(f"\nCalibration interrupted during confirmation of servo_max of Leg {leg_index} {joint_name}.")
@@ -266,7 +268,7 @@ class Calibration:
                     calibrated_max = True
                 else:
                     print("\nRe-enter servo_max calibration value.")
-                    print(prompt, end='', flush=True)  # Re-prompt once for re-entry
+                    print(prompt, end='', flush=True)
             except Exception as e:
                 print(f"\nError during servo_max calibration: {e}")
 

@@ -602,7 +602,7 @@ class HelixTask(ControlTask):
             # Read the current angles
             _, femur_angle, tibia_angle = self.hexapod.current_leg_angles[i]
             # Use coxa min or max, keep femur/tibia from the cache
-            helix_min_positions.append((self.hexapod.coxa_params['angle_min']+15, femur_angle, tibia_angle))
+            helix_min_positions.append((self.hexapod.coxa_params['angle_min']+25, femur_angle, tibia_angle))
             helix_max_positions.append((self.hexapod.coxa_params['angle_max'], femur_angle, tibia_angle))
 
         self.helix_positions = {

@@ -2,7 +2,7 @@ import os
 import threading
 import sys
 import logging
-from typing import Callable, Any, Optional
+from typing import Any
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -10,7 +10,6 @@ from picovoice import Picovoice
 from pvrecorder import PvRecorder
 from kws.intent_dispatcher import IntentDispatcher
 from control import ControlInterface
-from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -81,7 +80,6 @@ class VoiceControl(threading.Thread):
         """
         print('[wake word]\n')
         self.control_interface.lights_handler.listen()
-        self.control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
     def _inference_callback(self, inference: Any) -> None:
         """
@@ -142,7 +140,6 @@ class VoiceControl(threading.Thread):
         """
         try:
             self.control_interface.voice_control_context_info = self.context
-            self.control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
             self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             self.recorder.start()
@@ -168,9 +165,6 @@ class VoiceControl(threading.Thread):
         finally:
             if self.recorder and self.recorder.is_recording:
                 self.recorder.stop()
-            self.control_interface.stop_control_task()
-            self.control_interface.lights_handler.off()
-            self.control_interface.hexapod.deactivate_all_servos()
 
             if self.recorder is not None:
                 self.recorder.delete()

@@ -32,6 +32,8 @@ def main() -> None:
 
     control_interface = ControlInterface()
 
+    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+
     voice_control = VoiceControl(
         keyword_path=keyword_path,
         context_path=context_path,
@@ -48,23 +50,28 @@ def main() -> None:
     try:
         # Check for MaestroUART errors
         while True:
-            controller_error_code = voice_control.control_interface.hexapod.controller.get_error()
-            if controller_error_code != 0:
-                print(f"Controller error: {controller_error_code}")
-                voice_control.pause()
-                time.sleep(1)
-                voice_control.control_interface.lights_handler.set_single_color(ColorRGB.RED)
-                voice_control.control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-                break
+            # controller_error_code = control_interface.hexapod.controller.get_error()
+            # if controller_error_code != 0:
+            #     print(f"Controller error: {controller_error_code}")
+            #     voice_control.pause()
+            #     time.sleep(1)
+            #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
+            #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+            #     break
             time.sleep(1)
     except KeyboardInterrupt:
         sys.stdout.write('\b' * 2)
         print("  ", flush=True)
         print('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
+        control_interface.stop_control_task()
         voice_control.stop()
         voice_control.join()
+        control_interface.lights_handler.off()
     finally:
-        # voice_control.control_interface.hexapod.controller.close()
+        time.sleep(5)
+        control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+        control_interface.hexapod.deactivate_all_servos()
+        # control_interface.hexapod.controller.close()
         print('Exiting...')
 
 if __name__ == '__main__':

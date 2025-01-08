@@ -7,10 +7,9 @@ import yaml
 from enum import Enum
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
-from robot import Leg, Calibration, Joint
+from robot import Leg, Joint, Calibration, GaitGenerator
 from imu import Imu
 from utils import map_range
-from robot.gait_generator import GaitGenerator
 
 class PredefinedAnglePosition(Enum):
     HOME = 'home'
