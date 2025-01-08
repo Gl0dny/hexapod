@@ -26,6 +26,8 @@ class VoiceControl(threading.Thread):
             context_path: str,
             access_key: str,
             device_index: int,
+            control_interface: ControlInterface,
+            # state_manager: StateManager,
             porcupine_sensitivity: float = 0.75,
             rhino_sensitivity: float = 0.25) -> None:
         """
@@ -36,6 +38,8 @@ class VoiceControl(threading.Thread):
             context_path (str): Path to the language context file.
             access_key (str): Access key for Picovoice services.
             device_index (int): Index of the audio input device.
+            control_interface (ControlInterface): Control interface instance.
+            state_manager (StateManager): State manager instance.
             porcupine_sensitivity (float, optional): Sensitivity for wake word detection.
             rhino_sensitivity (float, optional): Sensitivity for intent recognition.
         """
@@ -57,11 +61,15 @@ class VoiceControl(threading.Thread):
         self.context = self.picovoice.context_info
         self.device_index = device_index
 
-        self.control_interface = ControlInterface(voice_control_context_info=self.context)
-        self.intent_dispatcher = IntentDispatcher(self.control_interface)
-        # self.state_manager = StateManager()
+        self.control_interface = control_interface
+        # self.state_manager = state_manager
 
-        self._stop_event = threading.Event()
+        self.intent_dispatcher = IntentDispatcher(self.control_interface)
+
+        self.stop_event = threading.Event()
+        self.pause_lock = threading.Lock()
+        self.pause_event = threading.Event()
+        self.pause_event.set()
 
     def print_context(self) -> None:
         """
@@ -109,10 +117,29 @@ class VoiceControl(threading.Thread):
         else:
             self.control_interface.lights_handler.ready()
 
+    def pause(self) -> None:
+        """
+        Pauses the voice control processing.
+        """
+        with self.pause_lock:
+            self.pause_event.clear()
+            self.control_interface.lights_handler.off()
+            print('Voice control paused.')
+
+    def unpause(self) -> None:
+        """
+        Unpauses the voice control processing.
+        """
+        with self.pause_lock:
+            self.pause_event.set()
+            self.control_interface.lights_handler.ready()
+            print('Voice control unpaused.')
+            print('[Listening ...]')
+
     def stop(self):
         """Signal the thread to stop."""
         print('Stopping voice control thread...')
-        self._stop_event.set()
+        self.stop_event.set()
 
     def run(self) -> None:
         """
@@ -121,6 +148,7 @@ class VoiceControl(threading.Thread):
         recorder = None
 
         try:
+            self.control_interface.voice_control_context_info = self.context
             self.control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
             recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
@@ -129,7 +157,8 @@ class VoiceControl(threading.Thread):
             print('[Listening ...]')
             self.control_interface.lights_handler.ready()
 
-            while not self._stop_event.is_set():
+            while not self.stop_event.is_set():
+                self.pause_event.wait()
                 pcm = recorder.read()
                 self.picovoice.process(pcm)
 

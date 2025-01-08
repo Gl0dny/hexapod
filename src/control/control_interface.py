@@ -22,17 +22,14 @@ class ControlInterface:
     Interface for controlling the hexapod based on voice commands.
     """
 
-    def __init__(self, voice_control_context_info: Optional[str] = None):
+    def __init__(self):
         """
         Initialize the ControlInterface object.
-
-        Args:
-            voice_control_context_info (Optional[str]): The context information from Picovoice.
         """
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
         self.control_task: ControlTask = None
-        self.voice_control_context_info = voice_control_context_info
+        self.voice_control_context_info = None
         self._last_command = None
         self._last_args = None
         self._last_kwargs = None
@@ -121,7 +118,7 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         logger.info("Executing help.")
-        if self.voice_control_context_info:
+        if getattr(self, 'voice_control_context_info', None):
             print(f"Picovoice Context Info: {self.voice_control_context_info}")
         else:
             print("No context information available.")
@@ -764,3 +761,17 @@ class ControlInterface:
             print("Said hello.")
         except Exception as e:
             logger.error(f"Say hello task failed: {e}")
+
+    # @voice_command
+    # def pause_voice_control(self) -> None:
+    #     """
+    #     Pauses the voice control functionality.
+    #     """
+    #     self.voice_control.pause()
+
+    # @voice_command
+    # def unpause_voice_control(self) -> None:
+    #     """
+    #     Unpauses the voice control functionality.
+    #     """
+    #     self.voice_control.unpause()

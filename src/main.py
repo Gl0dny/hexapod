@@ -5,6 +5,7 @@ import time
 from kws import VoiceControl
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
+from control import ControlInterface, StateManager
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hexapod Voice Control Interface")
@@ -29,11 +30,16 @@ def main() -> None:
     keyword_path = os.path.join(os.path.dirname(__file__), 'kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = os.path.join(os.path.dirname(__file__), 'kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
 
+    control_interface = ControlInterface()
+    # state_manager = StateManager()
+
     voice_control = VoiceControl(
         keyword_path=keyword_path,
         context_path=context_path,
         access_key=args.access_key,
         device_index=args.audio_device_index,
+        control_interface=control_interface,
+        # state_manager=state_manager
     )
 
     if args.print_context:
