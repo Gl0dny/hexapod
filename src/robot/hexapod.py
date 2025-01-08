@@ -10,6 +10,7 @@ from maestro import MaestroUART
 from robot import Leg, Calibration, Joint
 from imu import Imu
 from utils import map_range
+from robot.gait_generator import GaitGenerator
 
 class PredefinedAnglePosition(Enum):
     HOME = 'home'
@@ -93,6 +94,8 @@ class Hexapod:
 
         self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['home'])
         self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['zero'])
+
+        self.gait_generator = GaitGenerator(self)
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
@@ -395,6 +398,21 @@ class Hexapod:
                 break
             if stop_event:
                 stop_event.wait(timeout=0.2)
+
+    # def start_gait(self, gait_type: str) -> None:
+    #     """
+    #     Start a gait pattern.
+
+    #     Args:
+    #         gait_type (str): The type of gait to start.
+    #     """
+    #     self.gait_generator.start(gait_type)
+
+    # def stop_gait(self) -> None:
+    #     """
+    #     Stop the current gait pattern.
+    #     """
+    #     self.gait_generator.stop()
 
 if __name__ == '__main__':
     hexapod = Hexapod()
