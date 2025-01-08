@@ -349,6 +349,7 @@ class MaestroUART(object):
 			none
 		"""
 		with self.lock:
+			print("Closing the serial port.")
 			self.ser.close();
 
 if __name__ == '__main__':
