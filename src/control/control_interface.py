@@ -160,17 +160,16 @@ class ControlInterface:
         # Start a separate thread to monitor user input
         shutdown_monitor_thread = threading.Thread(
             target=self._shutdown_monitor,
-            args=(lights_handler, shutdown_timer, input_handler),
+            args=(shutdown_timer, input_handler),
             daemon=True
         )
         shutdown_monitor_thread.start()
     
-    def _shutdown_monitor(self, lights_handler: LightsInteractionHandler, shutdown_timer: threading.Timer, input_handler: InputHandler) -> None:
+    def _shutdown_monitor(self, shutdown_timer: threading.Timer, input_handler: InputHandler) -> None:
         """
         Monitor shutdown to allow cancellation.
 
         Args:
-            lights_handler (LightsInteractionHandler): Handles lights activity.
             shutdown_timer (threading.Timer): Timer for scheduled shutdown.
             input_handler (InputHandler): Handles user input in a thread safe way.
         """
@@ -180,6 +179,8 @@ class ControlInterface:
                 if user_input:
                     shutdown_timer.cancel()
                     self.maintenance_mode_event.clear()
+                    input_handler.shutdown()
+                    input_handler = None
                     print("Shutdown canceled by user.")
                     break
                 time.sleep(0.1)

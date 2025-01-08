@@ -49,5 +49,6 @@ class InputHandler:
         """
         Shuts down the input listener thread gracefully.
         """
+        print("Killing input handler")
         self.stop_input_listener = True
         self.input_thread.join()

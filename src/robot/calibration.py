@@ -104,7 +104,6 @@ class Calibration:
             print(f"Error during calibration: {e}")
         finally:
             if self.input_handler:
-                print("Killing input handler")
                 self.input_handler.shutdown()
                 self.input_handler = None
 
