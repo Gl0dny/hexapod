@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
 from kws.intent_dispatcher import IntentDispatcher
-from control import ControlInterface, StateManager
+from control import ControlInterface
 from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
 
 logging.basicConfig(level=logging.INFO)
@@ -27,7 +27,6 @@ class VoiceControl(threading.Thread):
             access_key: str,
             device_index: int,
             control_interface: ControlInterface,
-            # state_manager: StateManager,
             porcupine_sensitivity: float = 0.75,
             rhino_sensitivity: float = 0.25) -> None:
         """
@@ -39,7 +38,6 @@ class VoiceControl(threading.Thread):
             access_key (str): Access key for Picovoice services.
             device_index (int): Index of the audio input device.
             control_interface (ControlInterface): Control interface instance.
-            state_manager (StateManager): State manager instance.
             porcupine_sensitivity (float, optional): Sensitivity for wake word detection.
             rhino_sensitivity (float, optional): Sensitivity for intent recognition.
         """
@@ -62,7 +60,6 @@ class VoiceControl(threading.Thread):
         self.device_index = device_index
 
         self.control_interface = control_interface
-        # self.state_manager = state_manager
 
         self.intent_dispatcher = IntentDispatcher(self.control_interface)
 
@@ -107,14 +104,8 @@ class VoiceControl(threading.Thread):
         print('}\n')
 
         if inference.is_understood:
-            # if self.state_manager.can_execute(inference.intent):
-                # self.control_interface.lights_handler.think()
-                self.intent_dispatcher.dispatch(inference.intent, inference.slots)
-            # else:
-            #     logger.warning(f"Cannot execute '{inference.intent}' while in state '{self.state_manager.state.name}'")
-
-                # self.control_interface.lights_handler.off()
-                print('\n[Listening ...]')
+            self.intent_dispatcher.dispatch(inference.intent, inference.slots)
+            print('\n[Listening ...]')
         else:
             self.control_interface.lights_handler.ready()
 
