@@ -154,9 +154,14 @@ class VoiceControl(threading.Thread):
             self.control_interface.lights_handler.ready()
 
             while not self.stop_event.is_set():
-                self.pause_event.wait()
-                pcm = self.recorder.read()
-                self.picovoice.process(pcm)
+                if self.control_interface.shutdown_event.is_set():
+                    self.pause()
+                else:
+                    if not self.pause_event.is_set():
+                        self.unpause()
+                if self.pause_event.wait(timeout=0.1):
+                    pcm = self.recorder.read()
+                    self.picovoice.process(pcm)
 
         except Exception as e:
             logger.error(f"Unexpected error: {e}")

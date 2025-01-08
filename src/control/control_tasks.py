@@ -135,13 +135,17 @@ class CompositeCalibrationTask(ControlTask):
     """
     Orchestrates the execution of run and monitor calibration tasks.
     """
-    def __init__(self, hexapod: Any, lights_handler: Any) -> None:
+    def __init__(self, hexapod: Any, lights_handler: Any, control_interface: Any) -> None:
         """
         Args:
             hexapod: Hexapod object to calibrate.
             lights_handler: Handles lights display during calibration.
+            control_interface: The control interface instance used for managing maintenance mode event.
         """
         super().__init__()
+        self.hexapod = hexapod
+        self.lights_handler = lights_handler
+        self.control_interface = control_interface
         self.run_calibration_task = RunCalibrationTask(hexapod)
         self.monitor_calibration_task = MonitorCalibrationStatusTask(hexapod, lights_handler)
 
@@ -149,8 +153,17 @@ class CompositeCalibrationTask(ControlTask):
         """
         Starts RunCalibrationTask and MonitorCalibrationStatusTask.
         """
-        self.run_calibration_task.start()
-        self.monitor_calibration_task.start()
+        try:
+            logger.info("Starting composite calibration task.")
+            self.run_calibration_task.start()
+            self.monitor_calibration_task.start()
+            self.run_calibration_task.thread.join()
+            self.monitor_calibration_task.thread.join()
+        except Exception as e:
+            logger.error(f"Composite calibration task failed: {e}")
+        finally:
+            self.control_interface.maintenance_mode_event.clear()
+            logger.info("Composite calibration task completed.")
 
     def stop_task(self) -> None:
         """

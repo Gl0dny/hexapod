@@ -3,9 +3,9 @@ import sys
 import os
 import time
 from kws import VoiceControl
+from control import ControlInterface
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
-from control import ControlInterface
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hexapod Voice Control Interface")

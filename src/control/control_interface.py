@@ -34,6 +34,7 @@ class ControlInterface:
         self._last_args = None
         self._last_kwargs = None
         self.input_handler = InputHandler()
+        self.maintenance_mode_event = threading.Event()
         logger.info("ControlInterface initialized with Lights and Hexapod.")
 
     def inject_hexapod(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -148,6 +149,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        self.maintenance_mode_event.set()  # Signal maintenance mode
         shutdown_delay = 15.0  # seconds
         logger.info(f"Shutting down robot. System will power off in {shutdown_delay} seconds. Press any key+Enter to cancel.")
         lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
@@ -175,6 +177,7 @@ class ControlInterface:
                 user_input = self.input_handler.get_input()
                 if user_input:
                     shutdown_timer.cancel()
+                    self.maintenance_mode_event.clear()
                     logger.info("Shutdown canceled by user.")
                     lights_handler.ready()
                     break
@@ -282,16 +285,19 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            print("Initiating calibration process.")
+            logger.info("Initiating calibration process.")
+            self.maintenance_mode_event.set()  # Signal maintenance mode
+            logger.info("VoiceControl paused for calibration.")
+
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = CompositeCalibrationTask(hexapod, lights_handler)
+            self.control_task = CompositeCalibrationTask(hexapod, lights_handler, self)
             self.control_task.start()
             print("Calibration process started.")
         
         except Exception as e:
             logger.error(f"Calibration failed: {e}")
-    
+
     @voice_command
     @control_task
     @inject_lights_handler
