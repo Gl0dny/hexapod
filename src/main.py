@@ -48,14 +48,14 @@ def main() -> None:
     try:
         # Check for MaestroUART errors
         while True:
-            # controller_error_code = voice_control.control_interface.hexapod.controller.get_error()
-            # if controller_error_code != 0:
-            #     print(f"Controller error: {controller_error_code}")
-            #     voice_control.pause()
-            #     time.sleep(1)
-            #     voice_control.control_interface.lights_handler.set_single_color(ColorRGB.RED)
-            #     voice_control.control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-            #     break
+            controller_error_code = voice_control.control_interface.hexapod.controller.get_error()
+            if controller_error_code != 0:
+                print(f"Controller error: {controller_error_code}")
+                voice_control.pause()
+                time.sleep(1)
+                voice_control.control_interface.lights_handler.set_single_color(ColorRGB.RED)
+                voice_control.control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+                break
             time.sleep(1)
     except KeyboardInterrupt:
         sys.stdout.write('\b' * 2)

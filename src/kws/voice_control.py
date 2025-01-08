@@ -105,7 +105,6 @@ class VoiceControl(threading.Thread):
 
         if inference.is_understood:
             self.intent_dispatcher.dispatch(inference.intent, inference.slots)
-            print('\n[Listening ...]')
         else:
             self.control_interface.lights_handler.ready()
 
@@ -117,8 +116,7 @@ class VoiceControl(threading.Thread):
             self.pause_event.clear()
             if self.recorder and self.recorder.is_recording:
                 self.recorder.stop()
-            self.control_interface.lights_handler.off()
-            print('Voice control paused.')
+            logger.info('Voice control paused.')
 
     def unpause(self) -> None:
         """
@@ -127,14 +125,13 @@ class VoiceControl(threading.Thread):
         with self.pause_lock:
             if self.recorder and not self.recorder.is_recording:
                 self.recorder.start()
-            self.control_interface.lights_handler.ready()
             self.pause_event.set()
-            print('Voice control unpaused.')
-            print('[Listening ...]')
+            logger.info('Voice control unpaused.')
+            self.control_interface.lights_handler.ready()
 
     def stop(self):
         """Signal the thread to stop."""
-        print('Stopping voice control thread...')
+        logger.info('Stopping voice control thread...')
         self.stop_event.set()
         if self.recorder and self.recorder.is_recording:
             self.recorder.stop()
@@ -150,15 +147,17 @@ class VoiceControl(threading.Thread):
             self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             self.recorder.start()
 
-            print('[Listening ...]')
             self.control_interface.lights_handler.ready()
+            
+            paused = False
 
             while not self.stop_event.is_set():
-                if self.control_interface.shutdown_event.is_set():
+                if self.control_interface.maintenance_mode_event.is_set() and not paused:
                     self.pause()
-                else:
-                    if not self.pause_event.is_set():
-                        self.unpause()
+                    paused = True
+                elif not self.control_interface.maintenance_mode_event.is_set() and paused:
+                    self.unpause()
+                    paused = False
                 if self.pause_event.wait(timeout=0.1):
                     pcm = self.recorder.read()
                     self.picovoice.process(pcm)
@@ -167,6 +166,8 @@ class VoiceControl(threading.Thread):
             logger.error(f"Unexpected error: {e}")
         
         finally:
+            if self.recorder and self.recorder.is_recording:
+                self.recorder.stop()
             self.control_interface.stop_control_task()
             self.control_interface.lights_handler.off()
             self.control_interface.hexapod.deactivate_all_servos()

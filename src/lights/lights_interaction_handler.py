@@ -123,6 +123,7 @@ class LightsInteractionHandler:
             pulse_speed=pulse_speed
         )
         self.animation.start()
+        print('[Listening ...]')
 
 
     @animation

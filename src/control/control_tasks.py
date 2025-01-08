@@ -44,7 +44,7 @@ class ControlTask(abc.ABC):
         """
         self.stop_event.set()
         if self.thread and self.thread.is_alive():
-            print(f"Task {self.__class__.__name__} forcefully stopping.")
+            logger.info(f"Task {self.__class__.__name__} forcefully stopping.")
             self.thread.join()
 
 class EmergencyStopTask(ControlTask):

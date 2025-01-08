@@ -151,8 +151,8 @@ class ControlInterface:
         """
         self.maintenance_mode_event.set()  # Signal maintenance mode
         shutdown_delay = 15.0  # seconds
-        logger.info(f"Shutting down robot. System will power off in {shutdown_delay} seconds. Press any key+Enter to cancel.")
         lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
+        print(f"\nShutting down robot. System will power off in {shutdown_delay} seconds. Press any key+Enter to cancel.")
         shutdown_timer = threading.Timer(shutdown_delay, self._perform_shutdown, args=(hexapod, lights_handler))
         shutdown_timer.start()
         
@@ -178,8 +178,7 @@ class ControlInterface:
                 if user_input:
                     shutdown_timer.cancel()
                     self.maintenance_mode_event.clear()
-                    logger.info("Shutdown canceled by user.")
-                    lights_handler.ready()
+                    print("Shutdown canceled by user.")
                     break
                 time.sleep(0.1)
             else:
