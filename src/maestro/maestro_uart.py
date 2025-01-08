@@ -25,6 +25,7 @@ Note that 0x04 is the command 0x84 with its most significant bit cleared.
 """
 import serial
 import time
+import threading
 from typing import Optional
 
 COMMAND_START: int = 0xAA
@@ -56,6 +57,7 @@ class MaestroUART(object):
 		self.ser.stopbits = serial.STOPBITS_ONE
 		self.ser.xonxoff = False
 		self.ser.timeout = 0 # makes the read non-blocking
+		self.lock = threading.Lock()
 
 	def get_error(self) -> int:
 		"""Check if there was an error and print the corresponding error messages.
@@ -97,14 +99,15 @@ class MaestroUART(object):
 		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_ERROR])
 
-		self.ser.write(command)
+		with self.lock:
+			self.ser.write(command)
 
-		data = [b'\x00', b'\x00']
-		n = 0
-		while n != 2:
-			data[n] = self.ser.read(1)
-			if data[n] == b'': continue
-			n = n + 1
+			data = [b'\x00', b'\x00']
+			n = 0
+			while n != 2:
+				data[n] = self.ser.read(1)
+				if data[n] == b'': continue
+				n = n + 1
 
 		error_code = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
 
@@ -145,14 +148,15 @@ class MaestroUART(object):
 		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_POSITION, channel])
 
-		self.ser.write(command)
+		with self.lock:
+			self.ser.write(command)
 
-		data = [b'\x00', b'\x00']
-		n = 0
-		while n != 2:
-			data[n] = self.ser.read(1)
-			if data[n] == b'': continue
-			n = n + 1
+			data = [b'\x00', b'\x00']
+			n = 0
+			while n != 2:
+				data[n] = self.ser.read(1)
+				if data[n] == b'': continue
+				n = n + 1
 
 		return int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
 
@@ -182,7 +186,8 @@ class MaestroUART(object):
 			none
 		"""
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_SPEED, channel, speed & 0x7F, (speed >> 7) & 0x7F])
-		self.ser.write(command)
+		with self.lock:
+			self.ser.write(command)
 
 	def set_acceleration(self, channel: int, accel: int) -> None:
 		"""Sets the acceleration of a Maestro channel. Note that once you set
@@ -223,7 +228,8 @@ class MaestroUART(object):
 			none
 		"""
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_ACCELERATION, channel, accel & 0x7F, (accel >> 7) & 0x7F])
-		self.ser.write(command)
+		with self.lock:
+			self.ser.write(command)
 
 	def set_target(self, channel: int, target: int) -> None:
 		"""Sets the target of a Maestro channel. 
@@ -242,7 +248,8 @@ class MaestroUART(object):
 			none
 		"""
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_TARGET, channel, target & 0x7F, (target >> 7) & 0x7F])
-		self.ser.write(command)
+		with self.lock:
+			self.ser.write(command)
 
 	def set_multiple_targets(self, targets: list[tuple[int, int]]) -> None:
 		"""
@@ -278,7 +285,8 @@ class MaestroUART(object):
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_MULTIPLE_TARGETS, num_targets, first_channel])
 		for _, target in targets:
 			command += bytes([target & 0x7F, (target >> 7) & 0x7F])
-		self.ser.write(command)
+		with self.lock:
+			self.ser.write(command)
 
 	def go_home(self) -> None:
 		"""
@@ -298,7 +306,8 @@ class MaestroUART(object):
 		"""
 
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GO_HOME])
-		self.ser.write(command)
+		with self.lock:
+			self.ser.write(command)
 
 	def get_moving_state(self) -> Optional[int]:
 		"""
@@ -320,10 +329,11 @@ class MaestroUART(object):
 		"""
 		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_MOVING_STATE])
-		self.ser.write(command)
+		with self.lock:
+			self.ser.write(command)
 
-		# Read a single byte response indicating the moving state
-		response = self.ser.read(1)
+			# Read a single byte response indicating the moving state
+			response = self.ser.read(1)
 		if response == b'':
 			return None
 		return ord(response)
@@ -338,7 +348,8 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		self.ser.close();
+		with self.lock:
+			self.ser.close();
 
 if __name__ == '__main__':
 	# min_pos and max_pos are the minimum and maxium positions for the servos
