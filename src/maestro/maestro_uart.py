@@ -29,13 +29,13 @@ from typing import Optional
 
 COMMAND_START: int = 0xAA
 DEFAULT_DEVICE_NUMBER: int = 0x0C
-COMMAND_GET_ERROR: int = 0xA1 & 0x7F
-COMMAND_GET_POSITION: int = 0x90 & 0x7F
-COMMAND_SET_SPEED: int = 0x87 & 0x7F
-COMMAND_SET_ACCELERATION: int = 0x89 & 0x7F
-COMMAND_SET_TARGET: int = 0x84 & 0x7F
-COMMAND_GO_HOME: int = 0x22 & 0x7F
-COMMAND_GET_MOVING_STATE: int = 0x93 & 0x7F
+COMMAND_GET_ERROR: int = 0x21
+COMMAND_GET_POSITION: int = 0x10
+COMMAND_SET_SPEED: int = 0x07
+COMMAND_SET_ACCELERATION: int = 0x09
+COMMAND_SET_TARGET: int = 0x04
+COMMAND_GO_HOME: int = 0x22
+COMMAND_GET_MOVING_STATE: int = 0x13
 COMMAND_SET_MULTIPLE_TARGETS: int = 0x1F
 
 class MaestroUART(object):
@@ -94,6 +94,7 @@ class MaestroUART(object):
 			>0: error, see the Maestro manual for the error values
 			0: no error, or error getting the position, check the connections, could also be low power
 		"""
+		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_ERROR])
 
 		self.ser.write(command)

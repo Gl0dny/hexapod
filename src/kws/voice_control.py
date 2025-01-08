@@ -61,6 +61,8 @@ class VoiceControl(threading.Thread):
         self.intent_dispatcher = IntentDispatcher(self.control_interface)
         # self.state_manager = StateManager()
 
+        self._stop_event = threading.Event()
+
     def print_context(self) -> None:
         """
         Prints the context information for debugging purposes.
@@ -107,6 +109,11 @@ class VoiceControl(threading.Thread):
         else:
             self.control_interface.lights_handler.ready()
 
+    def stop(self):
+        """Signal the thread to stop."""
+        print('Stopping voice control thread...')
+        self._stop_event.set()
+
     def run(self) -> None:
         """
         Runs the voice control thread, initializing Picovoice and handling audio input.
@@ -122,25 +129,15 @@ class VoiceControl(threading.Thread):
             print('[Listening ...]')
             self.control_interface.lights_handler.ready()
 
-            while True:
+            while not self._stop_event.is_set():
                 pcm = recorder.read()
                 self.picovoice.process(pcm)
 
-                # Check for MaestroUART errors
-                # controller_error_code = self.control_interface.hexapod.controller.get_error()
-                # if controller_error_code != 0:
-                #     print(f"Controller error: {controller_error_code}")
-                    # self.control_interface.stop_control_task()
-                    # # self.control_interface.lights_handler.set_single_color(ColorRGB.RED)
-                    # self.control_interface.hexapod.deactivate_all_servos()
-                    # break
-
-        except KeyboardInterrupt:
-            sys.stdout.write('\b' * 2)
-            print("  ", flush=True)
-            print('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
-            self.control_interface.stop_control_task()
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+        
         finally:
+            self.control_interface.stop_control_task()
             self.control_interface.lights_handler.off()
             self.control_interface.hexapod.deactivate_all_servos()
 
@@ -148,4 +145,5 @@ class VoiceControl(threading.Thread):
                 recorder.delete()
 
             self.picovoice.delete()
-            # self.control_interface.hexapod.controller.close()
+            
+            print('Voice control thread stopped.')
