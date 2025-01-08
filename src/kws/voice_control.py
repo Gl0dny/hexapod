@@ -167,8 +167,6 @@ class VoiceControl(threading.Thread):
             logger.error(f"Unexpected error: {e}")
         
         finally:
-            if self.recorder and self.recorder.is_recording:
-                self.recorder.stop()
             self.control_interface.stop_control_task()
             self.control_interface.lights_handler.off()
             self.control_interface.hexapod.deactivate_all_servos()

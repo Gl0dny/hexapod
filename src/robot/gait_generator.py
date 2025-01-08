@@ -3,16 +3,16 @@ import threading
 import time
 
 class GaitGenerator:
-    # def __init__(self, hexapod: 'Hexapod') -> None:
-    #     """
-    #     Initializes the GaitGenerator with a reference to the Hexapod.
+    def __init__(self, hexapod: 'Hexapod') -> None:
+        """
+        Initializes the GaitGenerator with a reference to the Hexapod.
 
-    #     Args:
-    #         hexapod (Hexapod): The Hexapod instance to control.
-    #     """
-    #     self.hexapod = hexapod
-    #     self.is_running = False
-    #     self.thread = None
+        Args:
+            hexapod (Hexapod): The Hexapod instance to control.
+        """
+        self.hexapod = hexapod
+        self.is_running = False
+        self.thread = None
 
     # def start(self, gait_type: str) -> None:
     #     """
