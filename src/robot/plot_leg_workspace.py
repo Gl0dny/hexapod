@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec  # Added import for GridSpec
+import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 import os
 import sys
@@ -8,11 +8,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from unittest.mock import patch
 import contextlib
 import io
-import csv  # Added import
+import csv
 import argparse
-
-# ...existing code...
-
 from robot import Hexapod
 
 def main():
@@ -112,18 +109,18 @@ def main():
     ax1.invert_yaxis()
     ax1.view_init(elev=45, azim=45)
 
-
-    # X-Z Plane View (top-right)
+    # Y-Z Plane View (bottom-right)
     ax2 = fig.add_subplot(gs[0, 1])
-    ax2.scatter(display_points[:, 0], display_points[:, 2], s=1, c='blue')
-    ax2.set_xlabel("X-axis (mm)")
+    ax2.scatter(display_points[:, 1], display_points[:, 2], s=1, c='blue')
+    ax2.set_xlabel("Y-axis (mm)")
     ax2.set_ylabel("Z-axis (mm)")
-    ax2.set_title("X-Z Plane")
+    ax2.set_title("Y-Z Plane")
     ax2.grid(True)
-    # Highlight origin (0,0) for X-Z plane
+    # Highlight origin (0,0) for Y-Z plane
     ax2.scatter(0, 0, c='red', s=50, marker='o')
     ax2.yaxis.set_label_position("right")
     ax2.yaxis.tick_right()
+    ax2.invert_xaxis()
 
     # Y-X Plane View (middle-right)
     ax3 = fig.add_subplot(gs[1, 1])
@@ -138,19 +135,18 @@ def main():
     ax3.yaxis.tick_right()
     ax3.invert_xaxis()
 
-    # Y-Z Plane View (bottom-right)
-    ax4 = fig.add_subplot(gs[2, 1])
-    ax4.scatter(display_points[:, 1], display_points[:, 2], s=1, c='blue')
-    ax4.set_xlabel("Y-axis (mm)")
-    ax4.set_ylabel("Z-axis (mm)")
-    ax4.set_title("Y-Z Plane")
-    ax4.grid(True)
-    # Highlight origin (0,0) for Y-Z plane
-    ax4.scatter(0, 0, c='red', s=50, marker='o')
-    ax4.yaxis.set_label_position("right")
-    ax4.yaxis.tick_right()
-    ax4.invert_xaxis()
-
+    # X-Z Plane View (top-right)
+    ax2 = fig.add_subplot(gs[2, 1])
+    ax2.scatter(display_points[:, 0], display_points[:, 2], s=1, c='blue')
+    ax2.set_xlabel("X-axis (mm)")
+    ax2.set_ylabel("Z-axis (mm)")
+    ax2.set_title("X-Z Plane")
+    ax2.grid(True)
+    # Highlight origin (0,0) for X-Z plane
+    ax2.scatter(0, 0, c='red', s=50, marker='o')
+    ax2.yaxis.set_label_position("right")
+    ax2.yaxis.tick_right()
+    
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # Adjust layout to make room for the title
     plt.show()
 
