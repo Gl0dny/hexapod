@@ -22,29 +22,43 @@ class PredefinedPosition(Enum):
 class Hexapod:
     CONTROLLER_CHANNELS = 24
     
-    def __init__(self) -> None:
-        """
-        Represents the hexapod robot with six legs.
+    """
+    Represents the hexapod robot with six legs, managing servo motors, sensor data, and gait generation.
 
-        Attributes:
-            controller (MaestroUART): Serial controller for managing servo motors.
-            speed (int): Default speed setting for servo movements.
-            accel (int): Default acceleration setting for servo movements.
-            imu (Imu): Instance of the Imu class for imu sensor data.
-            legs (List[Leg]): List of Leg instances representing each of the hexapod's legs.
-            leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
-            coxa_params (Dict[str, float]): Parameters for the coxa joint, including length (mm), channel, angle limits (degrees), and servo settings.
-            femur_params (Dict[str, float]): Parameters for the femur joint, including length (mm), channel, angle limits (degrees), and servo settings.
-            tibia_params (Dict[str, float]): Parameters for the tibia joint, including length (mm), channel, angle limits (degrees), and servo settings.
-            end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z) in mm.
-            calibration (Calibration): Instance managing servo calibrations and related processes.
-            predefined_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined positions for the legs.
-            predefined_angle_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined angle positions for the legs.
-            current_leg_angles (List[Tuple[float, float, float]]): Current angles of the legs.
-            current_leg_positions (List[Tuple[float, float, float]]): Current positions of the legs.
+    Attributes:
+        controller (MaestroUART): Serial controller for managing servo motors.
+        speed (int): Default speed setting for servo movements.
+        accel (int): Default acceleration setting for servo movements.
+        imu (Imu): Instance of the Imu class for IMU sensor data.
+        legs (List[Leg]): List of Leg instances representing each of the hexapod's legs.
+        leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
+        coxa_params (Dict[str, float]): Parameters for the coxa joint, including length (mm), channel, angle limits (degrees), and servo settings.
+        femur_params (Dict[str, float]): Parameters for the femur joint, including length (mm), channel, angle limits (degrees), and servo settings.
+        tibia_params (Dict[str, float]): Parameters for the tibia joint, including length (mm), channel, angle limits (degrees), and servo settings.
+        end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z) in mm.
+        calibration (Calibration): Instance managing servo calibrations and related processes.
+        predefined_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined positions for the legs.
+        predefined_angle_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined angle positions for the legs.
+        current_leg_angles (List[Tuple[float, float, float]]): Current angles of the legs.
+        current_leg_positions (List[Tuple[float, float, float]]): Current positions of the legs.
+        gait_generator (GaitGenerator): Instance managing gait patterns.
+    """
+    
+    def __init__(
+        self, 
+        config_path: str = '/home/hexapod/hexapod/src/robot/config/hexapod_config.yaml',
+        calibration_data_path: str = '/home/hexapod/hexapod/src/robot/config/calibration.json'
+    ) -> None:
+        """
+        Initializes the Hexapod robot by loading configuration parameters, setting up servo controllers,
+        and initializing all legs.
+
+        Parameters:
+            config_path (str): Path to the hexapod configuration YAML file.
+            calibration_data_path (str): Path to the calibration data JSON file.
         """
         
-        with open('/home/hexapod/hexapod/src/robot/config/hexapod_config.yaml', 'r') as config_file:
+        with open(config_path, 'r') as config_file:
             config = yaml.safe_load(config_file)
         
         self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
@@ -84,7 +98,7 @@ class Hexapod:
         self.femur_params = femur_params
         self.tibia_params = tibia_params
 
-        self.calibration: Calibration = Calibration(self, config_file_path='/home/hexapod/hexapod/src/robot/config/calibration.json')
+        self.calibration: Calibration = Calibration(self, calibration_data_path=calibration_data_path)
         self.calibration.load_calibration()
 
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_positions']
