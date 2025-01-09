@@ -29,12 +29,13 @@ def main():
         )
 
     # Define angle ranges based on configuration
-    coxa_min = hexapod.coxa_params['angle_min']
-    coxa_max = hexapod.coxa_params['angle_max']
-    femur_min = hexapod.femur_params['angle_min']
-    femur_max = hexapod.femur_params['angle_max']
-    tibia_min = hexapod.tibia_params['angle_min']
-    tibia_max = hexapod.tibia_params['angle_max']
+    coxa_min = hexapod.coxa_params.get('angle_limit_min') or hexapod.coxa_params.get('angle_min')
+    coxa_max = hexapod.coxa_params.get('angle_limit_max') or hexapod.coxa_params.get('angle_max')
+    femur_min = hexapod.femur_params.get('angle_limit_min') or hexapod.femur_params.get('angle_min')
+    femur_max = hexapod.femur_params.get('angle_limit_max') or hexapod.femur_params.get('angle_max')
+    tibia_min = hexapod.tibia_params.get('angle_limit_min') or hexapod.tibia_params.get('angle_min')
+    tibia_max = hexapod.tibia_params.get('angle_limit_max') or hexapod.tibia_params.get('angle_max')
+    print(f"Angle ranges: Coxa ({coxa_min}, {coxa_max}), Femur ({femur_min}, {femur_max}), Tibia ({tibia_min}, {tibia_max})")
 
     angle_step = 2  # Define step size for angles
 
@@ -108,6 +109,22 @@ def main():
     ax1.invert_xaxis()
     ax1.invert_yaxis()
     ax1.view_init(elev=45, azim=45)
+
+    # Compute maxima and minima
+    max_x = np.max(display_points[:, 0])
+    min_x = np.min(display_points[:, 0])
+    max_y = np.max(display_points[:, 1])
+    min_y = np.min(display_points[:, 1])
+    max_z = np.max(display_points[:, 2])
+    min_z = np.min(display_points[:, 2])
+
+    # Highlight ranges in 3D view legend
+    ax1.scatter([], [], c='green', label=f'X Range ({min_x:.2f}, {max_x:.2f})')
+    ax1.scatter([], [], c='blue', label=f'Y Range ({min_y:.2f}, {max_y:.2f})')
+    ax1.scatter([], [], c='red', label=f'Z Range ({min_z:.2f}, {max_z:.2f})')
+
+    # Move legend outside the plot
+    ax1.legend(loc='center left', bbox_to_anchor=(-0.2, 0.1))
 
     # Y-Z Plane View (bottom-right)
     ax2 = fig.add_subplot(gs[0, 1])
