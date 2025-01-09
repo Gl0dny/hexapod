@@ -100,9 +100,9 @@ def main():
     # Large isometric view spanning left column
     ax1 = fig.add_subplot(gs[:, 0], projection='3d')
     ax1.scatter(display_points[:, 0], display_points[:, 1], display_points[:, 2], s=1, c='blue')
-    ax1.set_xlabel("X-axis (mm)")
-    ax1.set_ylabel("Y-axis (mm)")
-    ax1.set_zlabel("Z-axis (mm)")
+    ax1.set_xlabel("X-axis [mm]")
+    ax1.set_ylabel("Y-axis [mm]")
+    ax1.set_zlabel("Z-axis [mm]")
     ax1.set_title("Isometric View")
     # Highlight origin (0,0,0) in 3D
     ax1.scatter([0], [0], [0], c='red', s=50, marker='o')
@@ -129,8 +129,8 @@ def main():
     # Y-Z Plane View (bottom-right)
     ax2 = fig.add_subplot(gs[0, 1])
     ax2.scatter(display_points[:, 1], display_points[:, 2], s=1, c='blue')
-    ax2.set_xlabel("Y-axis (mm)")
-    ax2.set_ylabel("Z-axis (mm)")
+    ax2.set_xlabel("Y-axis [mm]")
+    ax2.set_ylabel("Z-axis [mm]")
     ax2.set_title("Y-Z Plane")
     ax2.grid(True)
     # Highlight origin (0,0) for Y-Z plane
@@ -142,8 +142,8 @@ def main():
     # Y-X Plane View (middle-right)
     ax3 = fig.add_subplot(gs[1, 1])
     ax3.scatter(display_points[:, 1], display_points[:, 0], s=1, c='blue')
-    ax3.set_xlabel("Y-axis (mm)")
-    ax3.set_ylabel("X-axis (mm)")
+    ax3.set_xlabel("Y-axis [mm]")
+    ax3.set_ylabel("X-axis [mm]")
     ax3.set_title("Y-X Plane")
     ax3.grid(True)
     # Highlight origin (0,0) for Y-X plane
@@ -155,8 +155,8 @@ def main():
     # X-Z Plane View (top-right)
     ax2 = fig.add_subplot(gs[2, 1])
     ax2.scatter(display_points[:, 0], display_points[:, 2], s=1, c='blue')
-    ax2.set_xlabel("X-axis (mm)")
-    ax2.set_ylabel("Z-axis (mm)")
+    ax2.set_xlabel("X-axis [mm]")
+    ax2.set_ylabel("Z-axis [mm]")
     ax2.set_title("X-Z Plane")
     ax2.grid(True)
     # Highlight origin (0,0) for X-Z plane
