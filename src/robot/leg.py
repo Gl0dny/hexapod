@@ -26,7 +26,6 @@ class Leg:
         self.femur = Joint(controller, **self.femur_params)
         self.tibia = Joint(controller, **self.tibia_params)
         self.end_effector_offset = end_effector_offset
-        # print(f"Initializing Leg with coxa_params: {coxa_params}, femur_params: {femur_params}, tibia_params: {tibia_params}")
 
     def compute_inverse_kinematics(self, x, y, z):
         """
@@ -48,7 +47,7 @@ class Leg:
         ox, oy, oz = self.end_effector_offset
         x += ox
         y += oy
-        z += oz
+        z = oz - z
         print(f"Adjusted position for IK - x: {x}, y: {y}, z: {z}")
 
         # Calculate the angle for the coxa joint based on x and y positions

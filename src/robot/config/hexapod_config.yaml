@@ -54,12 +54,12 @@ leg_to_led:
 # Predefined leg positions
 predefined_positions:
   zero:
-    - [-25.0, 0.0, 0.0]
-    - [-25.0, 0.0, 0.0]
-    - [-25.0, 0.0, 0.0]
-    - [-25.0, 0.0, 0.0]
-    - [-25.0, 0.0, 0.0]
-    - [-25.0, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
 
 # Predefined angle positions for legs
 predefined_angle_positions:
