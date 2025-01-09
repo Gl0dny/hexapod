@@ -14,7 +14,7 @@ coxa_params:
   angle_max: 45             # Maximum angle in degrees
   angle_limit_min: null     # Optional minimum angle limit
   angle_limit_max: null     # Optional maximum angle limit
-  z_offset: 22.5            # Z-axis offset in mm
+  z_offset: -22.5           # Z-axis offset in mm
 
 # Femur joint parameters
 femur_params:
@@ -39,8 +39,8 @@ coxa_channel_map: [0, 3, 6, 15, 18, 21]   # Channels for Coxa joints
 femur_channel_map: [1, 4, 7, 16, 19, 22]  # Channels for Femur joints
 tibia_channel_map: [2, 5, 8, 17, 20, 23]  # Channels for Tibia joints
 
-# End effector offset
-end_effector_offset: [22.5, 80.0, 162.5]  # (x, y, z) in mm
+# End effector offset - base in coxa joint
+end_effector_offset: [22.5, 80.0, -162.5]  # (x, y, z) in mm
 
 # LED mappings for each leg
 leg_to_led:
