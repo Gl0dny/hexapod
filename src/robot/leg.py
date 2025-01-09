@@ -38,6 +38,29 @@ class Leg:
         self.tibia = Joint(controller, **self.tibia_params)
         self.end_effector_offset = end_effector_offset
 
+    def _validate_triangle_inequality(self, a: float, b: float, c: float) -> None:
+        """
+        Validate the triangle inequality for the given side lengths.
+        
+        Args:
+            a (float): Length of side a.
+            b (float): Length of side b.
+            c (float): Length of side c.
+        
+        Raises:
+            ValueError: If the triangle inequality is not satisfied, with details.
+        """
+        errors = []
+        if a + b <= c:
+            errors.append(f"Triangle Inequality Failed: {a} + {b} <= {c} ({a} + {b} = {a + b} <= {c})")
+        if a + c <= b:
+            errors.append(f"Triangle Inequality Failed: {a} + {c} <= {b} ({a} + {c} = {a + c} <= {b})")
+        if b + c <= a:
+            errors.append(f"Triangle Inequality Failed: {b} + {c} <= {a} ({b} + {c} = {b + c} <= {a})")
+        if errors:
+            error_message = "Invalid joint lengths: Triangle inequality not satisfied.\n" + "\n".join(errors)
+            raise ValueError(error_message)
+
     def compute_inverse_kinematics(self, x, y, z):
         """
         Calculate the necessary joint angles to position the foot at the specified coordinates.
@@ -81,7 +104,12 @@ class Leg:
 
         # Inverse kinematics calculations to find joint angles
         alpha1 = math.atan((R - self.coxa.length) / abs(z - self.coxa_z_offset))
+        
+        # Replace triangle inequality checks with helper function
+        self._validate_triangle_inequality(self.femur.length, self.tibia.length, F)
+        
         alpha2 = math.acos((self.tibia.length**2 - self.femur.length**2 - F**2) / (-2 * self.femur.length * F))
+       
         print(f"alpha1 (radians): {alpha1}")
         print(f"alpha2 (radians): {alpha2}")
 
@@ -150,6 +178,9 @@ class Leg:
         # Compute the distance from femur to tibia using the law of cosines
         F = math.sqrt(self.femur.length**2 + self.tibia.length**2 - 2 * self.femur.length * self.tibia.length * math.cos(beta))
         print(f"F (distance from femur to end effector): {F}")
+
+        # Replace triangle inequality checks with helper function
+        self._validate_triangle_inequality(self.femur.length, self.tibia.length, F)
 
         # Calculate angle alpha2 using the law of cosines
         alpha2 = math.acos((self.femur.length**2 + F**2 - self.tibia.length**2) / (2 * self.femur.length * F))

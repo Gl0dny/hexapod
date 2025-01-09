@@ -23,7 +23,7 @@ def main():
 
     # Test move_leg method with example values
     leg_index = 0
-    new_position = (-22.5, 0.0, 57.0)
+    new_position = (-22.5, 0.0, 0.0)
     hexapod.move_leg(leg_index, *new_position)
     print(f"Moved leg {leg_index} to position {new_position}")
 
