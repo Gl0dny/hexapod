@@ -21,3 +21,5 @@ Cargo.lock
 #.idea/
 
 __pycache__/
+*.log
+*.log.jsonl

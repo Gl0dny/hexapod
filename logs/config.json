@@ -4,19 +4,45 @@
     "formatters": {
         "simple": {
             "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        },
+        "detailed": {
+            "format": "[%(levelname)s - %(module)s - L%(lineno)d] - %(asctime)s - %(message)s",
+            "datefmt": "%Y-%m-%dT%H:%M:%S%z"
+        },
+        "json": {
+            "()": "src.utils.logger.MyJSONFormatter",
+            "fmt_keys": {
+                "level": "levelname",
+                "message": "message",
+                "timestamp": "timestamp",
+                "logger": "name",
+                "module": "module",
+                "function": "funcName",
+                "line": "lineno",
+                "thread_name": "threadName"
+            }
         }
     },
     "handlers": {
-        "stdout": {
+        "stderr": {
             "class": "logging.StreamHandler",
+            "level": "WARNING",
             "formatter": "simple",
             "stream": "ext://sys.stdout"
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "json",
+            "filename": "logs/app.log.jsonl",
+            "maxBytes": 10485760,
+            "backupCount": 5
         }
     },
     "loggers": {
         "root": {
             "level": "DEBUG",
-            "handlers": ["stdout"]
+            "handlers": ["stderr", "file"]
         }
     }
 }

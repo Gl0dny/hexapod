@@ -3,23 +3,23 @@ import sys
 import time
 import logging.config
 import pathlib
-
-import yaml
+import json
 
 from src.kws import VoiceControl
 from src.control import ControlInterface
 from src.lights import ColorRGB
 from src.robot import PredefinedAnglePosition, PredefinedPosition
 from pathlib import Path
+from src.utils import logger
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def setup_logging() -> None:
-    config_file = pathlib.Path("logs/config.yaml")
+    config_file = pathlib.Path("logs/config.json")
     if config_file.is_file():
         with open(config_file, "rt") as f:
-            logging.config.dictConfig(yaml.safe_load(f))
+            logging.config.dictConfig(json.load(f))
     else:
         logging.basicConfig(level=logging.INFO)
         logging.warning(f"Logging configuration file not found at {config_file}")
@@ -34,7 +34,6 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
 
     setup_logging()
-    logger.addHandler(logging.StreamHandler(sys.stdout))
 
     args = parse_arguments()
 
