@@ -7,13 +7,18 @@ from typing import Optional
 class InputHandler:
     def __init__(self):
         """
-        Initializes the InputHandler with a queue and starts the input listener thread.
+        Initializes the InputHandler with a queue.
         """
         self.input_queue = queue.Queue()
         self.stop_input_listener = False
-        self.current_input = ''
-        self.input_thread = threading.Thread(target=self._input_listener, daemon=True)
-        self.input_thread.start()
+    
+    def start(self):
+        """
+        Starts the input listener thread.
+        """
+        if not hasattr(self, 'input_thread') or not self.input_thread.is_alive():
+            self.input_thread = threading.Thread(target=self._input_listener, daemon=True)
+            self.input_thread.start()
 
     def _input_listener(self):
         """
@@ -44,5 +49,6 @@ class InputHandler:
         """
         Shuts down the input listener thread gracefully.
         """
+        print("Killing input handler")
         self.stop_input_listener = True
-        self.input_thread.join(timeout=0.01)
+        self.input_thread.join()

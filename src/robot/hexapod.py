@@ -3,81 +3,84 @@ import sys
 from typing import Optional, List, Tuple, Dict
 import threading
 import time
+import yaml
+from enum import Enum
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
-from robot import Leg, Calibration, Joint
+from robot import Leg, Joint, Calibration, GaitGenerator
 from imu import Imu
 from utils import map_range
+
+class PredefinedAnglePosition(Enum):
+    HOME = 'home'
+    LOW_PROFILE = 'low_profile'
+    UPRIGHT_MODE = 'upright_mode'
+
+class PredefinedPosition(Enum):
+    ZERO = 'zero'
 
 class Hexapod:
     CONTROLLER_CHANNELS = 24
     
-    def __init__(self) -> None:
-        """
-        Represents the hexapod robot with six legs.
+    """
+    Represents the hexapod robot with six legs, managing servo motors, sensor data, and gait generation.
 
-        Attributes:
-            controller (MaestroUART): Serial controller for managing servo motors.
-            speed (int): Default speed setting for servo movements.
-            accel (int): Default acceleration setting for servo movements.
-            imu (Imu): Instance of the Imu class for imu sensor data.
-            legs (List[Leg]): List of Leg instances representing each of the hexapod's legs.
-            leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
-            coxa_params (Dict[str, float]): Parameters for the coxa joint, including length (mm), channel, angle limits (degrees), and servo settings.
-            femur_params (Dict[str, float]): Parameters for the femur joint, including length (mm), channel, angle limits (degrees), and servo settings.
-            tibia_params (Dict[str, float]): Parameters for the tibia joint, including length (mm), channel, angle limits (degrees), and servo settings.
-            end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z) in mm.
-            calibration (Calibration): Instance managing servo calibrations and related processes.
-            predefined_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined positions for the legs.
-            predefined_angle_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined angle positions for the legs.
-            current_leg_angles (List[Tuple[float, float, float]]): Current angles of the legs.
-            current_leg_positions (List[Tuple[float, float, float]]): Current positions of the legs.
+    Attributes:
+        controller (MaestroUART): Serial controller for managing servo motors.
+        speed (int): Default speed setting for servo movements.
+        accel (int): Default acceleration setting for servo movements.
+        imu (Imu): Instance of the Imu class for IMU sensor data.
+        legs (List[Leg]): List of Leg instances representing each of the hexapod's legs.
+        leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
+        coxa_params (Dict[str, float]): Parameters for the coxa joint, including length (mm), channel, angle limits (degrees), and servo settings.
+        femur_params (Dict[str, float]): Parameters for the femur joint, including length (mm), channel, angle limits (degrees), and servo settings.
+        tibia_params (Dict[str, float]): Parameters for the tibia joint, including length (mm), channel, angle limits (degrees), and servo settings.
+        end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z) in mm.
+        calibration (Calibration): Instance managing servo calibrations and related processes.
+        predefined_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined positions for the legs.
+        predefined_angle_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined angle positions for the legs.
+        current_leg_angles (List[Tuple[float, float, float]]): Current angles of the legs.
+        current_leg_positions (List[Tuple[float, float, float]]): Current positions of the legs.
+        gait_generator (GaitGenerator): Instance managing gait patterns.
+    """
+    
+    def __init__(
+        self, 
+        config_path: str = '/home/hexapod/hexapod/src/robot/config/hexapod_config.yaml',
+        calibration_data_path: str = '/home/hexapod/hexapod/src/robot/config/calibration.json'
+    ) -> None:
         """
-        self.controller: MaestroUART = MaestroUART('/dev/ttyS0', 9600)
+        Initializes the Hexapod robot by loading configuration parameters, setting up servo controllers,
+        and initializing all legs.
+
+        Parameters:
+            config_path (str): Path to the hexapod configuration YAML file.
+            calibration_data_path (str): Path to the calibration data JSON file.
+        """
+        
+        with open(config_path, 'r') as config_file:
+            config = yaml.safe_load(config_file)
+        
+        self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
         
         # Speed setting for the servo in percent. Speed unit - (0.25us/10ms).
         # The speed parameter can be set to a maximum value of 255, corresponding to a change of 63.75 μs every 10 ms.
-        self.speed: int = 25
+        self.speed: int = config['speed']
         # Acceleration setting for the servo percent. Acceleration units - (0.25us/10ms/80ms).
         # The maximum acceleration setting is 255, allowing the speed to change by 63.75 μs per 10 ms interval every 80 ms.
-        self.accel: int = 10
+        self.accel: int = config['accel']
 
         self.imu = Imu()
 
-        coxa_params: Dict[str, float] = {
-            'length': 27.5,  # mm
-            'angle_min': -45,  # degrees
-            'angle_max': 45,  # degrees
-            'angle_limit_min': None,  # degrees
-            'angle_limit_max': None,  # degrees
-            'z_offset': 22.5  # mm
-        }
-        femur_params: Dict[str, float] = {
-            'length': 52.5,  # mm
-            'angle_min': -45,  # degrees
-            'angle_max': 45,  # degrees
-            'angle_limit_min': None,  # degrees
-            'angle_limit_max': None,  # degrees
-            'invert': True
-        }
-        tibia_params: Dict[str, float] = {
-            'length': 140.0,  # mm
-            'angle_min': -45,  # degrees
-            'angle_max': 45,  # degrees
-            'angle_limit_min': -35,  # degrees
-            'angle_limit_max': None,  # degrees
-            'x_offset': 22.5  # mm
-        }
+        coxa_params: Dict[str, float] = config['coxa_params']
+        femur_params: Dict[str, float] = config['femur_params']
+        tibia_params: Dict[str, float] = config['tibia_params']
 
-        self.coxa_channel_map = [0, 3, 6, 15, 18, 21]
-        self.femur_channel_map = [1, 4, 7, 16, 19, 22]
-        self.tibia_channel_map = [2, 5, 8, 17, 20, 23]
+        self.coxa_channel_map = config['coxa_channel_map']
+        self.femur_channel_map = config['femur_channel_map']
+        self.tibia_channel_map = config['tibia_channel_map']
 
-        self.end_effector_offset: Tuple[float, float, float] = (
-            tibia_params['x_offset'],
-            femur_params['length'] + coxa_params['length'],
-            tibia_params['length'] + coxa_params['z_offset']
-        )
+        self.end_effector_offset: Tuple[float, float, float] = tuple(config['end_effector_offset'])
 
         self.legs: List[Leg] = []
 
@@ -89,62 +92,23 @@ class Hexapod:
             leg = Leg(coxa_params, femur_params, tibia_params, self.controller, self.end_effector_offset)
             self.legs.append(leg)
 
-        self.leg_to_led: Dict[int, int] = {
-            0: 2,
-            1: 0,
-            2: 10,
-            3: 8,
-            4: 6,
-            5: 4
-        }
+        self.leg_to_led: Dict[int, int] = config['leg_to_led']
 
         self.coxa_params = coxa_params
         self.femur_params = femur_params
         self.tibia_params = tibia_params
 
-        self.calibration: Calibration = Calibration(self)
-        self.calibration.load_calibration('/home/hexapod/hexapod/src/robot/calibration.json')
+        self.calibration: Calibration = Calibration(self, calibration_data_path=calibration_data_path)
+        self.calibration.load_calibration()
 
-        self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = {
-            'zero': [
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-                (-25.0, 0.0, 0.0),
-            ],
-        }
+        self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_positions']
 
-        self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = {
-            'home': [
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-            ],
-            'low_profile': [
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-            ],
-            'upright_mode': [
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-                (0.0, 35, -35),
-            ],
-        }
+        self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_angle_positions']
 
         self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['home'])
         self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['zero'])
+
+        self.gait_generator = GaitGenerator(self)
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
@@ -290,23 +254,20 @@ class Hexapod:
         self.controller.set_multiple_targets(targets)
         self.current_leg_positions = positions
 
-    def move_to_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
+    def move_to_position(self, position_name: PredefinedPosition) -> None:
         """
-        Move the hexapod to a predefined position using an external dictionary if provided.
+        Move the hexapod to a predefined position.
         
         Args:
-            position_name (str): Name of the predefined position.
-            positions_dict (Dict[str, List[Tuple[float, float, float]]], optional): 
-                External dictionary mapping position names to coordinate configurations.
-                If not provided, uses self.predefined_positions.
+            position_name (PredefinedPosition): Enum member representing the predefined position.
         """
-        print(f"Setting all legs to position '{position_name}'")
-        positions = positions_dict.get(position_name) if positions_dict else self.predefined_positions.get(position_name)
+        print(f"Setting all legs to position '{position_name.value}'")
+        positions = self.predefined_positions.get(position_name.value)
         if positions:
             self.move_all_legs(positions)
         else:
-            available = list(positions_dict.keys()) if positions_dict else list(self.predefined_positions.keys())
-            print(f"Error: Unknown position '{position_name}'. Available positions: {available}")
+            available = list(self.predefined_positions.keys())
+            print(f"Error: Unknown position '{position_name.value}'. Available positions: {available}")
 
     def move_leg_angles(
         self,
@@ -396,23 +357,20 @@ class Hexapod:
         self.controller.set_multiple_targets(targets)
         self.current_leg_angles = angles_list
 
-    def move_to_angles_position(self, position_name: str, positions_dict: Optional[Dict[str, List[Tuple[float, float, float]]]] = None) -> None:
+    def move_to_angles_position(self, position_name: PredefinedAnglePosition) -> None:
         """
-        Move the hexapod to a predefined angle position using an external dictionary if provided.
+        Move the hexapod to a predefined angle position.
         
         Args:
-            position_name (str): Name of the predefined angle position.
-            positions_dict (Dict[str, List[Tuple[float, float, float]]], optional): 
-                External dictionary mapping position names to angle configurations.
-                If not provided, uses self.predefined_angle_positions.
+            position_name (PredefinedAnglePosition): Enum member representing the predefined angle position.
         """
-        print(f"Setting all legs to angles position '{position_name}'")
-        angles = positions_dict.get(position_name) if positions_dict else self.predefined_angle_positions.get(position_name)
+        print(f"Setting all legs to angles position '{position_name.value}'")
+        angles = self.predefined_angle_positions.get(position_name.value)
         if angles:
             self.move_all_legs_angles(angles)
         else:
-            available = list(positions_dict.keys()) if positions_dict else list(self.predefined_angle_positions.keys())
-            print(f"Error: Unknown angles position '{position_name}'. Available angle positions: {available}")
+            available = list(self.predefined_angle_positions.keys())
+            print(f"Error: Unknown angles position '{position_name.value}'. Available angle positions: {available}")
 
     def get_moving_state(self) -> bool:
         """
@@ -454,10 +412,25 @@ class Hexapod:
             if stop_event:
                 stop_event.wait(timeout=0.2)
 
+    # def start_gait(self, gait_type: str) -> None:
+    #     """
+    #     Start a gait pattern.
+
+    #     Args:
+    #         gait_type (str): The type of gait to start.
+    #     """
+    #     self.gait_generator.start(gait_type)
+
+    # def stop_gait(self) -> None:
+    #     """
+    #     Stop the current gait pattern.
+    #     """
+    #     self.gait_generator.stop()
+
 if __name__ == '__main__':
     hexapod = Hexapod()
     # hexapod.calibrate_all_servos()
-    hexapod.move_to_angles_position('home')
+    hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
     # hexapod.controller.go_home()
     # hexapod.deactivate_all_servos()
 

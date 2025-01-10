@@ -2,6 +2,9 @@ import threading
 import abc
 from typing import Optional
 from lights import Lights, ColorRGB 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Animation(abc.ABC):
     """
@@ -44,7 +47,7 @@ class Animation(abc.ABC):
         Stop the animation and wait for the thread to finish.
         """
         self.stop_event.set()
-        print(f"Animation {self.__class__.__name__} forcefully stopping.")
+        logger.info(f"Animation {self.__class__.__name__} forcefully stopping.")
         if self.thread and self.thread.is_alive():
             self.thread.join()
 

@@ -1,0 +1,86 @@
+# Controller settings
+controller:
+  port: "/dev/ttyS0"       # Serial port for Maestro UART
+  baudrate: 9600           # Baud rate for communication
+
+# Servo settings
+speed: 25                   # Default speed percentage for servos
+accel: 10                   # Default acceleration percentage for servos
+
+# Coxa joint parameters
+coxa_params:
+  length: 27.5              # Length in mm
+  angle_min: -45            # Minimum angle in degrees
+  angle_max: 45             # Maximum angle in degrees
+  angle_limit_min: null     # Optional minimum angle limit
+  angle_limit_max: null     # Optional maximum angle limit
+  z_offset: -22.5           # Z-axis offset in mm
+
+# Femur joint parameters
+femur_params:
+  length: 52.5              # Length in mm
+  angle_min: -45            # Minimum angle in degrees
+  angle_max: 45             # Maximum angle in degrees
+  angle_limit_min: null     # Optional minimum angle limit
+  angle_limit_max: null     # Optional maximum angle limit
+  invert: true              # Invert servo direction
+
+# Tibia joint parameters
+tibia_params:
+  length: 140.0             # Length in mm
+  angle_min: -45            # Minimum angle in degrees
+  angle_max: 45             # Maximum angle in degrees
+  angle_limit_min: -35      # Minimum angle limit in degrees
+  angle_limit_max: null     # Optional maximum angle limit
+  x_offset: 22.5            # X-axis offset in mm
+
+# Channel mappings
+coxa_channel_map: [0, 3, 6, 15, 18, 21]   # Channels for Coxa joints
+femur_channel_map: [1, 4, 7, 16, 19, 22]  # Channels for Femur joints
+tibia_channel_map: [2, 5, 8, 17, 20, 23]  # Channels for Tibia joints
+
+# End effector offset - base in coxa joint
+end_effector_offset: [22.5, 80.0, -162.5]  # (x, y, z) in mm
+
+# LED mappings for each leg
+leg_to_led:
+  0: 2
+  1: 0
+  2: 10
+  3: 8
+  4: 6
+  5: 4
+
+# Predefined leg positions
+predefined_positions:
+  zero:
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+    - [-22.5, 0.0, 0.0]
+
+# Predefined angle positions for legs
+predefined_angle_positions:
+  home:
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+  low_profile:
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+  upright_mode:
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]
+    - [0.0, 35, -35]

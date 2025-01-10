@@ -84,6 +84,11 @@ context:
     police:
       - "(Activate, Switch to) police (mode)"
       - "(Turn on, Enable) police lights"
+    rainbow:
+      - "(Activate, Switch to, Turn on, Enable) rainbow"
+      - "(Set, Change, Adjust)(the) [lights] (to) rainbow (mode, colors)"
+      - "[Start, Begin] (a) rainbow (light) sequence"
+      - "[Display, Show] (a) rainbow (effect, pattern)"
     sit_up:
       - "(Perform, Do, Make) (some, a set) (of) sit ups"
     dance:
