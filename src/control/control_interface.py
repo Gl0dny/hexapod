@@ -26,6 +26,7 @@ class ControlInterface:
         """
         Initialize the ControlInterface object.
         """
+        logger.debug("Initializing ControlInterface.")
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
         self.control_task: ControlTask = None
@@ -34,7 +35,7 @@ class ControlInterface:
         self._last_args = None
         self._last_kwargs = None
         self.maintenance_mode_event = threading.Event()
-        logger.info("ControlInterface initialized with Lights and Hexapod.")
+        logger.debug("ControlInterface initialized successfully.")
 
     def inject_hexapod(func: Callable[..., Any]) -> Callable[..., Any]:
         """
@@ -71,8 +72,13 @@ class ControlInterface:
         Stop any running control_task and reset the control_task attribute.
         """
         if hasattr(self, 'control_task') and self.control_task:
+            logger.info("Stopping existing control_task.")
             self.control_task.stop_task()
             self.control_task = None
+            logger.debug("control_task successfully stopped.")
+        else:
+            logger.debug("No active control_task to stop.")
+        logger.debug("Exiting stop_control_task method.")
 
     def control_task(method: Callable[..., Any]) -> Callable[..., Any]:
         """
@@ -86,10 +92,15 @@ class ControlInterface:
         """
         @wraps(method)
         def wrapper(self, *args, **kwargs):
-            method(self, *args, **kwargs)
+            logger.debug(f"Starting control task for method {method.__name__}.")
+            result = method(self, *args, **kwargs)
             if not hasattr(self, 'control_task') or self.control_task is None:
-                raise AttributeError(
-                    f"{method.__name__} must set 'self.control_task' attribute")
+                logger.error(f"No control_task set by method {method.__name__}.")
+                raise AttributeError(f"{method.__name__} must set 'self.control_task' attribute")
+            else:
+                logger.debug(f"control_task set by method {method.__name__}.")
+            logger.debug(f"Exiting control_task decorator for method {method.__name__}.")
+            return result
         return wrapper
 
     def voice_command(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -117,12 +128,14 @@ class ControlInterface:
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering hexapod_help method.")
         logger.info("Executing help.")
         if getattr(self, 'voice_control_context_info', None):
             print(f"Picovoice Context Info: {self.voice_control_context_info}")
         else:
             print("No context information available.")
         lights_handler.ready()
+        logger.debug("Exiting hexapod_help method.")
 
     @voice_command
     def system_status(self) -> None:
@@ -132,6 +145,7 @@ class ControlInterface:
         Raises:
             NotImplementedError: If the method is not yet implemented.
         """
+        logger.debug("Entering system_status method.")
         logger.info("Executing system_status.")
         # Implement system status reporting
         # Example: Return current status of all modules
@@ -148,22 +162,29 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
-        input_handler = InputHandler()
-        input_handler.start()
-        self.maintenance_mode_event.set()  # Signal maintenance mode
-        shutdown_delay = 15.0  # seconds
-        lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
-        print(f"\nShutting down robot. System will power off in {shutdown_delay} seconds. Press any key+Enter to cancel.")
-        shutdown_timer = threading.Timer(shutdown_delay, self._perform_shutdown, args=(hexapod, lights_handler))
-        shutdown_timer.start()
-        
-        # Start a separate thread to monitor user input
-        shutdown_monitor_thread = threading.Thread(
-            target=self._shutdown_monitor,
-            args=(shutdown_timer, input_handler),
-            daemon=True
-        )
-        shutdown_monitor_thread.start()
+        logger.debug("Entering shut_down method.")
+        try:
+            input_handler = InputHandler()
+            input_handler.start()
+            self.maintenance_mode_event.set()  # Signal maintenance mode
+            shutdown_delay = 15.0  # seconds
+            lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
+            print(f"\nShutting down robot. System will power off in {shutdown_delay} seconds. Press any key+Enter to cancel.")
+            shutdown_timer = threading.Timer(shutdown_delay, self._perform_shutdown, args=(hexapod, lights_handler))
+            shutdown_timer.start()
+            
+            # Start a separate thread to monitor user input
+            shutdown_monitor_thread = threading.Thread(
+                target=self._shutdown_monitor,
+                args=(shutdown_timer, input_handler),
+                daemon=True
+            )
+            shutdown_monitor_thread.start()
+            logger.info("Initiating shutdown sequence.")
+        except Exception as e:
+            logger.exception("Exception occurred in shut_down: %s", e)
+            raise
+        logger.debug("Exiting shut_down method.")
     
     def _shutdown_monitor(self, shutdown_timer: threading.Timer, input_handler: InputHandler) -> None:
         """
@@ -185,13 +206,13 @@ class ControlInterface:
                     break
                 time.sleep(0.1)
             else:
-                logger.info("No input received. Proceeding with shutdown.")
+                logger.debug("No input received. Proceeding with shutdown.")
 
         except Exception as e:
-            logger.error(f"Unexpected error occurred during shutdown monitoring: {e}")
+            logger.exception(f"Unexpected error occurred during shutdown monitoring: {e}")
 
         finally:
-            logger.info("Shutdown sequence complete.")
+            logger.debug("Shutdown sequence complete.")
 
     def _perform_shutdown(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
@@ -218,15 +239,17 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering emergency_stop method.")
         try:
-            logger.info("Executing emergency stop.")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = EmergencyStopTask(hexapod, lights_handler)
+            logger.debug("EmergencyStopTask initialized.")
             # self.control_task.start()
             print("Emergency stop executed.")
         except Exception as e:
             logger.error(f"Emergency stop failed: {e}")
+        logger.debug("Exiting emergency_stop method.")
 
     @voice_command
     @control_task
@@ -240,16 +263,18 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering wake_up method.")
         try:
             logger.info("Activating robot...")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = WakeUpTask(hexapod, lights_handler)
             self.control_task.start()
-            print("Robot activated")
+            logger.info("Robot activated")
             
         except Exception as e:
             logger.error(f"Aactivating robot failed: {e}")
+        logger.debug("Exiting wake_up method.")
 
     @voice_command
     @control_task
@@ -263,16 +288,18 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering sleep method.")
         try:
             logger.info("Deactivating robot...")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = SleepTask(hexapod, lights_handler)
             self.control_task.start()
-            print("Robot deactivated")
+            logger.info("Robot deactivated")
             
         except Exception as e:
             logger.error(f"Deactivating robot failed: {e}")
+        logger.debug("Exiting sleep method.")
 
     @voice_command
     @control_task
@@ -286,6 +313,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering calibrate method.")
         try:
             logger.info("Initiating calibration process.")
             self.maintenance_mode_event.set()  # Signal maintenance mode
@@ -299,6 +327,7 @@ class ControlInterface:
         
         except Exception as e:
             logger.error(f"Calibration failed: {e}")
+        logger.debug("Exiting calibrate method.")
 
     @voice_command
     @control_task
@@ -313,6 +342,7 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             sequence_name (str): The name of the sequence to execute.
         """
+        logger.debug(f"Entering run_sequence method with sequence_name={sequence_name}.")
         try:
             logger.info(f"Executing sequence: {sequence_name}")
             if self.control_task:
@@ -322,6 +352,7 @@ class ControlInterface:
             print(f"Sequence '{sequence_name}' started.")
         except Exception as e:
             logger.error(f"Run sequence '{sequence_name}' failed: {e}")
+        logger.debug(f"Exiting run_sequence method for sequence_name={sequence_name}.")
 
     @inject_lights_handler
     def repeat_last_command(self, lights_handler: LightsInteractionHandler) -> None:
@@ -331,12 +362,14 @@ class ControlInterface:
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering repeat_last_command method.")
         if self._last_command:
             logger.info(f"Repeating last command: {self._last_command.__name__}")
             self._last_command(*self._last_args, **self._last_kwargs)
         else:
             logger.info("No last command to repeat.")
             lights_handler.ready()
+        logger.debug("Exiting repeat_last_command method.")
         
     def _store_last_command(self, func: MethodType, *args: Any, **kwargs: Any) -> None:
         """
@@ -347,11 +380,13 @@ class ControlInterface:
             *args (Any): Positional arguments for the function.
             **kwargs (Any): Keyword arguments for the function.
         """
+        logger.debug(f"Storing last command: {func.__name__} with args={args}, kwargs={kwargs}.")
         if not isinstance(func, MethodType):
             func = MethodType(func, self)
         self._last_command = func
         self._last_args = args
         self._last_kwargs = kwargs
+        logger.debug(f"Last command stored: {func.__name__}.")
 
     @voice_command            
     @inject_lights_handler
@@ -363,12 +398,14 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             switch_state (str): State to switch the lights to ('on' or 'off').
         """
+        logger.debug(f"Entering turn_lights method with switch_state={switch_state}.")
         if switch_state == 'off':
             logger.info("Turning lights off")
             lights_handler.off()
         else:
             logger.info("Turning lights on")
             lights_handler.ready()
+        logger.debug("Exiting turn_lights method.")
 
     @voice_command
     @inject_lights_handler
@@ -380,12 +417,14 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             color (str): The color to change the lights to.
         """
+        logger.debug(f"Entering change_color method with color={color}.")
         try:
             enum_color = ColorRGB[color.upper()]
             logger.info(f"Switching color of the lights to {color}")
             lights_handler.lights.set_color(enum_color)
         except KeyError:
             logger.error(f"Color '{color}' is not supported.")
+        logger.debug("Exiting change_color method.")
 
     @voice_command
     @inject_lights_handler
@@ -397,8 +436,10 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             brightness_percentage (float): The brightness percentage to set.
         """
+        logger.debug(f"Entering set_brightness method with brightness_percentage={brightness_percentage}.")
         logger.info(f"Setting brightness to {brightness_percentage}%.")
         lights_handler.set_brightness(brightness_percentage)
+        logger.debug("Exiting set_brightness method.")
 
     @voice_command
     @inject_hexapod
@@ -410,8 +451,10 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             speed_percentage (float): The speed percentage to set.
         """
+        logger.debug(f"Entering set_speed method with speed_percentage={speed_percentage}.")
         logger.info(f"Setting speed to {speed_percentage}%.")
         hexapod.set_all_servos_speed(speed_percentage)
+        logger.debug("Exiting set_speed method.")
    
     @voice_command 
     @inject_hexapod
@@ -423,8 +466,10 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             accel_percentage (float): The acceleration percentage to set.
         """
+        logger.debug(f"Entering set_acceleration method with accel_percentage={accel_percentage}.")
         logger.info(f"Setting acceleration to {accel_percentage}%.")
         hexapod.set_all_servos_accel(accel_percentage)
+        logger.debug("Exiting set_acceleration method.")
 
     @voice_command
     @control_task
@@ -438,6 +483,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering set_low_profile_mode method.")
         try:
             logger.info("Setting robot to low profile mode.")
             if self.control_task:
@@ -447,6 +493,7 @@ class ControlInterface:
 
         except Exception as e:
             logger.error(f"Setting low profile mode failed: {e}")
+        logger.debug("Exiting set_low_profile_mode method.")
 
     @voice_command
     @control_task
@@ -460,6 +507,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering set_upright_mode method.")
         try:
             logger.info("Setting robot to upright mode.")
             if self.control_task:
@@ -469,6 +517,7 @@ class ControlInterface:
             
         except Exception as e:
             logger.error(f"Setting upright mode failed: {e}")
+        logger.debug("Exiting set_upright_mode method.")
 
     @voice_command
     @control_task
@@ -482,6 +531,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering idle_stance method.")
         try:
             logger.info("Setting robot to idle stance...")
             if self.control_task:
@@ -492,6 +542,7 @@ class ControlInterface:
                 
         except Exception as e:
             logger.error(f"Setting idle stance failed: {e}")
+        logger.debug("Exiting idle_stance method.")
 
     @voice_command
     @control_task
@@ -506,6 +557,7 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
             direction (str): The direction to move.
         """
+        logger.debug(f"Entering move method with direction={direction}.")
         try:
             logger.info(f"Initiating move in direction: {direction}.")
             if self.control_task:
@@ -515,6 +567,7 @@ class ControlInterface:
             print(f"Moving {direction}.")
         except Exception as e:
             logger.error(f"Move task failed: {e}")
+        logger.debug("Exiting move method.")
 
     @voice_command
     @control_task
@@ -528,6 +581,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering stop method.")
         try:
             logger.info("Executing stop.")
             if self.control_task:
@@ -537,6 +591,7 @@ class ControlInterface:
             print("Stop executed.")
         except Exception as e:
             logger.error(f"Stop task failed: {e}")
+        logger.debug("Exiting stop method.")
 
     @voice_command
     @control_task
@@ -552,6 +607,7 @@ class ControlInterface:
             angle (Optional[float]): The angle to rotate.
             direction (Optional[str]): The direction to rotate.
         """
+        logger.debug(f"Entering rotate method with angle={angle}, direction={direction}.")
         try:
             logger.info("Initiating rotate.")
             if self.control_task:
@@ -564,6 +620,7 @@ class ControlInterface:
                 print(f"Rotating to the {direction}.")
         except Exception as e:
             logger.error(f"Rotate task failed: {e}")
+        logger.debug("Exiting rotate method.")
 
     @voice_command
     @control_task
@@ -577,6 +634,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering follow method.")
         try:
             logger.info("Initiating follow.")
             if self.control_task:
@@ -586,6 +644,7 @@ class ControlInterface:
             print("Follow task started.")
         except Exception as e:
             logger.error(f"Follow task failed: {e}")
+        logger.debug("Exiting follow method.")
 
     @voice_command
     @control_task
@@ -599,6 +658,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering sound_source_analysis method.")
         try:
             logger.info("Initiating sound source analysis.")
             if self.control_task:
@@ -608,6 +668,7 @@ class ControlInterface:
             print("Sound source analysis started.")
         except Exception as e:
             logger.error(f"Sound source analysis task failed: {e}")
+        logger.debug("Exiting sound_source_analysis method.")
 
     @voice_command
     @control_task
@@ -621,6 +682,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering direction_of_arrival method.")
         try:
             logger.info("Calculating direction of arrival.")
             if self.control_task:
@@ -630,6 +692,7 @@ class ControlInterface:
             print("Direction of arrival calculation started.")
         except Exception as e:
             logger.error(f"Direction of arrival task failed: {e}")
+        logger.debug("Exiting direction_of_arrival method.")
             
     @voice_command
     @inject_lights_handler
@@ -640,12 +703,14 @@ class ControlInterface:
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering police method.")
         try:
             logger.info("Turning on police lights...")
             lights_handler.police()
                 
         except Exception as e:
             logger.error(f"Turning on police lights failed: {e}")
+        logger.debug("Exiting police method.")
 
     @voice_command
     @inject_lights_handler
@@ -656,8 +721,10 @@ class ControlInterface:
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering rainbow method.")
         logger.info("Executing rainbow command.")
         lights_handler.rainbow()
+        logger.debug("Exiting rainbow method.")
 
     @voice_command
     @control_task
@@ -671,6 +738,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering sit_up method.")
         try:
             logger.info("Initiating sit-up routine.")
             if self.control_task:
@@ -680,6 +748,7 @@ class ControlInterface:
             print("Sit-up routine started.")
         except Exception as e:
             logger.error(f"Sit-up task failed: {e}")
+        logger.debug("Exiting sit_up method.")
 
     @voice_command
     @control_task
@@ -693,6 +762,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering dance method.")
         try:
             logger.info("Initiating dance routine.")
             if self.control_task:
@@ -702,6 +772,7 @@ class ControlInterface:
             print("Dance routine started.")
         except Exception as e:
             logger.error(f"Dance task failed: {e}")
+        logger.debug("Exiting dance method.")
 
     @voice_command
     @control_task
@@ -715,6 +786,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering helix method.")
         try:
             print("Initiating helix maneuver.")
             if self.control_task:
@@ -725,6 +797,7 @@ class ControlInterface:
             
         except Exception as e:
             logger.error(f"Helix maneuver failed: {e}")
+        logger.debug("Exiting helix method.")
 
     @voice_command
     @control_task
@@ -738,6 +811,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering show_off method.")
         try:
             logger.info("Initiating show-off routine.")
             if self.control_task:
@@ -747,6 +821,7 @@ class ControlInterface:
             print("Show-off routine started.")
         except Exception as e:
             logger.error(f"Show-off task failed: {e}")
+        logger.debug("Exiting show_off method.")
 
     @voice_command
     @control_task
@@ -760,6 +835,7 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
+        logger.debug("Entering say_hello method.")
         try:
             logger.info("Executing say hello.")
             if self.control_task:
@@ -769,6 +845,7 @@ class ControlInterface:
             print("Said hello.")
         except Exception as e:
             logger.error(f"Say hello task failed: {e}")
+        logger.debug("Exiting say_hello method.")
 
     # @voice_command
     # def pause_voice_control(self) -> None:

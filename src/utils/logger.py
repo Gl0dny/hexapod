@@ -39,3 +39,11 @@ class MyJSONFormatter(logging.Formatter):
         message.update(always_fields)
 
         return message
+    
+class CenteredStringFormatter(logging.Formatter):
+    def format(self, record):
+        record.levelname = f"{record.levelname:^8}"
+        record.module = f"{record.module:^18}"
+        record.threadName = f"{record.threadName:^12}"
+        record.funcName = f"{record.funcName:^30}"
+        return super().format(record)

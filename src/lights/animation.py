@@ -23,17 +23,22 @@ class Animation(abc.ABC):
         Args:
             lights (Lights): The Lights object to control the LEDs.
         """
+        logger.debug(f"Initializing {self.__class__.__name__} with lights: {lights}")
         self.lights: Lights = lights
         self.thread: threading.Thread = None
         self.stop_event: threading.Event = threading.Event()
+        logger.debug(f"{self.__class__.__name__} initialized successfully.")
 
     def start(self) -> None:
         """
         Start the animation in a separate thread.
         """
+        logger.debug(f"Starting animation: {self.__class__.__name__}")
         self.stop_event.clear()
-        self.thread = threading.Thread(target=self.run)
+        self.thread = threading.Thread(target=self.run, name=f"{self.__class__.__name__}_Thread")
+        logger.debug(f"Animation thread {self.thread.name} created.")
         self.thread.start()
+        logger.info(f"Animation {self.__class__.__name__} started.")
 
     @abc.abstractmethod
     def run(self) -> None:
@@ -46,10 +51,14 @@ class Animation(abc.ABC):
         """
         Stop the animation and wait for the thread to finish.
         """
+        logger.debug(f"Stopping animation: {self.__class__.__name__}")
         self.stop_event.set()
         logger.info(f"Animation {self.__class__.__name__} forcefully stopping.")
         if self.thread and self.thread.is_alive():
+            logger.debug(f"Waiting for animation thread {self.thread.name} to terminate.")
             self.thread.join()
+            logger.debug(f"Animation thread {self.thread.name} has terminated.")
+        logger.info(f"Animation {self.__class__.__name__} stopped.")
 
 class AlternateRotateAnimation(Animation):
     """
@@ -73,17 +82,19 @@ class AlternateRotateAnimation(Animation):
             delay (float): The delay between rotations.
             positions (int): The number of positions to rotate.
         """
+        logger.debug("Initializing AlternateRotateAnimation.")
         super().__init__(lights)
         self.color_even: ColorRGB = color_even
         self.color_odd: ColorRGB = color_odd
         self.delay: float = delay
         self.positions: int = positions
+        logger.debug("AlternateRotateAnimation initialized.")
 
     def run(self) -> None:
         """
         Run the animation logic.
         """
-
+        logger.debug("Running AlternateRotateAnimation.")
         for i in range(self.lights.num_led):
             if self.stop_event.wait(self.delay):
                 return
@@ -97,6 +108,7 @@ class AlternateRotateAnimation(Animation):
                     return
                 
                 self.lights.rotate(1)
+        logger.debug("AlternateRotateAnimation run completed.")
                 
 class WheelFillAnimation(Animation):
     """
@@ -121,17 +133,20 @@ class WheelFillAnimation(Animation):
         Raises:
             ValueError: If `use_rainbow` is False and `color` is not provided.
         """
+        logger.debug("Initializing WheelFillAnimation.")
         super().__init__(lights)
         if not use_rainbow and color is None:
             raise ValueError("color must be provided when use_rainbow is False.")
         self.use_rainbow: bool = use_rainbow
         self.color: Optional[ColorRGB] = color
         self.interval: float = interval
+        logger.debug("WheelFillAnimation initialized.")
 
     def run(self) -> None:
         """
         Run the animation logic.
         """
+        logger.debug("Running WheelFillAnimation.")
         for i in range(self.lights.num_led):
             if self.stop_event.wait(self.interval):
                 return
@@ -143,6 +158,7 @@ class WheelFillAnimation(Animation):
             
             self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)
 
+        logger.debug("WheelFillAnimation run completed.")
                 
 class PulseSmoothlyAnimation(Animation):
     """
@@ -173,6 +189,7 @@ class PulseSmoothlyAnimation(Animation):
         """
         Run the animation logic.
         """
+        logger.debug("Running PulseSmoothlyAnimation.")
         base_rgb = self.base_color.rgb
         pulse_rgb = self.pulse_color.rgb
         while not self.stop_event.is_set():
@@ -197,6 +214,7 @@ class PulseSmoothlyAnimation(Animation):
                     int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
                 )
                 self.lights.set_color_rgb(interp_rgb)
+        logger.debug("PulseSmoothlyAnimation run completed.")
                 
 class PulseAnimation(Animation):
     """
@@ -227,6 +245,7 @@ class PulseAnimation(Animation):
         """
         Run the animation logic.
         """
+        logger.debug("Running PulseAnimation.")
         while not self.stop_event.is_set():
             if self.stop_event.wait(self.pulse_speed):
                 return
@@ -237,6 +256,7 @@ class PulseAnimation(Animation):
                 return
             
             self.lights.set_color(self.pulse_color)
+        logger.debug("PulseAnimation run completed.")
 
 class WheelAnimation(Animation):
     """
@@ -272,6 +292,7 @@ class WheelAnimation(Animation):
         """
         Run the animation logic.
         """
+        logger.debug("Running WheelAnimation.")
         while not self.stop_event.is_set():
             for i in range(self.lights.num_led):
                 if self.stop_event.wait(self.interval):
@@ -284,6 +305,7 @@ class WheelAnimation(Animation):
                 
                 self.lights.clear()
                 self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)
+        logger.debug("WheelAnimation run completed.")
                 
                 
 class OppositeRotateAnimation(Animation):
@@ -320,6 +342,7 @@ class OppositeRotateAnimation(Animation):
         """
         Run the animation logic.
         """
+        logger.debug("Running OppositeRotateAnimation.")
         num_leds = self.lights.num_led
         start_index = 0
         while not self.stop_event.is_set():
@@ -354,3 +377,4 @@ class OppositeRotateAnimation(Animation):
             # Switch direction and update starting index
             self.direction = self.BACKWARD if self.direction == self.FORWARD else self.FORWARD
             start_index = end_index
+        logger.debug("OppositeRotateAnimation run completed.")
