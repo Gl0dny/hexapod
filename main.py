@@ -1,14 +1,15 @@
 import argparse
 import sys
-import os
 import time
 import logging.config
 import pathlib
+
 import yaml
-from kws import VoiceControl
-from control import ControlInterface
-from lights import ColorRGB
-from robot import PredefinedAnglePosition, PredefinedPosition
+
+from src.kws import VoiceControl
+from src.control import ControlInterface
+from src.lights import ColorRGB
+from src.robot import PredefinedAnglePosition, PredefinedPosition
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
@@ -23,32 +24,22 @@ def setup_logging() -> None:
         logging.basicConfig(level=logging.INFO)
         logging.warning(f"Logging configuration file not found at {config_file}")
 
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Hexapod Robot Controller")
+    parser.add_argument("--access_key", type=str, required=True, help="Picovoice Access Key")
+    parser.add_argument("--audio_device_index", type=int, default=-1, help="Audio device index")
+    parser.add_argument('--print_context', action='store_true', help='Print the context information.')
+    return parser.parse_args()
+
 def main() -> None:
 
     setup_logging()
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    parser = argparse.ArgumentParser(description="Hexapod Voice Control Interface")
-    parser.add_argument(
-        '--access_key',
-        help='AccessKey obtained from Picovoice Console (https://console.picovoice.ai/)',
-        required=True
-    )
-    parser.add_argument(
-        '--audio_device_index',
-        help='Index of input audio device.',
-        type=int,
-        default=-1
-    )
-    parser.add_argument(
-        '--print_context',
-        action='store_true',
-        help='Print the context information.'
-    )
-    args = parser.parse_args()
+    args = parse_arguments()
 
-    keyword_path = Path('kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
-    context_path = Path('kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
+    keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
+    context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
 
     control_interface = ControlInterface()
 

@@ -47,8 +47,8 @@ class Hexapod:
     
     def __init__(
         self, 
-        config_path: Path = Path('config/hexapod_config.yaml'),
-        calibration_data_path: Path = Path('config/calibration.json')
+        config_path: Path = Path('src/robot/config/hexapod_config.yaml'),
+        calibration_data_path: Path = Path('src/robot/config/calibration.json')
     ) -> None:
         """
         Initializes the Hexapod robot by loading configuration parameters, setting up servo controllers,
