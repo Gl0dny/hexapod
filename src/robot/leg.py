@@ -2,17 +2,25 @@ import math
 from robot import Joint
 from typing import Optional, Tuple
 
+# Define constants for angle offsets
+FEMUR_ANGLE_OFFSET = -90
+TIBIA_ANGLE_OFFSET = -90
+
 class Leg:
     """
     Initialize a single leg of the hexapod robot.
 
     The base of the leg is located at the coxa joint. All relative offsets are measured from this base point.
 
-    Parameters:
-        coxa_params (dict): Configuration parameters for the coxa joint, including 'z_offset' to define the vertical offset of the coxa relative to the base.
+    Attributes:
+        coxa_params (dict): Configuration parameters for the coxa joint.
         femur_params (dict): Configuration parameters for the femur joint.
-        tibia_params (dict): Configuration parameters for the tibia joint, including 'x_offset' - horizontal offset of the tibia relative to the base.
-        controller (MaestroUART): The shared MaestroUART controller instance for servo communication.
+        tibia_params (dict): Configuration parameters for the tibia joint.
+        coxa_z_offset (float): Vertical offset of the coxa joint relative to the base.
+        tibia_x_offset (float): Horizontal offset of the tibia joint relative to the base.
+        coxa (Joint): The coxa joint instance.
+        femur (Joint): The femur joint instance.
+        tibia (Joint): The tibia joint instance.
         end_effector_offset (tuple): (x, y, z) offset for the end effector's position relative to the leg's base.
     """
     def __init__(self, coxa_params, femur_params, tibia_params, controller, end_effector_offset):
@@ -117,8 +125,8 @@ class Leg:
         print(f"beta (radians): {beta}")
 
         coxa_angle_deg = math.degrees(coxa_angle)
-        femur_angle_deg = math.degrees(alpha1) + math.degrees(alpha2) - 90
-        tibia_angle_deg = math.degrees(beta) - 90
+        femur_angle_deg = math.degrees(alpha1) + math.degrees(alpha2) + FEMUR_ANGLE_OFFSET
+        tibia_angle_deg = math.degrees(beta) + TIBIA_ANGLE_OFFSET
 
         # Round angles to eliminate floating-point precision errors
         coxa_angle_deg = round(coxa_angle_deg, 2)
@@ -147,7 +155,7 @@ class Leg:
         # Convert angles from degrees to radians for calculations
         coxa_angle = math.radians(coxa_angle_deg)
         femur_angle = math.radians(femur_angle_deg)
-        beta_angle_deg = tibia_angle_deg + 90
+        beta_angle_deg = tibia_angle_deg - TIBIA_ANGLE_OFFSET
         beta = math.radians(beta_angle_deg)
 
         print(f"coxa_angle (radians): {coxa_angle}")
@@ -255,8 +263,8 @@ class Leg:
             x (float): Target X coordinate.
             y (float): Target Y coordinate.
             z (float): Target Z coordinate.
-            speed (int, optional): Speed setting for servo movement. Defaults to 32.
-            accel (int, optional): Acceleration setting for servo movement. Defaults to 5.
+            speed (int, optional): Speed setting for servo movement.
+            accel (int, optional): Acceleration setting for servo movement.
             check_custom_limits (bool, optional): Whether to check custom angle limits. Defaults to True.
         """
         print(f"Moving to x: {x}, y: {y}, z: {z} with speed: {speed}, accel: {accel}")
@@ -294,8 +302,8 @@ class Leg:
             coxa_angle (float): Target angle for the coxa joint in degrees.
             femur_angle (float): Target angle for the femur joint in degrees.
             tibia_angle (float): Target angle for the tibia joint in degrees.
-            speed (int, optional): Speed setting for servo movement. Defaults to 32.
-            accel (int, optional): Acceleration setting for servo movement. Defaults to 5.
+            speed (int, optional): Speed setting for servo movement.
+            accel (int, optional): Acceleration setting for servo movement.
             check_custom_limits (bool, optional): Whether to check custom angle limits. Defaults to True.
         """
         if speed is None:
