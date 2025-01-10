@@ -2,12 +2,32 @@ import argparse
 import sys
 import os
 import time
+import logging.config
+import pathlib
+import yaml
 from kws import VoiceControl
 from control import ControlInterface
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
+from pathlib import Path
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def setup_logging() -> None:
+    config_file = pathlib.Path("logs/config.yaml")
+    if config_file.is_file():
+        with open(config_file, "rt") as f:
+            logging.config.dictConfig(yaml.safe_load(f))
+    else:
+        logging.basicConfig(level=logging.INFO)
+        logging.warning(f"Logging configuration file not found at {config_file}")
 
 def main() -> None:
+
+    setup_logging()
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+
     parser = argparse.ArgumentParser(description="Hexapod Voice Control Interface")
     parser.add_argument(
         '--access_key',
@@ -27,8 +47,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    keyword_path = os.path.join(os.path.dirname(__file__), 'kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
-    context_path = os.path.join(os.path.dirname(__file__), 'kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
+    keyword_path = Path('kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
+    context_path = Path('kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
 
     control_interface = ControlInterface()
 

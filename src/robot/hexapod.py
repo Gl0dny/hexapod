@@ -5,6 +5,7 @@ import threading
 import time
 import yaml
 from enum import Enum
+from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from maestro import MaestroUART
 from robot import Leg, Joint, Calibration, GaitGenerator
@@ -46,20 +47,23 @@ class Hexapod:
     
     def __init__(
         self, 
-        config_path: str = '/home/hexapod/hexapod/src/robot/config/hexapod_config.yaml',
-        calibration_data_path: str = '/home/hexapod/hexapod/src/robot/config/calibration.json'
+        config_path: Path = Path('config/hexapod_config.yaml'),
+        calibration_data_path: Path = Path('config/calibration.json')
     ) -> None:
         """
         Initializes the Hexapod robot by loading configuration parameters, setting up servo controllers,
         and initializing all legs.
 
         Parameters:
-            config_path (str): Path to the hexapod configuration YAML file.
-            calibration_data_path (str): Path to the calibration data JSON file.
+            config_path (Path): Path to the hexapod configuration YAML file.
+            calibration_data_path (Path): Path to the calibration data JSON file.
         """
         
-        with open(config_path, 'r') as config_file:
-            config = yaml.safe_load(config_file)
+        if config_path.is_file():
+            with config_path.open('r') as config_file:
+                config = yaml.safe_load(config_file)
+        else:
+            raise FileNotFoundError(f"Hexapod configuration file not found at {config_path}")
         
         self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
         

@@ -3,15 +3,16 @@ import threading
 import time
 from typing import Optional
 from interface.input_handler import InputHandler
+from pathlib import Path
 
 class Calibration:
-    def __init__(self, hexapod, calibration_data_path: str) -> None:
+    def __init__(self, hexapod, calibration_data_path: Path) -> None:
         """
         Initializes the Calibration class with a reference to the Hexapod instance and config file path.
         
         Args:
             hexapod (Hexapod): The Hexapod instance to be calibrated.
-            calibration_data_path (str): Path to save/read the calibration data.
+            calibration_data_path (Path): Path to save/read the calibration data.
         """
         self.hexapod = hexapod
         self.calibration_data_path = calibration_data_path
@@ -507,7 +508,7 @@ class Calibration:
             }
         
         try:
-            with open(self.calibration_data_path, "w") as f:
+            with self.calibration_data_path.open("w") as f:
                 json.dump(calibration_data, f, indent=4)
             print(f"Calibration data saved to {self.calibration_data_path}.")
         except IOError as e:
@@ -518,7 +519,7 @@ class Calibration:
         Load calibration data from the save path.
         """
         try:
-            with open(self.calibration_data_path, "r") as f:
+            with self.calibration_data_path.open("r") as f:
                 calibration_data = json.load(f)
             for i, leg in enumerate(self.hexapod.legs):
                 leg_data = calibration_data.get(f"leg_{i}", {})

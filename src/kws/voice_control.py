@@ -3,6 +3,7 @@ import threading
 import sys
 import logging
 from typing import Any
+from pathlib import Path
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -11,7 +12,6 @@ from pvrecorder import PvRecorder
 from kws.intent_dispatcher import IntentDispatcher
 from control import ControlInterface
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class VoiceControl(threading.Thread):
@@ -21,8 +21,8 @@ class VoiceControl(threading.Thread):
 
     def __init__(
             self,
-            keyword_path: str,
-            context_path: str,
+            keyword_path: Path,
+            context_path: Path,
             access_key: str,
             device_index: int,
             control_interface: ControlInterface,
@@ -32,8 +32,8 @@ class VoiceControl(threading.Thread):
         Initialize the VoiceControl thread.
 
         Args:
-            keyword_path (str): Path to the wake word keyword file.
-            context_path (str): Path to the language context file.
+            keyword_path (Path): Path to the wake word keyword file.
+            context_path (Path): Path to the language context file.
             access_key (str): Access key for Picovoice services.
             device_index (int): Index of the audio input device.
             control_interface (ControlInterface): Control interface instance.
@@ -50,7 +50,7 @@ class VoiceControl(threading.Thread):
             access_key=access_key,
             keyword_path=keyword_path,
             wake_word_callback=self._wake_word_callback,
-            context_path=context_path,
+            context_path=str(context_path),
             inference_callback=inference_callback,
             porcupine_sensitivity=porcupine_sensitivity,
             rhino_sensitivity=rhino_sensitivity)
