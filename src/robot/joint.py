@@ -29,6 +29,28 @@ class Joint:
         self.angle_limit_max = angle_limit_max
         self.invert = invert
 
+    def _validate_angle(self, angle: float, check_custom_limits: bool) -> None:
+        """
+        Validate the angle against default and custom limits.
+
+        Args:
+            angle (float): The angle to validate.
+            check_custom_limits (bool): Whether to enforce custom angle limits.
+
+        Raises:
+            ValueError: If the angle is outside the allowed limits.
+        """
+        if not check_custom_limits:
+            return
+
+        if not (self.angle_min <= angle <= self.angle_max):
+            raise ValueError(f"{self} angle {angle}° is out of bounds ({self.angle_min}° to {self.angle_max}°).")
+        
+        if self.angle_limit_min is not None and angle < self.angle_limit_min:
+            raise ValueError(f"{self} angle {angle}° is below custom limit ({self.angle_limit_min}°).")
+        if self.angle_limit_max is not None and angle > self.angle_limit_max:
+            raise ValueError(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
+
     def set_angle(self, angle, speed=DEFAULT_SPEED, accel=DEFAULT_ACCEL, check_custom_limits=True):
         """
         Set the joint to a specific angle.
@@ -42,14 +64,7 @@ class Joint:
         if self.invert:
             angle = -angle
 
-        if check_custom_limits:
-            if self.angle_limit_min is not None and angle < self.angle_limit_min:
-                raise ValueError(f"Angle {angle}° is below custom limit ({self.angle_limit_min}°).")
-            if self.angle_limit_max is not None and angle > self.angle_limit_max:
-                raise ValueError(f"Angle {angle}° is above custom limit ({self.angle_limit_max}°).")
-
-        if angle < self.angle_min or angle > self.angle_max:
-            raise ValueError(f"Angle {angle}° is out of limits ({self.angle_min}° to {self.angle_max}°).")
+        self._validate_angle(angle, check_custom_limits)
 
         target = self.angle_to_servo_target(angle)
 
