@@ -4,6 +4,7 @@ import time
 import logging.config
 import pathlib
 import json
+import atexit
 
 from src.kws import VoiceControl
 from src.control import ControlInterface
@@ -12,7 +13,6 @@ from src.robot import PredefinedAnglePosition, PredefinedPosition
 from pathlib import Path
 from src.utils import logger
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def setup_logging() -> None:
@@ -20,6 +20,10 @@ def setup_logging() -> None:
     if config_file.is_file():
         with open(config_file, "rt") as f:
             logging.config.dictConfig(json.load(f))
+        queue_handler = logging.getHandlerByName("queue_handler")
+        if queue_handler is not None:
+            queue_handler.listener.start()
+            atexit.register(queue_handler.listener.stop)
     else:
         logging.basicConfig(level=logging.INFO)
         logging.warning(f"Logging configuration file not found at {config_file}")
