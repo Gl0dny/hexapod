@@ -11,6 +11,7 @@ from picovoice import Picovoice
 from pvrecorder import PvRecorder
 from kws.intent_dispatcher import IntentDispatcher
 from control import ControlInterface
+from control import ControlTask
 from utils import rename_thread
 
 logger = logging.getLogger("kws_logger")
@@ -62,6 +63,7 @@ class VoiceControl(threading.Thread):
         self.device_index = device_index
 
         self.control_interface = control_interface
+        self.control_interface.set_task_complete_callback(self.on_task_complete)
 
         self.intent_dispatcher = IntentDispatcher(self.control_interface)
 
@@ -85,6 +87,7 @@ class VoiceControl(threading.Thread):
         """
         logger.user_info('[wake word]')
         self.control_interface.lights_handler.listen_intent()
+        logger.user_info("Listening for intent...")
 
     def _inference_callback(self, inference: Any) -> None:
         """
@@ -104,7 +107,18 @@ class VoiceControl(threading.Thread):
             self.intent_dispatcher.dispatch(inference.intent, inference.slots)
         else:
             logger.user_info("Inference not understood")
-            self.control_interface.set_listening_animation()
+            self.control_interface.lights_handler.listen_wakeword()
+
+    def on_task_complete(self, task: ControlTask) -> None:
+        """
+        Callback function invoked when a ControlTask completes.
+
+        Args:
+            task (ControlTask): The task that has completed.
+        """
+        logger.user_info(f"Voice control task {task.__class__.__name__} has been completed.")
+        self.control_interface.lights_handler.listen_wakeword()
+        logger.user_info("Listening for wake word...")
 
     def pause(self) -> None:
         """
@@ -125,7 +139,7 @@ class VoiceControl(threading.Thread):
                 self.recorder.start()
             self.pause_event.set()
             logger.user_info('Voice control unpaused')
-            self.control_interface.set_listening_animation()
+            self.control_interface.lights_handler.listen_wakeword()
 
     def stop(self):
         """Signal the thread to stop."""
@@ -145,7 +159,8 @@ class VoiceControl(threading.Thread):
             self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             self.recorder.start()
 
-            self.control_interface.set_listening_animation()
+            self.control_interface.lights_handler.listen_wakeword()
+            logger.user_info("Listening for wake word...")
             
             paused = False
 

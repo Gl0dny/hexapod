@@ -35,6 +35,7 @@ class ControlInterface:
         self._last_args = None
         self._last_kwargs = None
         self.maintenance_mode_event = threading.Event()
+        self.task_complete_callback: Optional[Callable[[ControlTask], None]] = None
         logger.debug("ControlInterface initialized successfully.")
 
     def inject_hexapod(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -119,6 +120,26 @@ class ControlInterface:
             return func(self, *args, **kwargs)
         return wrapper
 
+    def set_task_complete_callback(self, callback: Callable[[ControlTask], None]) -> None:
+        """
+        Sets the callback to be invoked when a ControlTask completes.
+
+        Args:
+            callback (Callable[[ControlTask], None]): The callback function.
+        """
+        self.task_complete_callback = callback
+        logger.debug("Task completion callback has been set.")
+
+    def _notify_task_completion(self, task: ControlTask) -> None:
+        """
+        Internal method to notify when a task is completed.
+
+        Args:
+            task (ControlTask): The task that has completed.
+        """
+        if self.task_complete_callback:
+            self.task_complete_callback(task)
+
     @voice_command
     def hexapod_help(self) -> None:
         """
@@ -129,7 +150,7 @@ class ControlInterface:
             logger.user_info(f"Picovoice Context Info:\n {self.voice_control_context_info}")
         else:
             logger.warning("No context information available.")
-        self.set_listening_animation()
+        self.lights_handler.listen_wakeword()
         logger.debug("Exiting hexapod_help method.")
 
     @voice_command
@@ -238,7 +259,11 @@ class ControlInterface:
         try:
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = EmergencyStopTask(hexapod, lights_handler)
+            self.control_task = EmergencyStopTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             logger.debug("EmergencyStopTask initialized.")
             # self.control_task.start()
             print("Emergency stop executed.")
@@ -263,7 +288,11 @@ class ControlInterface:
             logger.info("Activating robot...")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = WakeUpTask(hexapod, lights_handler)
+            self.control_task = WakeUpTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             self.control_task.start()
             logger.info("Robot activated")
             
@@ -288,7 +317,11 @@ class ControlInterface:
             logger.info("Deactivating robot...")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = SleepTask(hexapod, lights_handler)
+            self.control_task = SleepTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             self.control_task.start()
             logger.info("Robot deactivated")
             
@@ -316,7 +349,12 @@ class ControlInterface:
 
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = CompositeCalibrationTask(hexapod, lights_handler, self)
+            self.control_task = CompositeCalibrationTask(
+                hexapod, 
+                lights_handler, 
+                self, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             self.control_task.start()
             print("Calibration process started.")
         
@@ -342,7 +380,12 @@ class ControlInterface:
             logger.info(f"Executing sequence: {sequence_name}")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = RunSequenceTask(hexapod, lights_handler, sequence_name)
+            self.control_task = RunSequenceTask(
+                hexapod, 
+                lights_handler, 
+                sequence_name, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print(f"Sequence '{sequence_name}' started.")
         except Exception as e:
@@ -359,7 +402,7 @@ class ControlInterface:
             self._last_command(*self._last_args, **self._last_kwargs)
         else:
             logger.warning("No last command to repeat.")
-            self.set_listening_animation()
+            self.lights_handler.listen_wakeword()
         logger.debug("Exiting repeat_last_command method.")
         
     def _store_last_command(self, func: MethodType, *args: Any, **kwargs: Any) -> None:
@@ -395,7 +438,7 @@ class ControlInterface:
             lights_handler.off()
         else:
             logger.user_info("Turning lights on")
-            self.set_listening_animation()
+            self.lights_handler.listen_wakeword()
         logger.debug("Exiting turn_lights method.")
 
     @voice_command
@@ -479,7 +522,11 @@ class ControlInterface:
             logger.info("Setting robot to low profile mode.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = LowProfileTask(hexapod, lights_handler)
+            self.control_task = LowProfileTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             self.control_task.start()
 
         except Exception as e:
@@ -503,7 +550,11 @@ class ControlInterface:
             logger.info("Setting robot to upright mode.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = UprightModeTask(hexapod, lights_handler)
+            self.control_task = UprightModeTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             self.control_task.start()
             
         except Exception as e:
@@ -526,7 +577,11 @@ class ControlInterface:
         try:
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = IdleStanceTask(hexapod, lights_handler)
+            self.control_task = IdleStanceTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             self.control_task.start()
                 
         except Exception as e:
@@ -551,7 +606,11 @@ class ControlInterface:
             logger.info(f"Initiating move in direction: {direction}.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = MoveTask(hexapod, direction)
+            self.control_task = MoveTask(
+                hexapod, 
+                direction, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print(f"Moving {direction}.")
         except Exception as e:
@@ -575,7 +634,11 @@ class ControlInterface:
             logger.info("Executing stop.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = StopTask(hexapod, lights_handler)
+            self.control_task = StopTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print("Stop executed.")
         except Exception as e:
@@ -601,7 +664,12 @@ class ControlInterface:
             logger.info("Initiating rotate.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = RotateTask(hexapod, angle, direction)
+            self.control_task = RotateTask(
+                hexapod, 
+                angle, 
+                direction, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             if angle:
                 print(f"Rotating {angle} degrees.")
@@ -628,7 +696,11 @@ class ControlInterface:
             logger.info("Initiating follow.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = FollowTask(hexapod, lights_handler)
+            self.control_task = FollowTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print("Follow task started.")
         except Exception as e:
@@ -652,7 +724,11 @@ class ControlInterface:
             logger.info("Initiating sound source analysis.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = SoundSourceAnalysisTask(hexapod, lights_handler)
+            self.control_task = SoundSourceAnalysisTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print("Sound source analysis started.")
         except Exception as e:
@@ -676,7 +752,11 @@ class ControlInterface:
             logger.info("Calculating direction of arrival.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = DirectionOfArrivalTask(hexapod, lights_handler)
+            self.control_task = DirectionOfArrivalTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print("Direction of arrival calculation started.")
         except Exception as e:
@@ -732,7 +812,11 @@ class ControlInterface:
             logger.info("Initiating sit-up routine.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = SitUpTask(hexapod, lights_handler)
+            self.control_task = SitUpTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print("Sit-up routine started.")
         except Exception as e:
@@ -756,7 +840,11 @@ class ControlInterface:
             logger.debug("Initiating dance routine.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = DanceTask(hexapod, lights_handler)
+            self.control_task = DanceTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             logger.debug("Dance routine started.")
         except Exception as e:
@@ -779,7 +867,11 @@ class ControlInterface:
         try:
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = HelixTask(hexapod, lights_handler)
+            self.control_task = HelixTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             self.control_task.start()
             
         except Exception as e:
@@ -803,7 +895,11 @@ class ControlInterface:
             logger.info("Initiating show-off routine.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = ShowOffTask(hexapod, lights_handler)
+            self.control_task = ShowOffTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print("Show-off routine started.")
         except Exception as e:
@@ -827,20 +923,16 @@ class ControlInterface:
             logger.info("Executing say hello.")
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = SayHelloTask(hexapod, lights_handler)
+            self.control_task = SayHelloTask(
+                hexapod, 
+                lights_handler, 
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
             # self.control_task.start()
             print("Said hello.")
         except Exception as e:
             logger.error(f"Say hello task failed: {e}")
         logger.debug("Exiting say_hello method.")
-
-    @inject_lights_handler
-    def set_listening_animation(self, lights_handler: LightsInteractionHandler) -> None:
-        """
-        Calls lights_handler.ready() and prints "Listening...".
-        """
-        lights_handler.listen_wakeword()
-        logger.user_info("Listening...")
 
     # @voice_command
     # def pause_voice_control(self) -> None:
