@@ -3,42 +3,41 @@ import sys
 import time
 import logging.config
 import pathlib
-import json
+import yaml
 import atexit
 import threading
+from pathlib import Path
+from typing import Optional
 
 from src.kws import VoiceControl
 from src.control import ControlInterface
 from src.lights import ColorRGB
 from src.robot import PredefinedAnglePosition, PredefinedPosition
-from pathlib import Path
 from src.utils import logger
 
 logger = logging.getLogger("main_logger")
-logger2 = logging.getLogger("control_logger")
 
-def setup_logging() -> None:
-    logs_dir = pathlib.Path("logs")
-    if not logs_dir.exists():
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        logging.info(f"Created missing logs directory at {logs_dir}")
-
-    config_file = logs_dir / "config.json"
+def setup_logging(log_dir: Optional[Path] = None, config_file: Optional[Path] = None) -> None:
+    if config_file is None:
+        log_dir = Path("logs")
     
+    if not log_dir.exists():
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+    if config_file is None:
+        config_file = log_dir / "config.yaml"
+
     if config_file.is_file():
-        logger.debug(f"Loading logging configuration from {config_file}")
         with open(config_file, "rt") as f:
-            logging.config.dictConfig(json.load(f))
+            logging.config.dictConfig(yaml.safe_load(f))
         queue_handler = logging.getHandlerByName("queue_handler")
         if queue_handler is not None:
-            logger.debug("Starting queue handler listener...")
             queue_handler.listener.start()
             queue_handler.listener._thread.name = "QueueHandlerListener"
             atexit.register(queue_handler.listener.stop)
     else:
         logging.basicConfig(level=logging.INFO)
-        logger.warning(f"Logging configuration file not found at {config_file}")
-        logger.debug("Using basic logging configuration")
+        logger.warning(f"Logging configuration file not found at {config_file}. Using basic logging configuration")
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Hexapod Robot Controller")
@@ -46,23 +45,19 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--audio_device_index", type=int, default=-1, help="Audio device index")
     parser.add_argument('--print_context', action='store_true', help='Print the context information.')
     parser.add_argument('--clean', '-c', action='store_true', help='Clean all logs in the logs directory.')
+    parser.add_argument('--log_dir', type=Path, default=Path("logs"), help='Directory for log files.')
+    parser.add_argument('--log_config_file', type=Path, default=Path("logs/config.yaml"), help='Path to logging configuration yaml/json file.')
     args = parser.parse_args()
     logger.debug(f"Arguments parsed: {args}")
     return args
 
 def clean_logs() -> None:
-    logger.debug("Cleaning log files")
     logs_dir = pathlib.Path("logs")
     if logs_dir.is_dir():
         for log_file in logs_dir.glob("*.log"):
             log_file.unlink()
-            logger.debug(f"Deleted log file: {log_file}")
         for log_file in logs_dir.glob("*.log.jsonl"):
             log_file.unlink()
-            logger.debug(f"Deleted log file: {log_file}")
-        logger.info("All log files have been cleaned.")
-    else:
-        logger.warning(f"Logs directory not found at {logs_dir}")
 
 def main() -> None:
     logger.warning("Application started")
@@ -72,7 +67,7 @@ def main() -> None:
         logger.debug("Clean flag detected, initiating log cleaning")
         clean_logs()
 
-    setup_logging()
+    setup_logging(log_dir=args.log_dir, config_file=args.log_config_file)
 
     # for thread in threading.enumerate():
     #     logger.info(f"{thread.name}, {thread.is_alive()}")
