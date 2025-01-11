@@ -189,7 +189,6 @@ class LightsInteractionHandler:
         """
         logger.debug(f"Starting think animation with color: {color.name}, interval: {interval}")
         self.off()
-        logger.debug("Turning off lights before starting think animation.")
         self.animation = OppositeRotateAnimation(
             lights=self.lights,
             interval=interval,
@@ -218,7 +217,6 @@ class LightsInteractionHandler:
         """
         logger.debug(f"Starting police animation with pulse_speed: {pulse_speed}")
         self.off()
-        logger.debug("Turning off lights before starting police animation.")
         self.animation = PulseAnimation(
             lights=self.lights,
             base_color=ColorRGB.BLUE,
@@ -238,7 +236,6 @@ class LightsInteractionHandler:
         """
         logger.debug(f"Starting shutdown animation with interval: {interval}")
         self.off()
-        logger.debug("Turning off lights before starting shutdown animation.")
         self.animation = WheelFillAnimation(
             lights=self.lights,
             use_rainbow=False,
@@ -256,19 +253,12 @@ class LightsInteractionHandler:
             calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
         """
         logger.debug(f"Updating calibration LED statuses with calibration_status: {calibration_status}")
-        # Current animation in progress; skip updating LEDs.
         if self.animation:
-            return
-        
-        for leg_index, led_index in self.leg_to_led.items():
-            status = calibration_status.get(leg_index, "not_calibrated")
-            if status == "calibrating":
-                logger.debug(f"Calibrating: Setting LED {led_index} to YELLOW.")
-                self.set_single_color(ColorRGB.YELLOW, led_index=led_index)
-            elif status == "calibrated":
-                logger.debug(f"Calibrated: Setting LED {led_index} to GREEN.")
-                self.set_single_color(ColorRGB.GREEN, led_index=led_index)
-            else:
-                logger.debug(f"Not calibrated: Setting LED {led_index} to RED.")
-                self.set_single_color(ColorRGB.RED, led_index=led_index)
+            self.off()
+        self.animation = CalibrationAnimation(
+            lights=self.lights,
+            calibration_status=calibration_status,
+            leg_to_led=self.leg_to_led
+        )
+        self.animation.start()
         logger.debug("update_calibration_leds_status method execution completed.")

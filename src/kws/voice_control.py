@@ -12,6 +12,7 @@ from pvrecorder import PvRecorder
 from kws.intent_dispatcher import IntentDispatcher
 from control import ControlInterface
 from control import ControlTask
+from lights import ColorRGB
 from utils import rename_thread
 
 logger = logging.getLogger("kws_logger")
@@ -106,8 +107,9 @@ class VoiceControl(threading.Thread):
         if inference.is_understood:
             self.intent_dispatcher.dispatch(inference.intent, inference.slots)
         else:
-            logger.user_info("Inference not understood")
-            self.control_interface.lights_handler.listen_wakeword()
+            logger.error("Inference not understood")
+            self.control_interface.lights_handler.listen_wakeword(base_color=ColorRGB.RED, pulse_color=ColorRGB.GOLDEN)
+            logger.user_info("Listening for wake word...")
 
     def on_task_complete(self, task: ControlTask) -> None:
         """

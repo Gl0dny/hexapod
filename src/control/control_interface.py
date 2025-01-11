@@ -323,7 +323,7 @@ class ControlInterface:
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
             self.control_task.start()
-            logger.info("Robot deactivated")
+            logger.user_info("Robot deactivated")
             
         except Exception as e:
             logger.error(f"Deactivating robot failed: {e}")
@@ -352,11 +352,11 @@ class ControlInterface:
             self.control_task = CompositeCalibrationTask(
                 hexapod, 
                 lights_handler, 
-                self, 
+                self.maintenance_mode_event, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
             self.control_task.start()
-            print("Calibration process started.")
+            logger.user_info("Calibration process started.")
         
         except Exception as e:
             logger.error(f"Calibration failed: {e}")

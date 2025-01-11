@@ -1,6 +1,6 @@
 import threading
 import abc
-from typing import Optional, override
+from typing import Optional, override, Dict
 from lights import Lights, ColorRGB 
 import logging
 
@@ -384,3 +384,41 @@ class OppositeRotateAnimation(Animation):
             self.direction = self.BACKWARD if self.direction == self.FORWARD else self.FORWARD
             start_index = end_index
         logger.debug("OppositeRotateAnimation run completed.")
+
+class CalibrationAnimation(Animation):
+    """
+    Animation that updates LED colors based on the calibration status of each leg.
+
+    This animation sets LEDs to:
+        - Yellow when a leg is calibrating.
+        - Green when a leg is calibrated.
+        - Red when a leg is not calibrated.
+    """
+
+    def __init__(self, lights: Lights, calibration_status: Dict[int, str], leg_to_led: Dict[int, int]) -> None:
+        """
+        Initialize the CalibrationAnimation.
+
+        Args:
+            lights (Lights): The Lights object to control the LEDs.
+            calibration_status (Dict[int, str]): Current calibration status of each leg.
+            leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
+        """
+        super().__init__(lights)
+        self.calibration_status = calibration_status
+        self.leg_to_led = leg_to_led
+
+    def run(self) -> None:
+        """
+        Execute the calibration animation.
+
+        Iterates through each leg and updates the corresponding LED color based on its calibration status.
+        """
+        for leg_index, led_index in self.leg_to_led.items():
+            status = self.calibration_status.get(leg_index, "not_calibrated")
+            if status == "calibrating":
+                self.lights.set_color(ColorRGB.YELLOW, led_index=led_index)
+            elif status == "calibrated":
+                self.lights.set_color(ColorRGB.GREEN, led_index=led_index)
+            else:
+                self.lights.set_color(ColorRGB.RED, led_index=led_index)
