@@ -3,7 +3,7 @@ disable_existing_loggers: false
 formatters:
   simple:
     class: src.utils.logger.CenteredStringFormatter
-    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format: "%(asctime)s - %(module)s - %(levelname)s - %(message)s"
   detailed:
     class: src.utils.logger.CenteredStringFormatter
     format: "[%(levelname)s - %(module)s - %(threadName)s - %(funcName)s - Line: %(lineno)-4d] - %(asctime)s - %(message)s"
@@ -131,6 +131,7 @@ handlers:
     class: logging.handlers.QueueHandler
     level: DEBUG
     handlers:
+      - stdout
       - main_logger
       - control_logger
       - imu_logger

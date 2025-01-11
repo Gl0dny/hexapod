@@ -533,12 +533,10 @@ class ControlInterface:
         """
         logger.debug("Entering idle_stance method.")
         try:
-            logger.info("Setting robot to idle stance...")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = IdleStanceTask(hexapod, lights_handler)
             self.control_task.start()
-            print("Robot is now in idle stance.")
                 
         except Exception as e:
             logger.error(f"Setting idle stance failed: {e}")
@@ -764,14 +762,14 @@ class ControlInterface:
         """
         logger.debug("Entering dance method.")
         try:
-            logger.info("Initiating dance routine.")
+            logger.debug("Initiating dance routine.")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = DanceTask(hexapod, lights_handler)
             # self.control_task.start()
-            print("Dance routine started.")
+            logger.debug("Dance routine started.")
         except Exception as e:
-            logger.error(f"Dance task failed: {e}")
+            logger.exception(f"Dance task failed: {e}")
         logger.debug("Exiting dance method.")
 
     @voice_command
@@ -788,12 +786,10 @@ class ControlInterface:
         """
         logger.debug("Entering helix method.")
         try:
-            print("Initiating helix maneuver.")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = HelixTask(hexapod, lights_handler)
             self.control_task.start()
-            print("Helix maneuver initiated.")
             
         except Exception as e:
             logger.error(f"Helix maneuver failed: {e}")

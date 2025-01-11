@@ -8,7 +8,7 @@ logging.addLevelName(USER_INFO_LEVEL, "USER_INFO")
 
 def user_info(self, message, *args, **kwargs):
     if self.isEnabledFor(USER_INFO_LEVEL):
-        self._log(USER_INFO_LEVEL, message, args, **kwargs)
+        self._log(USER_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
 
 logging.Logger.user_info = user_info
 

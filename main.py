@@ -12,7 +12,7 @@ from src.kws import VoiceControl
 from src.control import ControlInterface
 from src.lights import ColorRGB
 from src.robot import PredefinedAnglePosition, PredefinedPosition
-from src.utils import logger
+from src.utils import logger, rename_thread
 
 logger = logging.getLogger("main_logger")
 
@@ -40,7 +40,7 @@ def setup_logging(log_dir: Optional[Path] = None, config_file: Optional[Path] = 
         queue_handler = logging.getLogger("root").handlers[0]  # Assuming queue_handler is the first handler
         if queue_handler is not None and hasattr(queue_handler, 'listener'):
             queue_handler.listener.start()
-            queue_handler.listener._thread.name = "QueueHandlerListener"
+            rename_thread(queue_handler.listener._thread, "QueueHandlerListener")
             atexit.register(queue_handler.listener.stop)
     else:
         logging.basicConfig(level=logging.INFO)
@@ -55,7 +55,6 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--log_dir', type=Path, default=Path("logs"), help='Directory for log files.')
     parser.add_argument('--log_config_file', type=Path, default=Path("logs/config.yaml"), help='Path to logging configuration yaml/json file.')
     args = parser.parse_args()
-    logger.debug(f"Arguments parsed: {args}")
     return args
 
 def clean_logs() -> None:
@@ -66,17 +65,18 @@ def clean_logs() -> None:
             log_file.unlink()
 
 def main() -> None:
-    logger.warning("Application started")
     args = parse_arguments()
 
     if args.clean:
-        logger.debug("Clean flag detected, initiating log cleaning")
         clean_logs()
 
     setup_logging(log_dir=args.log_dir, config_file=args.log_config_file)
 
+    logger.user_info("Application started")
+
     # for thread in threading.enumerate():
-    #     logger.info(f"{thread.name}, {thread.is_alive()}")
+    #     logger.user_info(f"{thread.name}, {thread.is_alive()}")
+    # print("---")
 
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
@@ -97,8 +97,7 @@ def main() -> None:
         logger.debug("Print context flag detected, printing context")
         voice_control.print_context()
         
-    voice_control.start()  # Start VoiceControl as a separate thread
-    logger.debug("VoiceControl thread started")
+    voice_control.start()
 
     try:
         logger.debug("Entering main loop to monitor controller errors")
@@ -111,24 +110,25 @@ def main() -> None:
             #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
             #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             #     break
+            # for thread in threading.enumerate():
+            #     logger.user_info(f"{thread.name}, {thread.is_alive()}")
+            # print("---")
             time.sleep(1)
     except KeyboardInterrupt:
         logger.warning("KeyboardInterrupt detected, initiating shutdown")
         sys.stdout.write('\b' * 2)
-        print("  ", flush=True)
-        print('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
+        logger.user_info('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
         control_interface.stop_control_task()
         voice_control.stop()
         voice_control.join()
         control_interface.lights_handler.off()
-        logger.info("Shutdown tasks completed")
+        logger.debug("Shutdown tasks completed")
     finally:
-        logger.info("Finalizing shutdown sequence")
         time.sleep(5)
         control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
         control_interface.hexapod.deactivate_all_servos()
         # control_interface.hexapod.controller.close()
-        print('Exiting...')
+        logger.user_info('Exiting...')
 
 if __name__ == '__main__':
     main()

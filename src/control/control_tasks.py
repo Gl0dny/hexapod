@@ -684,7 +684,7 @@ class HelixTask(ControlTask):
             hexapod: The hexapod object to control.
             lights_handler: Manages lights on the hexapod.
         """
-        logger.debug("Initializing HelixTask")
+        logger.user_info("Initializing HelixTask")
         super().__init__()
         self.hexapod = hexapod
         self.lights_handler = lights_handler
@@ -708,33 +708,33 @@ class HelixTask(ControlTask):
         """
         Performs a helix maneuver by moving to helix_minimum and then to helix_maximum positions.
         """
-        logger.info("HelixTask started")
+        logger.debug("HelixTask started")
         try:
             self.lights_handler.think()
             
             for _ in range(2):
                 
-                print("Helix maneuver: Moving to 'helix_maximum'")
+                logger.debug("Helix maneuver: Moving to 'helix_maximum'")
                 self.hexapod.move_all_legs_angles(self.helix_positions['helix_maximum'])
                 
                 self.hexapod.wait_until_motion_complete(self.stop_event)
                 if self.stop_event.is_set():
                     return
 
-                print("Helix maneuver: Moving to 'helix_minimum'")
+                logger.debug("Helix maneuver: Moving to 'helix_minimum'")
                 self.hexapod.move_all_legs_angles(self.helix_positions['helix_minimum'])
                 
                 self.hexapod.wait_until_motion_complete(self.stop_event)
                 if self.stop_event.is_set():
                     return
                 
-            print("Helix maneuver: Finished.")
+            logger.debug("Helix maneuver: Finished.")
 
         except Exception as e:
             logger.exception(f"Error in HelixTask: {e}")
             
         finally:
-            logger.info("HelixTask completed")
+            logger.user_info("HelixTask completed")
             self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             self.lights_handler.ready()
 

@@ -440,7 +440,7 @@ class Hexapod:
                 break
             if stop_event:
                 stop_event.wait(timeout=0.2)
-        logger.criti("Motion complete")
+        logger.info("Motion complete")
 
     # def start_gait(self, gait_type: str) -> None:
     #     """

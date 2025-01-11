@@ -53,7 +53,6 @@ class MaestroUART(object):
 				Raspberry Pi 3.
 			baudrate: Default is 9600.
 		"""
-		logger.debug(f"Initializing MaestroUART with device={device}, baudrate={baudrate}")
 		self.ser: serial.Serial = serial.Serial(device)
 		self.ser.baudrate = baudrate
 		self.ser.bytesize = serial.EIGHTBITS
@@ -62,7 +61,7 @@ class MaestroUART(object):
 		self.ser.xonxoff = False
 		self.ser.timeout = 0 # makes the read non-blocking
 		self.lock = threading.Lock()
-		logger.debug("MaestroUART initialized successfully.")
+		logger.debug(f"MaestroUART initialized successfully with device={device}, baudrate={baudrate}")
 
 	def get_error(self) -> int:
 		"""Check if there was an error and print the corresponding error messages.
@@ -151,7 +150,6 @@ class MaestroUART(object):
 			0: error getting the position, check the connections, could also be
 			low power
 		""" 
-		logger.debug(f"Getting position for channel {channel}.")
 		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_POSITION, channel])
 
@@ -194,11 +192,10 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		logger.debug(f"Setting speed for channel {channel} to {speed}.")
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_SPEED, channel, speed & 0x7F, (speed >> 7) & 0x7F])
 		with self.lock:
 			self.ser.write(command)
-		logger.info(f"Speed for channel {channel} set to {speed}.")
+		logger.debug(f"Speed for channel {channel} set to {speed}.")
 
 	def set_acceleration(self, channel: int, accel: int) -> None:
 		"""Sets the acceleration of a Maestro channel. Note that once you set
@@ -238,11 +235,10 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		logger.debug(f"Setting acceleration for channel {channel} to {accel}.")
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_ACCELERATION, channel, accel & 0x7F, (accel >> 7) & 0x7F])
 		with self.lock:
 			self.ser.write(command)
-		logger.info(f"Acceleration for channel {channel} set to {accel}.")
+		logger.debug(f"Acceleration for channel {channel} set to {accel}.")
 
 	def set_target(self, channel: int, target: int) -> None:
 		"""Sets the target of a Maestro channel. 
@@ -260,11 +256,10 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		logger.debug(f"Setting target for channel {channel} to {target}.")
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_TARGET, channel, target & 0x7F, (target >> 7) & 0x7F])
 		with self.lock:
 			self.ser.write(command)
-		logger.info(f"Target for channel {channel} set to {target}.")
+		logger.debug(f"Target for channel {channel} set to {target}.")
 
 	def set_multiple_targets(self, targets: list[tuple[int, int]]) -> None:
 		"""
@@ -291,7 +286,6 @@ class MaestroUART(object):
 			targets (list of tuples): Each tuple contains (channel, target).
 				Example: [(3, 0), (4, 6000)]
 		"""
-		logger.debug(f"Setting multiple targets: {targets}")
 		# Check if channels are sequential
 		channels = [channel for channel, _ in targets]
 		if channels != list(range(min(channels), min(channels) + len(channels))):
@@ -303,7 +297,7 @@ class MaestroUART(object):
 			command += bytes([target & 0x7F, (target >> 7) & 0x7F])
 		with self.lock:
 			self.ser.write(command)
-		logger.info(f"Multiple targets set: {targets}")
+		logger.debug(f"Multiple targets set: {targets}")
 
 	def go_home(self) -> None:
 		"""
@@ -321,11 +315,10 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		logger.debug("Sending Go Home command.")
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GO_HOME])
 		with self.lock:
 			self.ser.write(command)
-		logger.info("Go Home command sent.")
+		logger.debug("Go Home command sent.")
 
 	def get_moving_state(self) -> Optional[int]:
 		"""
@@ -345,7 +338,6 @@ class MaestroUART(object):
 			0x00: if no servos are moving
 			0x01: if at least one servo is still moving
 		"""
-		logger.debug("Checking moving state.")
 		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_MOVING_STATE])
 		with self.lock:
@@ -354,7 +346,7 @@ class MaestroUART(object):
 			# Read a single byte response indicating the moving state
 			response = self.ser.read(1)
 		if response == b'':
-			logger.error("Failed to get moving state.")
+			logger.debug("Failed to get moving state.")
 			return None
 		moving_state = ord(response)
 		logger.info(f"Moving state: {moving_state}")
@@ -370,7 +362,6 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-		logger.debug("Closing the serial port.")
 		with self.lock:
 			self.ser.close()
 		logger.info("Serial port closed.")

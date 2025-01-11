@@ -150,9 +150,7 @@ class LightsInteractionHandler:
             pulse_speed=pulse_speed
         )
         self.animation.start()
-        logger.info("Ready animation started.")
-        logger.debug("ready method execution completed.")
-        print('[Listening ...]')
+        logger.user_info('[Listening ...]')
 
     @animation
     def listen(
