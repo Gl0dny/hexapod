@@ -33,43 +33,50 @@ class LightsInteractionHandler:
         """
         Stop any running animation and reset the animation attribute.
         """
-        logger.debug("Stopping any running animation.")
         if hasattr(self, 'animation') and self.animation:
-            logger.debug("An animation is currently running. Stopping it.")
+            logger.debug(f"Stopping currently running animation {self.animation}")
             self.animation.stop_animation()
             self.animation = None
-            logger.info("Animation stopped.")
         else:
             logger.debug("No active animation to stop.")
 
     def animation(method: Callable[..., Any]) -> Callable[..., Any]:
         """
-        Decorator to ensure that a method sets the 'self.animation' attribute.
+        Decorator to manage animations within methods.
+
+        This decorator ensures that the decorated method properly initializes and sets the 
+        `self.animation` attribute. After the method execution, it verifies that the 
+        `self.animation` attribute is set and starts the animation. If the `animation` 
+        attribute is not set, it logs an error and raises an `AttributeError`.
 
         Args:
-            method (function): The method to wrap.
+            method (Callable): The method to be wrapped by the decorator.
 
         Returns:
-            function: Wrapped method.
+            Callable: Wrapped method.
         """
         @wraps(method)
         def wrapper(self, *args, **kwargs):
-            logger.debug(f"Entering {method.__name__} method.")
-            method(self, *args, **kwargs)
+            logger.debug(f"Starting animation {method.__name__}.")
+            result = method(self, *args, **kwargs)
+            
             if not hasattr(self, 'animation') or self.animation is None:
                 logger.error(f"{method.__name__} must set 'self.animation' attribute.")
                 raise AttributeError(f"{method.__name__} must set 'self.animation' attribute")
-            logger.debug(f"Exiting {method.__name__} method.")
+            
+            logger.debug(f"'{method.__name__}' successfully set animation attribute: {self.animation}")
+            self.animation.start()
+
+            return result
         return wrapper
 
     def off(self) -> None:
         """
         Turn off the lights and stop any running animation.
         """
-        logger.debug("Turning off lights and stopping any running animation.")
         self.stop_animation()
         self.lights.clear()
-        logger.info("Lights turned off.")
+        logger.debug("Lights turned off.")
 
     def set_single_color(self, color: ColorRGB, led_index: Optional[int] = None) -> None:
         """
@@ -81,13 +88,11 @@ class LightsInteractionHandler:
         """
         self.off()
         if led_index is not None:
-            logger.debug(f"Setting LED {led_index} to color {color.name}.")
             self.lights.set_color(color, led_index=led_index)
-            logger.info(f"LED {led_index} set to {color.name}.")
+            logger.debug(f"LED {led_index} set to {color.name}.")
         else:
-            logger.debug(f"Setting all LEDs to color {color.name}.")
             self.lights.set_color(color)
-            logger.info(f"All LEDs set to {color.name}.")
+            logger.debug(f"All LEDs set to {color.name}.")
 
     def set_brightness(self, brightness: int) -> None:
         """
@@ -96,9 +101,8 @@ class LightsInteractionHandler:
         Args:
             brightness (int): The brightness level (0-100).
         """
-        logger.debug(f"Setting brightness to {brightness}%.")
         self.lights.set_brightness(brightness)
-        logger.info(f"Brightness set to {brightness}%.")
+        logger.debug(f"Brightness set to {brightness}%.")
 
     @animation
     def rainbow(
@@ -123,7 +127,6 @@ class LightsInteractionHandler:
             color=color if color else ColorRGB.WHITE,
             interval=interval,
         )
-        self.animation.start()
 
     @animation
     def listen_wakeword(
@@ -148,7 +151,6 @@ class LightsInteractionHandler:
             pulse_color=pulse_color,
             pulse_speed=pulse_speed
         )
-        self.animation.start()
 
     @animation
     def listen_intent(
@@ -173,7 +175,6 @@ class LightsInteractionHandler:
             color_odd=color_odd,
             delay=delay
         )
-        self.animation.start()
 
     @animation
     def think(
@@ -195,8 +196,6 @@ class LightsInteractionHandler:
             interval=interval,
             color=color,
         )
-        logger.debug("OppositeRotateAnimation instance created.")
-        self.animation.start()
 
     @animation
     def speak(self) -> None:
@@ -224,8 +223,6 @@ class LightsInteractionHandler:
             pulse_color=ColorRGB.RED,
             pulse_speed=pulse_speed
         )
-        logger.debug("PulseAnimation instance created.")
-        self.animation.start()
 
     @animation
     def shutdown(self, interval: float = 1.2) -> None:
@@ -243,8 +240,6 @@ class LightsInteractionHandler:
             color=ColorRGB.RED,
             interval=interval
         )
-        logger.debug("WheelFillAnimation instance created.")
-        self.animation.start()
 
     def update_calibration_leds_status(self, calibration_status: Dict[int, str]) -> None:
         """
@@ -260,5 +255,3 @@ class LightsInteractionHandler:
             calibration_status=calibration_status,
             leg_to_led=self.leg_to_led
         )
-        self.animation.start()
-        logger.debug("update_calibration_leds_status method execution completed.")

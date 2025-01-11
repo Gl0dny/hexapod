@@ -39,13 +39,13 @@ class ControlInterface:
 
     def inject_hexapod(func: Callable[..., Any]) -> Callable[..., Any]:
         """
-        Decorator to inject self.hexapod into the decorated function.
+        Decorator to inject the Hexapod instance into the decorated method.
 
         Args:
             func (Callable): The function to decorate.
 
         Returns:
-            Callable: The decorated function with hexapod injected.
+            Callable: The decorated function with the hexapod injected.
         """
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -54,13 +54,13 @@ class ControlInterface:
 
     def inject_lights_handler(func: Callable[..., Any]) -> Callable[..., Any]:
         """
-        Decorator to inject self.lights_handler into the decorated function.
+        Decorator to inject the LightsInteractionHandler into the decorated method.
 
         Args:
             func (Callable): The function to decorate.
 
         Returns:
-            Callable: The decorated function with lights_handler injected.
+            Callable: The decorated function with the lights handler injected.
         """
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -69,7 +69,7 @@ class ControlInterface:
 
     def stop_control_task(self) -> None:
         """
-        Stop any running control_task and reset the control_task attribute.
+        Stop any running control task and reset the control_task attribute.
         """
         if hasattr(self, 'control_task') and self.control_task:
             logger.debug(f"Stopping existing control_task {self.control_task}.")
@@ -80,23 +80,33 @@ class ControlInterface:
 
     def control_task(method: Callable[..., Any]) -> Callable[..., Any]:
         """
-        Decorator to ensure that a method sets the 'self.control_task' attribute.
+        Decorator to manage the lifecycle of a ControlTask within a method.
+
+        This decorator ensures that the decorated method properly initializes and starts a 
+        `ControlTask`. It verifies that the method sets the `self.control_task` attribute 
+        and automatically starts the task after the method execution. If the `control_task` 
+        attribute is not set, it logs an error and raises an `AttributeError`.
 
         Args:
-            method (function): The method to wrap.
+            method (Callable): The method to be wrapped by the decorator.
 
         Returns:
-            function: Wrapped method.
+            Callable: Wrapped method.
         """
         @wraps(method)
         def wrapper(self, *args, **kwargs):
             logger.debug(f"Starting control task for method {method.__name__}.")
             result = method(self, *args, **kwargs)
+
             if not hasattr(self, 'control_task') or self.control_task is None:
-                logger.error(f"No control_task set by method {method.__name__}.")
+                logger.error(f"{method.__name__} must set 'self.control_task' attribute")
                 raise AttributeError(f"{method.__name__} must set 'self.control_task' attribute")
-            else:
-                logger.debug(f"control_task set by method {method.__name__}.")
+            
+            logger.debug(f"'{method.__name__}' successfully set control_task attribute: {self.control_task}")
+
+            logger.debug(f"Starting control task: {self.control_task}")
+            self.control_task.start()
+
             return result
         return wrapper
 
@@ -108,7 +118,7 @@ class ControlInterface:
             func (Callable): The function to decorate.
 
         Returns:
-            Callable: The decorated function with voice command stored.
+            Callable: The decorated function with the voice command stored.
         """
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -118,7 +128,7 @@ class ControlInterface:
 
     def set_task_complete_callback(self, callback: Callable[[ControlTask], None]) -> None:
         """
-        Sets the callback to be invoked when a ControlTask completes.
+        Set the callback to be invoked upon the completion of a ControlTask.
 
         Args:
             callback (Callable[[ControlTask], None]): The callback function.
@@ -128,7 +138,7 @@ class ControlInterface:
 
     def _notify_task_completion(self, task: ControlTask) -> None:
         """
-        Internal method to notify when a task is completed.
+        Notify when a task is completed by invoking the callback.
 
         Args:
             task (ControlTask): The task that has completed.
@@ -139,7 +149,7 @@ class ControlInterface:
     @voice_command
     def hexapod_help(self) -> None:
         """
-        Provide help information and set lights to ready state.
+        Provide help information and set the lights to the ready state.
         """
         if getattr(self, 'voice_control_context_info', None):
             logger.user_info(f"Picovoice Context Info:\n {self.voice_control_context_info}")
@@ -150,10 +160,10 @@ class ControlInterface:
     @voice_command
     def system_status(self) -> None:
         """
-        Reports the current system status.
+        Report the current system status.
 
         Raises:
-            NotImplementedError: If the method is not yet implemented.
+            NotImplementedError: If the system_status method is not yet implemented.
         """
         # Implement system status reporting
         # Example: Return current status of all modules
@@ -164,7 +174,7 @@ class ControlInterface:
     @inject_hexapod
     def shut_down(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the shutdown sequence with a delay, allowing for cancellation.
+        Initiate the shutdown sequence with a delay, allowing for cancellation.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -193,11 +203,11 @@ class ControlInterface:
     
     def _shutdown_monitor(self, shutdown_timer: threading.Timer, input_handler: InputHandler) -> None:
         """
-        Monitor shutdown to allow cancellation.
+        Monitor the shutdown process to allow for cancellation based on user input.
 
         Args:
-            shutdown_timer (threading.Timer): Timer for scheduled shutdown.
-            input_handler (InputHandler): Handles user input in a thread safe way.
+            shutdown_timer (threading.Timer): Timer for the scheduled shutdown.
+            input_handler (InputHandler): Handles user input in a thread-safe manner.
         """
         try:
             while shutdown_timer.is_alive():
@@ -221,7 +231,7 @@ class ControlInterface:
 
     def _perform_shutdown(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Perform system shutdown sequence.
+        Execute the system shutdown sequence.
 
         Args:
             hexapod (Hexapod): Hexapod instance to deactivate.
@@ -238,7 +248,7 @@ class ControlInterface:
     @inject_hexapod
     def emergency_stop(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates an emergency stop to halt all activities.
+        Initiate an emergency stop to halt all activities.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -252,7 +262,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
         except Exception as e:
             logger.exception(f"Emergency stop failed: {e}")
 
@@ -262,7 +271,7 @@ class ControlInterface:
     @inject_hexapod
     def wake_up(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Activates the robot from a sleep state.
+        Activate the robot from a sleep state.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -277,7 +286,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            self.control_task.start()
             logger.user_info("Robot activated")
             
         except Exception as e:
@@ -289,7 +297,7 @@ class ControlInterface:
     @inject_hexapod
     def sleep(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Deactivates the robot and puts it into a sleep state.
+        Deactivate the robot and put it into a sleep state.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -304,7 +312,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            self.control_task.start()
             logger.user_info("Robot deactivated")
             
         except Exception as e:
@@ -316,7 +323,7 @@ class ControlInterface:
     @inject_hexapod
     def calibrate(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the calibration process in a separate thread to avoid blocking other activities.
+        Initiate the calibration process in a separate thread to avoid blocking other activities.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -332,7 +339,6 @@ class ControlInterface:
                 self.maintenance_mode_event, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            self.control_task.start()
             logger.user_info("Calibration process started.")
         
         except Exception as e:
@@ -344,7 +350,7 @@ class ControlInterface:
     @inject_hexapod
     def run_sequence(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, sequence_name: str) -> None:
         """
-        Executes a predefined sequence of tasks.
+        Execute a predefined sequence of tasks.
 
         Args:
             hexapod (Hexapod): The hexapod object to control.
@@ -361,7 +367,6 @@ class ControlInterface:
                 sequence_name, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
         except Exception as e:
             logger.exception(f"Run sequence '{sequence_name}' failed: {e}")
 
@@ -396,8 +401,8 @@ class ControlInterface:
     @inject_lights_handler
     def turn_lights(self, lights_handler: LightsInteractionHandler, switch_state: str) -> None:
         """
-        Turns the lights on or off based on the switch state.
-        
+        Turn the lights on or off based on the switch state.
+
         Args:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             switch_state (str): State to switch the lights to ('on' or 'off').
@@ -413,8 +418,8 @@ class ControlInterface:
     @inject_lights_handler
     def change_color(self, lights_handler: LightsInteractionHandler, color: str) -> None:
         """
-        Changes the color of the lights.
-        
+        Change the color of the lights.
+
         Args:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             color (str): The color to change the lights to.
@@ -430,7 +435,7 @@ class ControlInterface:
     @inject_lights_handler
     def set_brightness(self, lights_handler: LightsInteractionHandler, brightness_percentage: float) -> None:
         """
-        Sets the brightness of the lights.
+        Set the brightness of the lights.
 
         Args:
             lights_handler (LightsInteractionHandler): The lights handler instance.
@@ -443,7 +448,7 @@ class ControlInterface:
     @inject_hexapod
     def set_speed(self, hexapod: Hexapod, speed_percentage: float) -> None:
         """
-        Sets the speed of all servos.
+        Set the speed of all servos.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -456,7 +461,7 @@ class ControlInterface:
     @inject_hexapod
     def set_acceleration(self, hexapod: Hexapod, accel_percentage: float) -> None:
         """
-        Sets the acceleration of all servos.
+        Set the acceleration of all servos.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -471,7 +476,7 @@ class ControlInterface:
     @inject_hexapod
     def set_low_profile_mode(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates low-profile mode in a separate thread.
+        Initiate low-profile mode in a separate thread.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -486,7 +491,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            self.control_task.start()
 
         except Exception as e:
             logger.exception(f"Setting low profile mode failed: {e}")
@@ -497,7 +501,7 @@ class ControlInterface:
     @inject_hexapod
     def set_upright_mode(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates upright mode in a separate thread.
+        Initiate upright mode in a separate thread.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -512,7 +516,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            self.control_task.start()
             
         except Exception as e:
             logger.exception(f"Setting upright mode failed: {e}")
@@ -523,7 +526,7 @@ class ControlInterface:
     @inject_hexapod
     def idle_stance(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the idle stance by setting the hexapod to the home position.
+        Initiate the idle stance by setting the hexapod to the home position.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -537,7 +540,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            self.control_task.start()
                 
         except Exception as e:
             logger.exception(f"Setting idle stance failed: {e}")
@@ -548,7 +550,7 @@ class ControlInterface:
     @inject_hexapod
     def move(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, direction: str) -> None:
         """
-        Initiates a move in the specified direction.
+        Initiate a move in the specified direction.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -564,7 +566,6 @@ class ControlInterface:
                 direction, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
             print(f"Moving {direction}.")
         except Exception as e:
             logger.exception(f"Move task failed: {e}")
@@ -575,7 +576,7 @@ class ControlInterface:
     @inject_hexapod
     def stop(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Stops all current activities.
+        Stop all current activities.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -590,7 +591,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
             print("Stop executed.")
         except Exception as e:
             logger.exception(f"Stop task failed: {e}")
@@ -601,7 +601,7 @@ class ControlInterface:
     @inject_hexapod
     def rotate(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, angle: Optional[float] = None, direction: Optional[str] = None) -> None:
         """
-        Rotates the hexapod by a specified angle or direction.
+        Rotate the hexapod by a specified angle or direction.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -619,7 +619,6 @@ class ControlInterface:
                 direction, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
             if angle:
                 logger.user_info(f"Rotating {angle} degrees.")
             elif direction:
@@ -633,7 +632,7 @@ class ControlInterface:
     @inject_hexapod
     def follow(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates a follow task to follow a target.
+        Initiate a follow task to follow a target.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -648,7 +647,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
             print("Follow task started.")
         except Exception as e:
             logger.exception(f"Follow task failed: {e}")
@@ -659,7 +657,7 @@ class ControlInterface:
     @inject_hexapod
     def sound_source_analysis(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates sound source analysis.
+        Initiate sound source analysis.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -673,7 +671,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
             logger.user_info("Sound source analysis started.")
         except Exception as e:
             logger.exception(f"Sound source analysis task failed: {e}")
@@ -684,7 +681,7 @@ class ControlInterface:
     @inject_hexapod
     def direction_of_arrival(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Calculates the direction of arrival of a sound.
+        Calculate the direction of arrival of a sound.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -699,7 +696,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
         except Exception as e:
             logger.exception(f"Direction of arrival task failed: {e}")
             
@@ -707,7 +703,7 @@ class ControlInterface:
     @inject_lights_handler
     def police(self, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the police pulsing animation.
+        Initiate the police pulsing animation.
 
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
@@ -723,7 +719,7 @@ class ControlInterface:
     @inject_lights_handler
     def rainbow(self, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the rainbow animation.
+        Initiate the rainbow animation.
 
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
@@ -741,7 +737,7 @@ class ControlInterface:
     @inject_hexapod
     def sit_up(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the sit-up routine.
+        Initiate the sit-up routine.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -756,7 +752,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
         except Exception as e:
             logger.exception(f"Sit-up task failed: {e}")
 
@@ -766,7 +761,7 @@ class ControlInterface:
     @inject_hexapod
     def dance(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the dance routine.
+        Initiate the dance routine.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -781,7 +776,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
         except Exception as e:
             logger.exception(f"Dance task failed: {e}")
 
@@ -791,7 +785,7 @@ class ControlInterface:
     @inject_hexapod
     def helix(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the helix maneuver using HelixTask.
+        Initiate the helix maneuver using HelixTask.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -800,12 +794,12 @@ class ControlInterface:
         try:
             if self.control_task:
                 self.control_task.stop_task()
+
             self.control_task = HelixTask(
                 hexapod, 
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            self.control_task.start()
             
         except Exception as e:
             logger.exception(f"Helix maneuver failed: {e}")
@@ -816,7 +810,7 @@ class ControlInterface:
     @inject_hexapod
     def show_off(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Initiates the show-off routine.
+        Initiate the show-off routine.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -831,7 +825,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
         except Exception as e:
             logger.exception(f"Show-off task failed: {e}")
 
@@ -841,7 +834,7 @@ class ControlInterface:
     @inject_hexapod
     def say_hello(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Executes the say hello task.
+        Execute the say hello task.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
@@ -856,21 +849,19 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            # self.control_task.start()
         except Exception as e:
             logger.exception(f"Say hello task failed: {e}")
 
     # @voice_command
     # def pause_voice_control(self) -> None:
     #     """
-    #     Pauses the voice control functionality.
+    #     Pause the voice control functionality.
     #     """
     #     self.voice_control.pause()
 
     # @voice_command
     # def unpause_voice_control(self) -> None:
     #     """
-    #     Unpauses the voice control functionality.
+    #     Unpause the voice control functionality.
     #     """
     #     self.voice_control.unpause()
-    

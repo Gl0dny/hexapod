@@ -73,11 +73,7 @@ def main() -> None:
 
     setup_logging(log_dir=args.log_dir, config_file=args.log_config_file)
 
-    logger.user_info("Application started")
-
-    # for thread in threading.enumerate():
-    #     logger.user_info(f"{thread.name}, {thread.is_alive()}")
-    # print("---")
+    logger.user_info("Hexapod application started")
 
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
@@ -119,16 +115,17 @@ def main() -> None:
         logger.critical("KeyboardInterrupt detected, initiating shutdown")
         sys.stdout.write('\b' * 2)
         logger.critical('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
+
+        for thread in threading.enumerate():
+            logger.user_info(f"{thread.name}, {thread.is_alive()}")
+        print("---")
+
         control_interface.stop_control_task()
         voice_control.stop()
         voice_control.join()
         control_interface.lights_handler.off()
         logger.debug("Shutdown tasks completed")
     finally:
-        for thread in threading.enumerate():
-            logger.user_info(f"{thread.name}, {thread.is_alive()}")
-            print("---")
-
         time.sleep(1)
         control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
         control_interface.hexapod.deactivate_all_servos()
