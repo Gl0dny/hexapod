@@ -15,7 +15,7 @@ from robot.hexapod import Hexapod
 from control.control_tasks import *
 from interface.input_handler import InputHandler
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("control_logger")
 
 class ControlInterface:
     """

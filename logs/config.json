@@ -3,11 +3,12 @@
     "disable_existing_loggers": false,
     "formatters": {
         "simple": {
+            "class": "src.utils.logger.CenteredStringFormatter",
             "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         },
         "detailed": {
             "class": "src.utils.logger.CenteredStringFormatter",
-            "format": "[%(levelname)-8s - %(module)-18s - %(threadName)-12s - %(funcName)-30s - Line: %(lineno)-4d] - %(asctime)s - %(message)s",
+            "format": "[%(levelname)s - %(module)s - %(threadName)s - %(funcName)s - Line: %(lineno)-4d] - %(asctime)s - %(message)s",
             "datefmt": "%Y-%m-%dT%H:%M:%S%z"
         },
         "json": {
@@ -24,11 +25,45 @@
             }
         }
     },
+    "filters": {
+        "main_filter": {
+            "class": "logging.Filter",
+            "name": "main_logger"
+        },
+        "control_filter": {
+            "class": "logging.Filter",
+            "name": "control_logger"
+        },
+        "imu_filter": {
+            "class": "logging.Filter",
+            "name": "imu_logger"
+        },
+        "interface_filter": {
+            "class": "logging.Filter",
+            "name": "interface_logger"
+        },
+        "kws_filter": {
+            "class": "logging.Filter",
+            "name": "kws_logger"
+        },
+        "lights_filter": {
+            "class": "logging.Filter",
+            "name": "lights_logger"
+        },
+        "maestro_filter": {
+            "class": "logging.Filter",
+            "name": "maestro_logger"
+        },
+        "robot_filter": {
+            "class": "logging.Filter",
+            "name": "robot_logger"
+        }
+    },
     "handlers": {
         "stdout": {
             "class": "logging.StreamHandler",
-            "level": "DEBUG",
-            "formatter": "detailed",
+            "level": "USER_INFO",
+            "formatter": "simple",
             "stream": "ext://sys.stdout"
         },
         "stderr": {
@@ -37,18 +72,91 @@
             "formatter": "simple",
             "stream": "ext://sys.stderr"
         },
-        "file": {
+        "main_logger": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "detailed",
-            "filename": "logs/app.log",
+            "filename": "logs/main.log",
             "maxBytes": 10485760,
-            "backupCount": 5
+            "backupCount": 5,
+            "filters": ["main_filter"]
+        },
+        "control_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "logs/control.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["control_filter"]
+        },
+        "imu_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "logs/imu.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["imu_filter"]
+        },
+        "interface_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "logs/interface.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["interface_filter"]
+        },
+        "kws_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "logs/kws.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["kws_filter"]
+        },
+        "lights_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "logs/lights.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["lights_filter"]
+        },
+        "maestro_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "logs/maestro.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["maestro_filter"]
+        },
+        "robot_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "detailed",
+            "filename": "logs/robot.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["robot_filter"]
         },
         "queue_handler": {
             "class": "logging.handlers.QueueHandler",
             "level": "DEBUG",
-            "handlers": ["stderr", "file"],
+            "handlers": [
+                "main_logger",
+                "control_logger",
+                "imu_logger",
+                "interface_logger",
+                "kws_logger",
+                "lights_logger",
+                "maestro_logger",
+                "robot_logger"
+            ],
             "respect_handler_level": true
         }
     },
@@ -56,6 +164,46 @@
         "root": {
             "level": "DEBUG",
             "handlers": ["queue_handler"]
+        },
+        "main_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "control_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "imu_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "interface_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "kws_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "lights_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "maestro_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "robot_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
         }
     }
 }

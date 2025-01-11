@@ -13,7 +13,7 @@ from robot import Leg, Joint, Calibration, GaitGenerator
 from imu import Imu
 from utils import map_range
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("robot_logger")
 
 class PredefinedAnglePosition(Enum):
     HOME = 'home'

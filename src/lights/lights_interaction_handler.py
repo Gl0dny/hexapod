@@ -4,7 +4,7 @@ from functools import wraps
 from lights import Lights, ColorRGB
 from .animation import *
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("lights_logger")
 
 class LightsInteractionHandler:
     """

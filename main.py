@@ -5,6 +5,7 @@ import logging.config
 import pathlib
 import json
 import atexit
+import threading
 
 from src.kws import VoiceControl
 from src.control import ControlInterface
@@ -13,7 +14,8 @@ from src.robot import PredefinedAnglePosition, PredefinedPosition
 from pathlib import Path
 from src.utils import logger
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("main_logger")
+logger2 = logging.getLogger("control_logger")
 
 def setup_logging() -> None:
     logs_dir = pathlib.Path("logs")
@@ -29,13 +31,13 @@ def setup_logging() -> None:
             logging.config.dictConfig(json.load(f))
         queue_handler = logging.getHandlerByName("queue_handler")
         if queue_handler is not None:
-            logger.info("Starting queue handler listener...")
+            logger.debug("Starting queue handler listener...")
             queue_handler.listener.start()
+            queue_handler.listener._thread.name = "QueueHandlerListener"
             atexit.register(queue_handler.listener.stop)
-            logger.debug("Queue handler listener started and registered for shutdown")
     else:
         logging.basicConfig(level=logging.INFO)
-        logger.debug(f"Logging configuration file not found at {config_file}")
+        logger.warning(f"Logging configuration file not found at {config_file}")
         logger.debug("Using basic logging configuration")
 
 def parse_arguments() -> argparse.Namespace:
@@ -63,7 +65,7 @@ def clean_logs() -> None:
         logger.warning(f"Logs directory not found at {logs_dir}")
 
 def main() -> None:
-    logger.info("Application started")
+    logger.warning("Application started")
     args = parse_arguments()
 
     if args.clean:
@@ -71,6 +73,9 @@ def main() -> None:
         clean_logs()
 
     setup_logging()
+
+    # for thread in threading.enumerate():
+    #     logger.info(f"{thread.name}, {thread.is_alive()}")
 
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')

@@ -5,7 +5,7 @@ import sys
 import select
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("interface_logger")
 
 class InputHandler:
     def __init__(self):

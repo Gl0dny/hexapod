@@ -40,7 +40,7 @@ COMMAND_GO_HOME: int = 0x22
 COMMAND_GET_MOVING_STATE: int = 0x13
 COMMAND_SET_MULTIPLE_TARGETS: int = 0x1F
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("maestro_logger")
 
 class MaestroUART(object):
 	def __init__(self, device: str = '/dev/ttyS0', baudrate: int = 9600) -> None:

@@ -12,7 +12,7 @@ from pvrecorder import PvRecorder
 from kws.intent_dispatcher import IntentDispatcher
 from control import ControlInterface
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("kws_logger")
 
 class VoiceControl(threading.Thread):
     """

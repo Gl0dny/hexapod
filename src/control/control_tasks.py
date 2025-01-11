@@ -2,10 +2,10 @@ import threading
 import abc
 from lights import ColorRGB
 import logging
-from typing import Callable, Any, Optional
+from typing import Any, Optional, override
 from robot.hexapod import PredefinedPosition, PredefinedAnglePosition
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("control_logger")
 
 class ControlTask(abc.ABC):
     """
@@ -66,6 +66,7 @@ class EmergencyStopTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Deactivates all servos and stops the task.
@@ -98,6 +99,7 @@ class WakeUpTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Ramps up brightness, plays rainbow effect, and moves to HOME.
@@ -132,6 +134,7 @@ class SleepTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Sets brightness to low, grays out lights, and deactivates servos.
@@ -168,6 +171,7 @@ class CompositeCalibrationTask(ControlTask):
         self.run_calibration_task = RunCalibrationTask(hexapod)
         self.monitor_calibration_task = MonitorCalibrationStatusTask(hexapod, lights_handler)
 
+    @override
     def run(self) -> None:
         """
         Starts RunCalibrationTask and MonitorCalibrationStatusTask.
@@ -186,6 +190,7 @@ class CompositeCalibrationTask(ControlTask):
             self.control_interface.maintenance_mode_event.clear()
             logger.info("CompositeCalibrationTask completed.")
 
+    @override
     def stop_task(self) -> None:
         """
         Stops RunCalibrationTask and MonitorCalibrationStatusTask.
@@ -209,6 +214,7 @@ class MonitorCalibrationStatusTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Checks if all legs are calibrated and stops if so.
@@ -245,6 +251,7 @@ class RunCalibrationTask(ControlTask):
         super().__init__()
         self.hexapod = hexapod
 
+    @override
     def run(self) -> None:
         """
         Calibrates all servos and moves to 'home' upon completion.
@@ -283,6 +290,7 @@ class RunSequenceTask(ControlTask):
             # Add more sequences as needed
         }
 
+    @override
     def run(self) -> None:
         """
         Runs the tasks associated with the selected sequence.
@@ -319,6 +327,7 @@ class LowProfileTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Sets the hexapod to a low-profile mode position.
@@ -353,6 +362,7 @@ class UprightModeTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Sets the hexapod to an upright mode position.
@@ -387,6 +397,7 @@ class IdleStanceTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Sets the hexapod to the home position.
@@ -420,6 +431,7 @@ class MoveTask(ControlTask):
         self.hexapod = hexapod
         self.direction = direction
 
+    @override
     def run(self) -> None:
         """
         Moves the hexapod in the specified direction.
@@ -448,6 +460,7 @@ class StopTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Stops all ongoing tasks, deactivates servos, and turns off lights.
@@ -490,6 +503,7 @@ class RotateTask(ControlTask):
         self.angle = angle
         self.direction = direction
 
+    @override
     def run(self) -> None:
         """
         Rotates the hexapod based on the provided angle or direction.
@@ -524,6 +538,7 @@ class FollowTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Starts following a target and manages lights accordingly.
@@ -553,6 +568,7 @@ class SoundSourceAnalysisTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Analyzes sound sources and updates lights accordingly.
@@ -582,6 +598,7 @@ class DirectionOfArrivalTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Calculates the direction of arrival of sounds and updates lights.
@@ -612,6 +629,7 @@ class SitUpTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Performs the sit-up routine.
@@ -641,6 +659,7 @@ class DanceTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Performs the dance routine.
@@ -684,6 +703,7 @@ class HelixTask(ControlTask):
             'helix_maximum': helix_max_positions,
         }
 
+    @override
     def run(self) -> None:
         """
         Performs a helix maneuver by moving to helix_minimum and then to helix_maximum positions.
@@ -733,6 +753,7 @@ class ShowOffTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Performs the show-off routine.
@@ -762,6 +783,7 @@ class SayHelloTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
+    @override
     def run(self) -> None:
         """
         Makes the hexapod say hello.

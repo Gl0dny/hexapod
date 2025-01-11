@@ -4,7 +4,7 @@ from lights.apa102 import APA102
 from typing import Tuple, Optional
 from enum import Enum
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("lights_logger")
 
 class ColorRGB(Enum):
     """

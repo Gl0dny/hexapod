@@ -6,7 +6,7 @@ from typing import Optional
 from interface.input_handler import InputHandler
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("robot_logger")
 
 class Calibration:
     def __init__(self, hexapod, calibration_data_path: Path) -> None:

@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, Callable, Any
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("kws_logger")
 
 class IntentDispatcher:
     """

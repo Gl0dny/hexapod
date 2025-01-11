@@ -1,10 +1,10 @@
 import threading
 import abc
-from typing import Optional
+from typing import Optional, override
 from lights import Lights, ColorRGB 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("lights_logger")
 
 class Animation(abc.ABC):
     """
@@ -90,6 +90,7 @@ class AlternateRotateAnimation(Animation):
         self.positions: int = positions
         logger.debug("AlternateRotateAnimation initialized.")
 
+    @override
     def run(self) -> None:
         """
         Run the animation logic.
@@ -142,6 +143,7 @@ class WheelFillAnimation(Animation):
         self.interval: float = interval
         logger.debug("WheelFillAnimation initialized.")
 
+    @override
     def run(self) -> None:
         """
         Run the animation logic.
@@ -185,6 +187,7 @@ class PulseSmoothlyAnimation(Animation):
         self.pulse_color: ColorRGB = pulse_color
         self.pulse_speed: float = pulse_speed
 
+    @override
     def run(self) -> None:
         """
         Run the animation logic.
@@ -241,6 +244,7 @@ class PulseAnimation(Animation):
         self.pulse_color: ColorRGB = pulse_color
         self.pulse_speed: float = pulse_speed
 
+    @override
     def run(self) -> None:
         """
         Run the animation logic.
@@ -288,6 +292,7 @@ class WheelAnimation(Animation):
         self.color: Optional[ColorRGB] = color
         self.interval: float = interval
 
+    @override
     def run(self) -> None:
         """
         Run the animation logic.
@@ -338,6 +343,7 @@ class OppositeRotateAnimation(Animation):
         self.color: ColorRGB = color
         self.direction: int = self.FORWARD
 
+    @override
     def run(self) -> None:
         """
         Run the animation logic.

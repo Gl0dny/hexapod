@@ -1,6 +1,9 @@
 
 import threading
 import time
+import logging
+
+logger = logging.getLogger("robot_logger")
 
 class GaitGenerator:
     def __init__(self, hexapod: 'Hexapod') -> None:

@@ -3,7 +3,7 @@ import logging
 from robot import Joint
 from typing import Optional, Tuple
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("robot_logger")
 
 # Define constants for angle offsets
 FEMUR_ANGLE_OFFSET = -90
