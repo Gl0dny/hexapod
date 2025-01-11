@@ -5,6 +5,7 @@ from typing import override
 
 USER_INFO_LEVEL = 25
 logging.addLevelName(USER_INFO_LEVEL, "USER_INFO")
+logging.USER_INFO = USER_INFO_LEVEL
 
 def user_info(self, message, *args, **kwargs):
     if self.isEnabledFor(USER_INFO_LEVEL):
@@ -50,10 +51,49 @@ class MyJSONFormatter(logging.Formatter):
 
         return message
     
-class CenteredStringFormatter(logging.Formatter):
+class VerboseFormatter(logging.Formatter):
+    def __init__(self, fmt=None, datefmt=None, style='%', validate=True):
+        if fmt is None:
+            fmt = "[%(levelname)s - %(module)s - %(threadName)s - %(funcName)s - Line: %(lineno)-4d] - %(asctime)s - %(message)s"
+        if datefmt is None:
+            datefmt = "%Y-%m-%dT%H:%M:%S%z"
+        super().__init__(fmt=fmt, datefmt=datefmt, style=style, validate=validate)
+    
     def format(self, record):
         record.levelname = f"{record.levelname:^9}"
         record.module = f"{record.module:^30}"
         record.threadName = f"{record.threadName:^30}"
         record.funcName = f"{record.funcName:^30}"
         return super().format(record)
+    
+ANSI_COLORS = {
+    'BLUE': '\033[94m',
+    'GREEN': '\033[92m',
+    'CYAN': '\033[96m',
+    'YELLOW': '\033[93m',
+    'RED': '\033[91m',
+    'BOLD_RED': '\033[1;31m',
+    'MAGENTA': '\033[95m',
+    'ORANGE': '\033[38;5;208m',
+    'PINK': '\033[38;5;205m',
+}
+
+RESET_COLOR = '\033[0m'
+
+FMT = "[{levelname:^9} - {module:^30} - {asctime}] - {message}"
+
+FORMATS = {
+    logging.DEBUG: FMT,
+    logging.INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
+    logging.USER_INFO: f"{ANSI_COLORS['CYAN']}{FMT}{RESET_COLOR}",
+    logging.WARNING: f"{ANSI_COLORS['YELLOW']}{FMT}{RESET_COLOR}",
+    logging.ERROR: f"{ANSI_COLORS['RED']}{FMT}{RESET_COLOR}",
+    logging.CRITICAL: f"{ANSI_COLORS['BOLD_RED']}{FMT}{RESET_COLOR}",
+}
+
+class ColoredTerminalFormatter(logging.Formatter):
+    def format(self, record):
+        log_fmt = FORMATS[record.levelno]
+        log_fmt = FORMATS[record.levelno]
+        formatter = logging.Formatter(log_fmt, style="{")
+        return formatter.format(record)

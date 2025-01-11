@@ -2,12 +2,9 @@ version: 1
 disable_existing_loggers: false
 formatters:
   simple:
-    class: src.utils.logger.CenteredStringFormatter
-    format: "%(asctime)s - %(module)s - %(levelname)s - %(message)s"
-  detailed:
-    class: src.utils.logger.CenteredStringFormatter
-    format: "[%(levelname)s - %(module)s - %(threadName)s - %(funcName)s - Line: %(lineno)-4d] - %(asctime)s - %(message)s"
-    datefmt: "%Y-%m-%dT%H:%M:%S%z"
+    class: src.utils.logger.ColoredTerminalFormatter
+  verbose:
+    class: src.utils.logger.VerboseFormatter
   json:
     "()": src.utils.logger.MyJSONFormatter
     fmt_keys:
@@ -58,7 +55,7 @@ handlers:
   main_logger:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: verbose
     filename: main.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
@@ -67,7 +64,7 @@ handlers:
   control_logger:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: verbose
     filename: control.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
@@ -76,7 +73,7 @@ handlers:
   imu_logger:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: verbose
     filename: imu.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
@@ -85,7 +82,7 @@ handlers:
   interface_logger:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: verbose
     filename: interface.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
@@ -94,7 +91,7 @@ handlers:
   kws_logger:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: verbose
     filename: kws.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
@@ -103,7 +100,7 @@ handlers:
   lights_logger:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: verbose
     filename: lights.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
@@ -112,7 +109,7 @@ handlers:
   maestro_logger:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: verbose
     filename: maestro.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
@@ -121,7 +118,7 @@ handlers:
   robot_logger:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: verbose
     filename: robot.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
