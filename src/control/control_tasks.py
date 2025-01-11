@@ -116,7 +116,7 @@ class WakeUpTask(ControlTask):
             logger.exception(f"Error in Wake up task: {e}")
         finally:
             logger.info("WakeUpTask completed")
-            # self.lights_handler.ready()
+            # self.lights_handler.listen_wakeword()
             pass
 
 class SleepTask(ControlTask):
@@ -345,7 +345,7 @@ class LowProfileTask(ControlTask):
 
         finally:
             logger.info("LowProfileTask completed")
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
 
 class UprightModeTask(ControlTask):
     """
@@ -380,7 +380,7 @@ class UprightModeTask(ControlTask):
             
         finally:
             logger.info("UprightModeTask completed")
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
 
 class IdleStanceTask(ControlTask):
     """
@@ -414,7 +414,7 @@ class IdleStanceTask(ControlTask):
 
         finally:
             logger.info("IdleStanceTask completed")
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
 
 class MoveTask(ControlTask):
     """
@@ -547,7 +547,7 @@ class FollowTask(ControlTask):
         try:
             logger.info("Starting follow task.")
             # self.hexapod.start_following()
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
         except Exception as e:
             logger.exception(f"Follow task failed: {e}")
         finally:
@@ -577,7 +577,7 @@ class SoundSourceAnalysisTask(ControlTask):
         try:
             logger.info("Starting sound source analysis.")
             # self.hexapod.analyze_sound_sources()
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
         except Exception as e:
             logger.exception(f"Sound source analysis task failed: {e}")
         finally:
@@ -608,7 +608,7 @@ class DirectionOfArrivalTask(ControlTask):
             logger.info("Calculating direction of arrival.")
             # direction = self.hexapod.calculate_direction_of_arrival()
             # logger.info(f"Sound is coming from: {direction}")
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
         except Exception as e:
             logger.exception(f"Direction of arrival task failed: {e}")
         finally:
@@ -638,7 +638,7 @@ class SitUpTask(ControlTask):
         try:
             logger.info("Performing sit-up routine.")
             # self.hexapod.perform_sit_up()
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
         except Exception as e:
             logger.exception(f"Sit-up task failed: {e}")
         finally:
@@ -668,7 +668,7 @@ class DanceTask(ControlTask):
         try:
             logger.info("Starting dance routine.")
             # self.hexapod.perform_dance()
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
         except Exception as e:
             logger.exception(f"Dance task failed: {e}")
         finally:
@@ -736,7 +736,7 @@ class HelixTask(ControlTask):
         finally:
             logger.user_info("HelixTask completed")
             self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
 
 class ShowOffTask(ControlTask):
     """
@@ -762,7 +762,7 @@ class ShowOffTask(ControlTask):
         try:
             logger.info("Performing show-off routine.")
             # self.hexapod.show_off()
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
         except Exception as e:
             logger.exception(f"Show-off task failed: {e}")
         finally:
@@ -792,7 +792,7 @@ class SayHelloTask(ControlTask):
         try:
             logger.info("Saying hello.")
             # self.hexapod.say_hello()
-            self.lights_handler.ready()
+            self.lights_handler.listen_wakeword()
         except Exception as e:
             logger.exception(f"Say hello task failed: {e}")
         finally:

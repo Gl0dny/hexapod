@@ -9,13 +9,13 @@ formatters:
     "()": src.utils.logger.MyJSONFormatter
     fmt_keys:
       level: levelname
-      message: message
-      timestamp: timestamp
       logger: name
       module: module
+      thread_name: threadName
       function: funcName
       line: lineno
-      thread_name: threadName
+      timestamp: timestamp
+      message: message
 filters:
   main_filter:
     class: logging.Filter

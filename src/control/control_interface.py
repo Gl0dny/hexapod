@@ -120,21 +120,16 @@ class ControlInterface:
         return wrapper
 
     @voice_command
-    @inject_lights_handler
-    def hexapod_help(self, lights_handler: LightsInteractionHandler) -> None:
+    def hexapod_help(self) -> None:
         """
         Provide help information and set lights to ready state.
-
-        Args:
-            lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         logger.debug("Entering hexapod_help method.")
-        logger.info("Executing help.")
         if getattr(self, 'voice_control_context_info', None):
-            print(f"Picovoice Context Info: {self.voice_control_context_info}")
+            logger.user_info(f"Picovoice Context Info:\n {self.voice_control_context_info}")
         else:
-            print("No context information available.")
-        lights_handler.ready()
+            logger.warning("No context information available.")
+        self.set_listening_animation()
         logger.debug("Exiting hexapod_help method.")
 
     @voice_command
@@ -354,21 +349,17 @@ class ControlInterface:
             logger.error(f"Run sequence '{sequence_name}' failed: {e}")
         logger.debug(f"Exiting run_sequence method for sequence_name={sequence_name}.")
 
-    @inject_lights_handler
-    def repeat_last_command(self, lights_handler: LightsInteractionHandler) -> None:
+    def repeat_last_command(self) -> None:
         """
         Repeat the last executed command.
-
-        Args:
-            lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         logger.debug("Entering repeat_last_command method.")
         if self._last_command:
-            logger.info(f"Repeating last command: {self._last_command.__name__}")
+            logger.user_info(f"Repeating last command: {self._last_command.__name__}")
             self._last_command(*self._last_args, **self._last_kwargs)
         else:
-            logger.info("No last command to repeat.")
-            lights_handler.ready()
+            logger.warning("No last command to repeat.")
+            self.set_listening_animation()
         logger.debug("Exiting repeat_last_command method.")
         
     def _store_last_command(self, func: MethodType, *args: Any, **kwargs: Any) -> None:
@@ -400,11 +391,11 @@ class ControlInterface:
         """
         logger.debug(f"Entering turn_lights method with switch_state={switch_state}.")
         if switch_state == 'off':
-            logger.info("Turning lights off")
+            logger.user_info("Turning lights off")
             lights_handler.off()
         else:
-            logger.info("Turning lights on")
-            lights_handler.ready()
+            logger.user_info("Turning lights on")
+            self.set_listening_animation()
         logger.debug("Exiting turn_lights method.")
 
     @voice_command
@@ -420,10 +411,10 @@ class ControlInterface:
         logger.debug(f"Entering change_color method with color={color}.")
         try:
             enum_color = ColorRGB[color.upper()]
-            logger.info(f"Switching color of the lights to {color}")
-            lights_handler.lights.set_color(enum_color)
+            logger.user_info(f"Switching color of the lights to {color}")
+            lights_handler.set_single_color(enum_color)
         except KeyError:
-            logger.error(f"Color '{color}' is not supported.")
+            logger.exception(f"Color '{color}' is not supported.")
         logger.debug("Exiting change_color method.")
 
     @voice_command
@@ -719,10 +710,10 @@ class ControlInterface:
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
-        logger.debug("Entering rainbow method.")
-        logger.info("Executing rainbow command.")
+        logger.debug("Entering rainbow method")
+        logger.user_info("Executing rainbow command")
         lights_handler.rainbow()
-        logger.debug("Exiting rainbow method.")
+        logger.debug("Exiting rainbow method")
 
     @voice_command
     @control_task
@@ -843,6 +834,14 @@ class ControlInterface:
             logger.error(f"Say hello task failed: {e}")
         logger.debug("Exiting say_hello method.")
 
+    @inject_lights_handler
+    def set_listening_animation(self, lights_handler: LightsInteractionHandler) -> None:
+        """
+        Calls lights_handler.ready() and prints "Listening...".
+        """
+        lights_handler.listen_wakeword()
+        logger.user_info("Listening...")
+
     # @voice_command
     # def pause_voice_control(self) -> None:
     #     """
@@ -856,3 +855,4 @@ class ControlInterface:
     #     Unpauses the voice control functionality.
     #     """
     #     self.voice_control.unpause()
+    

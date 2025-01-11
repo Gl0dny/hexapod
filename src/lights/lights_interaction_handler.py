@@ -123,25 +123,23 @@ class LightsInteractionHandler:
             interval=interval,
         )
         self.animation.start()
-        logger.info("Rainbow animation started.")
-        logger.debug("rainbow method execution completed.")
 
     @animation
-    def ready(
+    def listen_wakeword(
         self,
         base_color: ColorRGB = ColorRGB.BLUE,
         pulse_color: ColorRGB = ColorRGB.GREEN,
         pulse_speed: float = 0.05
         ) -> None:
         """
-        Start the ready animation.
+        Start the listen_wakeword animation.
 
         Args:
             base_color (ColorRGB): The base color of the LEDs.
             pulse_color (ColorRGB): The color to pulse.
             pulse_speed (float): The speed of the pulse.
         """
-        logger.debug("Starting ready animation.")
+        logger.debug("Starting listen_wakeword animation.")
         self.off()
         self.animation = PulseSmoothlyAnimation(
             lights=self.lights,
@@ -150,24 +148,23 @@ class LightsInteractionHandler:
             pulse_speed=pulse_speed
         )
         self.animation.start()
-        logger.user_info('[Listening ...]')
 
     @animation
-    def listen(
+    def listen_intent(
         self,
         color_even: ColorRGB = ColorRGB.INDIGO,
         color_odd: ColorRGB = ColorRGB.GREEN,
         delay: float = 0.15
     ) -> None:
         """
-        Start the listen animation.
+        Start the listen_intent animation.
 
         Args:
             color_even (ColorRGB): Initial color for even LEDs.
             color_odd (ColorRGB): Initial color for odd LEDs.
             delay (float): Delay between rotations.
         """
-        logger.debug("Starting listen animation.")
+        logger.debug("Starting listen_intent animation.")
         self.off()
         self.animation = AlternateRotateAnimation(
             lights=self.lights,
@@ -176,8 +173,6 @@ class LightsInteractionHandler:
             delay=delay
         )
         self.animation.start()
-        logger.info("Listen animation started.")
-        logger.debug("listen method execution completed.")
 
     @animation
     def think(
@@ -202,8 +197,6 @@ class LightsInteractionHandler:
         )
         logger.debug("OppositeRotateAnimation instance created.")
         self.animation.start()
-        logger.info("Think animation started.")
-        logger.debug("think method execution completed.")
 
     @animation
     def speak(self) -> None:
@@ -213,8 +206,6 @@ class LightsInteractionHandler:
         logger.debug("Starting speak animation.")
         self.off()
         self.animation = None  # Ensure animation is set to avoid AttributeError
-        logger.info("Speak animation initiated.")
-        logger.debug("speak method execution completed.")
         raise NotImplementedError("The 'speak' method is not implemented yet.")
 
     @animation
@@ -236,8 +227,6 @@ class LightsInteractionHandler:
         )
         logger.debug("PulseAnimation instance created.")
         self.animation.start()
-        logger.info("Police animation started.")
-        logger.debug("police method execution completed.")
 
     @animation
     def shutdown(self, interval: float = 1.2) -> None:
@@ -258,8 +247,6 @@ class LightsInteractionHandler:
         )
         logger.debug("WheelFillAnimation instance created.")
         self.animation.start()
-        logger.info("Shutdown animation initiated.")
-        logger.debug("shutdown method execution completed.")
 
     def update_calibration_leds_status(self, calibration_status: Dict[int, str]) -> None:
         """
@@ -271,7 +258,6 @@ class LightsInteractionHandler:
         logger.debug(f"Updating calibration LED statuses with calibration_status: {calibration_status}")
         # Current animation in progress; skip updating LEDs.
         if self.animation:
-            logger.debug("An animation is currently running. Skipping calibration LED update.")
             return
         
         for leg_index, led_index in self.leg_to_led.items():
@@ -285,5 +271,4 @@ class LightsInteractionHandler:
             else:
                 logger.debug(f"Not calibrated: Setting LED {led_index} to RED.")
                 self.set_single_color(ColorRGB.RED, led_index=led_index)
-        logger.info("Calibration LED statuses updated.")
         logger.debug("update_calibration_leds_status method execution completed.")

@@ -84,7 +84,7 @@ class VoiceControl(threading.Thread):
         Callback function invoked when the wake word is detected.
         """
         logger.user_info('[wake word]')
-        self.control_interface.lights_handler.listen()
+        self.control_interface.lights_handler.listen_intent()
 
     def _inference_callback(self, inference: Any) -> None:
         """
@@ -104,7 +104,7 @@ class VoiceControl(threading.Thread):
             self.intent_dispatcher.dispatch(inference.intent, inference.slots)
         else:
             logger.user_info("Inference not understood")
-            self.control_interface.lights_handler.ready()
+            self.control_interface.set_listening_animation()
 
     def pause(self) -> None:
         """
@@ -125,7 +125,7 @@ class VoiceControl(threading.Thread):
                 self.recorder.start()
             self.pause_event.set()
             logger.user_info('Voice control unpaused')
-            self.control_interface.lights_handler.ready()
+            self.control_interface.set_listening_animation()
 
     def stop(self):
         """Signal the thread to stop."""
@@ -145,7 +145,7 @@ class VoiceControl(threading.Thread):
             self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             self.recorder.start()
 
-            self.control_interface.lights_handler.ready()
+            self.control_interface.set_listening_animation()
             
             paused = False
 
