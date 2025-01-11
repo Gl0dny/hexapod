@@ -8,11 +8,12 @@ import threading
 from pathlib import Path
 from typing import Optional
 
+from src.interface import logger
 from src.kws import VoiceControl
 from src.control import ControlInterface
 from src.lights import ColorRGB
 from src.robot import PredefinedAnglePosition, PredefinedPosition
-from src.utils import logger, rename_thread
+from src.utils import rename_thread
 
 logger = logging.getLogger("main_logger")
 

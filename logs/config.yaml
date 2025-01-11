@@ -2,11 +2,11 @@ version: 1
 disable_existing_loggers: false
 formatters:
   simple:
-    class: src.utils.logger.ColoredTerminalFormatter
+    class: src.interface.logger.ColoredTerminalFormatter
   verbose:
-    class: src.utils.logger.VerboseFormatter
+    class: src.interface.logger.VerboseFormatter
   json:
-    "()": src.utils.logger.MyJSONFormatter
+    "()": src.interface.logger.MyJSONFormatter
     fmt_keys:
       level: levelname
       logger: name
