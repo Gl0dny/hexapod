@@ -79,6 +79,7 @@ class LightsInteractionHandler:
             color (ColorRGB): The color to set.
             led_index (int, optional): The index of the LED to set. If None, sets all LEDs.
         """
+        self.off()
         if led_index is not None:
             logger.debug(f"Setting LED {led_index} to color {color.name}.")
             self.lights.set_color(color, led_index=led_index)
@@ -253,8 +254,7 @@ class LightsInteractionHandler:
             calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
         """
         logger.debug(f"Updating calibration LED statuses with calibration_status: {calibration_status}")
-        if self.animation:
-            self.off()
+        self.off()
         self.animation = CalibrationAnimation(
             lights=self.lights,
             calibration_status=calibration_status,

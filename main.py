@@ -125,6 +125,10 @@ def main() -> None:
         control_interface.lights_handler.off()
         logger.debug("Shutdown tasks completed")
     finally:
+        for thread in threading.enumerate():
+            logger.user_info(f"{thread.name}, {thread.is_alive()}")
+            print("---")
+
         time.sleep(1)
         control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
         control_interface.hexapod.deactivate_all_servos()

@@ -43,7 +43,7 @@ class VoiceControl(threading.Thread):
             porcupine_sensitivity (float, optional): Sensitivity for wake word detection.
             rhino_sensitivity (float, optional): Sensitivity for intent recognition.
         """
-        super(VoiceControl, self).__init__()
+        super().__init__()
         rename_thread(self, "VoiceControl")
 
         # Picovoice API callback
@@ -160,6 +160,7 @@ class VoiceControl(threading.Thread):
 
             self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             self.recorder.start()
+            # rename_thread(self.recorder._thread, "PvRecorder")
 
             self.control_interface.lights_handler.listen_wakeword()
             logger.user_info("Listening for wake word...")

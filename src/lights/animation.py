@@ -3,6 +3,7 @@ import abc
 from typing import Optional, override, Dict
 from lights import Lights, ColorRGB 
 import logging
+from utils import rename_thread
 
 logger = logging.getLogger("lights_logger")
 
@@ -35,7 +36,8 @@ class Animation(abc.ABC):
         """
         logger.debug(f"Starting animation: {self.__class__.__name__}")
         self.stop_event.clear()
-        self.thread = threading.Thread(target=self.run, name=f"{self.__class__.__name__}_Thread")
+        self.thread = threading.Thread(target=self.run)
+        rename_thread(self.thread, f"{self.__class__.__name__}")
         logger.debug(f"Animation thread {self.thread.name} created.")
         self.thread.start()
         logger.info(f"Animation {self.__class__.__name__} started.")

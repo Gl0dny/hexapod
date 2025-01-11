@@ -4,6 +4,7 @@ from lights import ColorRGB, LightsInteractionHandler
 import logging
 from typing import Optional, Callable, override
 from robot.hexapod import PredefinedPosition, PredefinedAnglePosition, Hexapod
+from utils import rename_thread
 
 logger = logging.getLogger("control_logger")
 
@@ -24,6 +25,8 @@ class ControlTask(threading.Thread, abc.ABC):
             callback (Optional[Callable]): Function to execute after task completion.
         """
         super().__init__()
+        rename_thread(self, self.__class__.__name__)
+
         logger.debug(f"Initializing {self.__class__.__name__}")
         self.stop_event: threading.Event = threading.Event()
         self.callback = callback
@@ -34,7 +37,7 @@ class ControlTask(threading.Thread, abc.ABC):
 
         Clears the stop event and initiates the thread's run method.
         """
-        logger.info(f"Starting task: {self.__class__.__name__}")
+        logger.debug(f"Starting task: {self.__class__.__name__}")
         self.stop_event.clear()
         super().start()
 
@@ -802,7 +805,6 @@ class HelixTask(ControlTask):
 
         Repeats the maneuver twice to complete the helix pattern.
         """
-        logger.user_info("HelixTask started")
         try:
             self.lights_handler.think()
             
