@@ -2,7 +2,6 @@ import argparse
 import sys
 import time
 import logging.config
-import pathlib
 import yaml
 import atexit
 import threading
@@ -29,9 +28,17 @@ def setup_logging(log_dir: Optional[Path] = None, config_file: Optional[Path] = 
 
     if config_file.is_file():
         with open(config_file, "rt") as f:
-            logging.config.dictConfig(yaml.safe_load(f))
-        queue_handler = logging.getHandlerByName("queue_handler")
-        if queue_handler is not None:
+            config = yaml.safe_load(f)
+        
+        # Update handler filenames to use the provided log_dir
+        for handler_name, handler in config.get("handlers", {}).items():
+            filename = handler.get("filename")
+            if filename:
+                handler["filename"] = str(log_dir / Path(filename).name)  # Set to log_dir/<basename>
+        
+        logging.config.dictConfig(config)
+        queue_handler = logging.getLogger("root").handlers[0]  # Assuming queue_handler is the first handler
+        if queue_handler is not None and hasattr(queue_handler, 'listener'):
             queue_handler.listener.start()
             queue_handler.listener._thread.name = "QueueHandlerListener"
             atexit.register(queue_handler.listener.stop)
@@ -52,11 +59,10 @@ def parse_arguments() -> argparse.Namespace:
     return args
 
 def clean_logs() -> None:
-    logs_dir = pathlib.Path("logs")
-    if logs_dir.is_dir():
-        for log_file in logs_dir.glob("*.log"):
-            log_file.unlink()
-        for log_file in logs_dir.glob("*.log.jsonl"):
+    project_dir = Path(__file__).parent
+    log_patterns = ['*.log', '*.log.jsonl']
+    for pattern in log_patterns:
+        for log_file in project_dir.rglob(pattern):
             log_file.unlink()
 
 def main() -> None:

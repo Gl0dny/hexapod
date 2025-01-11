@@ -59,7 +59,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
     formatter: detailed
-    filename: logs/main.log
+    filename: main.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
     filters:
@@ -68,7 +68,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
     formatter: detailed
-    filename: logs/control.log
+    filename: control.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
     filters:
@@ -77,7 +77,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
     formatter: detailed
-    filename: logs/imu.log
+    filename: imu.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
     filters:
@@ -86,7 +86,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
     formatter: detailed
-    filename: logs/interface.log
+    filename: interface.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
     filters:
@@ -95,7 +95,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
     formatter: detailed
-    filename: logs/kws.log
+    filename: kws.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
     filters:
@@ -104,7 +104,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
     formatter: detailed
-    filename: logs/lights.log
+    filename: lights.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
     filters:
@@ -113,7 +113,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
     formatter: detailed
-    filename: logs/maestro.log
+    filename: maestro.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
     filters:
@@ -122,7 +122,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
     formatter: detailed
-    filename: logs/robot.log
+    filename: robot.log
     maxBytes: 10485760 # 10MB
     backupCount: 5
     filters:
