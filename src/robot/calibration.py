@@ -7,6 +7,8 @@ from interface import InputHandler
 from pathlib import Path
 from utils import rename_thread
 
+from robot import Hexapod
+
 logger = logging.getLogger("robot_logger")
 
 SERVO_INPUT_MIN = 992  # Minimum servo pulse width in microseconds as defined by the Maestro controller.
@@ -14,13 +16,13 @@ SERVO_INPUT_MAX = 2000 # Maximum servo pulse width in microseconds as defined by
 SERVO_UNIT_MULTIPLIER = 4 # Multiplier to convert microseconds to quarter-microseconds.
 
 class Calibration:
-    def __init__(self, hexapod, calibration_data_path: Path) -> None:
+    def __init__(self, hexapod: Hexapod, calibration_data_path: Path) -> None:
         """
-        Initializes the Calibration class with a reference to the Hexapod instance and config file path.
+        Initialize the Calibration class with the Hexapod instance and calibration data path.
         
         Args:
             hexapod (Hexapod): The Hexapod instance to be calibrated.
-            calibration_data_path (Path): Path to save/read the calibration data.
+            calibration_data_path (Path): Path to save or read the calibration data.
         """
         self.hexapod = hexapod
         self.calibration_data_path = calibration_data_path
@@ -40,14 +42,15 @@ class Calibration:
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
         """
-        Calibrates all servos for each leg and joint of the hexapod.
-        Allows the calibration process to be interrupted using stop_event.
-        Updates calibration status for each leg to "calibrating" during the process and "calibrated" upon completion.
-        Separates calibration steps into individual methods and handles inverted joints.
-        Saves calibration data after successful calibration.
+        Calibrate all servos for each leg and joint of the hexapod.
+        
+        This method allows the calibration process to be interrupted using a stop event.
+        It updates the calibration status for each leg to "calibrating" during the process
+        and "calibrated" upon completion. Calibration steps are separated into individual
+        methods and handle inverted joints. Calibration data is saved after successful calibration.
         
         Args:
-            stop_event (threading.Event, optional): Event to signal stopping the calibration process.
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
         """
         from robot import PredefinedAnglePosition
         
@@ -121,18 +124,22 @@ class Calibration:
                 self.input_handler.shutdown()
                 self.input_handler = None
 
-    def get_calibration_status(self):
+    def get_calibration_status(self) -> dict:
         """
-        Retrieves current calibration status for all legs.
+        Retrieve the current calibration status for all legs.
         
         Returns:
-            dict: Mapping of leg_index to calibration status.
+            dict: A dictionary mapping each leg index to its calibration status.
         """
         return self.status
 
-    def load_calibration(self):
+    def load_calibration(self) -> None:
         """
-        Load calibration data from the save path.
+        Load calibration data from the specified calibration data path.
+        
+        This method reads the calibration data from a JSON file and updates each leg's
+        joint calibration parameters. If the calibration data is invalid or the file
+        is not found, default calibration values are used.
         """
         try:
             with self.calibration_data_path.open("r") as f:
@@ -157,10 +164,12 @@ class Calibration:
         except json.JSONDecodeError as e:
             logger.exception(f"Error decoding {self.calibration_data_path}: {e}. Using default calibration values. Run calibrate_all_servos() to set new values.")
 
-    def _save_calibration(self):
+    def _save_calibration(self) -> None:
         """
-        Saves the current calibration settings to a JSON file.
-        Overwrites the existing file at self.calibration_data_path with the latest calibration data.
+        Save the current calibration settings to a JSON file.
+        
+        This method overwrites the existing calibration data file with the latest
+        calibration data for all legs and their respective joints.
         """
         calibration_data = {}
         for i, leg in enumerate(self.hexapod.legs):
@@ -186,9 +195,14 @@ class Calibration:
         except IOError as e:
             logger.exception(f"Failed to save calibration data: {e}")
 
-    def _calibrate_servo_min(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+    def _calibrate_servo_min(self, leg_index: int, joint_name: str, stop_event: Optional[threading.Event] = None) -> None:
         """
-        Uses _calibrate_joint to handle servo_min calibration.
+        Calibrate the minimum servo value for a specified joint.
+        
+        Args:
+            leg_index (int): Index of the leg (0-5) to calibrate.
+            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia') to calibrate.
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
         """
         joint = getattr(self.hexapod.legs[leg_index], joint_name)
         self._calibrate_joint(
@@ -196,9 +210,14 @@ class Calibration:
             stop_event=stop_event, invert=False
         )
 
-    def _calibrate_servo_max(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+    def _calibrate_servo_max(self, leg_index: int, joint_name: str, stop_event: Optional[threading.Event] = None) -> None:
         """
-        Uses _calibrate_joint to handle servo_max calibration.
+        Calibrate the maximum servo value for a specified joint.
+        
+        Args:
+            leg_index (int): Index of the leg (0-5) to calibrate.
+            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia') to calibrate.
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
         """
         joint = getattr(self.hexapod.legs[leg_index], joint_name)
         self._calibrate_joint(
@@ -206,9 +225,14 @@ class Calibration:
             stop_event=stop_event, invert=False
         )
 
-    def _calibrate_servo_min_inverted(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+    def _calibrate_servo_min_inverted(self, leg_index: int, joint_name: str, stop_event: Optional[threading.Event] = None) -> None:
         """
-        Uses _calibrate_joint to handle inverted servo_min calibration.
+        Calibrate the minimum servo value for an inverted joint.
+        
+        Args:
+            leg_index (int): Index of the leg (0-5) to calibrate.
+            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia') to calibrate.
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
         """
         joint = getattr(self.hexapod.legs[leg_index], joint_name)
         self._calibrate_joint(
@@ -216,9 +240,14 @@ class Calibration:
             stop_event=stop_event, invert=True
         )
 
-    def _calibrate_servo_max_inverted(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+    def _calibrate_servo_max_inverted(self, leg_index: int, joint_name: str, stop_event: Optional[threading.Event] = None) -> None:
         """
-        Uses _calibrate_joint to handle inverted servo_max calibration.
+        Calibrate the maximum servo value for an inverted joint.
+        
+        Args:
+            leg_index (int): Index of the leg (0-5) to calibrate.
+            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia') to calibrate.
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
         """
         joint = getattr(self.hexapod.legs[leg_index], joint_name)
         self._calibrate_joint(
@@ -226,16 +255,18 @@ class Calibration:
             stop_event=stop_event, invert=True
         )
 
-    def _check_zero_angle(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+    def _check_zero_angle(self, leg_index: int, joint_name: str, stop_event: Optional[threading.Event] = None) -> bool:
         """
-        Checks and validates the zero angle calibration for a specific joint of a leg.
-        Allows interruption using stop_event.
+        Validate the zero angle calibration for a specific joint of a leg.
+        
+        This method sets the joint angle to zero and prompts the user to confirm if the calibration is correct.
+        It allows the calibration process to be interrupted using a stop event.
         
         Args:
             leg_index (int): Index of the leg (0-5).
             joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia').
-            stop_event (threading.Event, optional): Event to signal stopping the calibration process.
-
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
+        
         Returns:
             bool: True if zero angle calibration is correct, False otherwise.
         """
@@ -277,9 +308,21 @@ class Calibration:
                 
         return False
 
-    def _prompt_servo_value(self, leg_index, joint_name, servo_label, stop_event=None) -> int:
+    def _prompt_servo_value(self, leg_index: int, joint_name: str, servo_label: str, stop_event: Optional[threading.Event] = None) -> int:
         """
-        Handles the user input loop for servo calibration values, ensuring valid input.
+        Prompt the user to enter a servo calibration value.
+        
+        This method ensures that the input provided by the user is a valid integer within the defined range.
+        It allows the calibration process to be interrupted using a stop event.
+        
+        Args:
+            leg_index (int): Index of the leg (0-5).
+            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia').
+            servo_label (str): Label indicating which servo value is being calibrated ('servo_min' or 'servo_max').
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
+        
+        Returns:
+            int: The validated servo input value, or None if interrupted.
         """
         prompt = f"\nEnter {servo_label} for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
         print(prompt, end='', flush=True)
@@ -302,9 +345,19 @@ class Calibration:
                     time.sleep(0.1)
         return servo_input
 
-    def _confirm_calibration_done(self, servo_label, stop_event=None) -> bool:
+    def _confirm_calibration_done(self, servo_label: str, stop_event: Optional[threading.Event] = None) -> bool:
         """
-        Asks user if the calibration is correct by prompting y/n.
+        Confirm with the user whether the servo calibration is correct.
+        
+        This method prompts the user to confirm the calibration by entering 'y' or 'n'.
+        It allows the calibration process to be interrupted using a stop event.
+        
+        Args:
+            servo_label (str): Label indicating which servo calibration is being confirmed ('servo_min' or 'servo_max').
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
+        
+        Returns:
+            bool: True if the calibration is confirmed correct, False otherwise.
         """
         confirm_prompt = f"Is the {servo_label} calibration correct? (y/n): "
         print(confirm_prompt, end='', flush=True)
@@ -322,10 +375,58 @@ class Calibration:
                     time.sleep(0.1)
         return confirm == 'y'
 
-    def _calibrate_joint(self, leg_index, joint_name, angle_label, expected_angle, 
-                        servo_label, stop_event=None, invert=False):
+    def _validate_servo_input(self, servo_label: str, servo_input: int, invert: bool = False) -> bool:
         """
-        Generic helper function to prompt user for servo calibration.
+        Validate the servo input based on the servo label and inversion status.
+        
+        This method checks if the provided servo input is within the acceptable range and
+        adheres to the inversion constraints if applicable.
+        
+        Args:
+            servo_label (str): Label indicating which servo value is being validated ('servo_min' or 'servo_max').
+            servo_input (int): The servo input value to validate.
+            invert (bool, optional): Indicates if the joint is inverted.
+        
+        Returns:
+            bool: True if the input is valid, False otherwise.
+        """
+        if not (SERVO_INPUT_MIN <= servo_input <= SERVO_INPUT_MAX):
+            print(f"Error: {servo_label} must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
+            return False
+
+        if invert:
+            if servo_label == 'servo_min' and servo_input >= SERVO_INPUT_MAX:
+                print(f"Error: {servo_label} must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
+                return False
+            elif servo_label == 'servo_max' and servo_input <= SERVO_INPUT_MIN:
+                print(f"Error: {servo_label} must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
+                return False
+        else:
+            if servo_label == 'servo_min' and servo_input >= SERVO_INPUT_MAX:
+                print(f"Error: {servo_label} must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
+                return False
+            elif servo_label == 'servo_max' and servo_input <= SERVO_INPUT_MIN:
+                print(f"Error: {servo_label} must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
+                return False
+
+        return True
+
+    def _calibrate_joint(self, leg_index: int, joint_name: str, angle_label: str, expected_angle: float, 
+                        servo_label: str, stop_event: Optional[threading.Event] = None, invert: bool = False) -> None:
+        """
+        Prompt the user to calibrate a specific servo of a joint.
+        
+        This helper method guides the user through entering and confirming servo calibration values,
+        ensuring that inputs are valid and that servo_max remains greater than servo_min.
+        
+        Args:
+            leg_index (int): Index of the leg (0-5) to calibrate.
+            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia') to calibrate.
+            angle_label (str): Label indicating which angle is being calibrated ('angle_min' or 'angle_max').
+            expected_angle (float): The expected angle value corresponding to the servo calibration.
+            servo_label (str): Label indicating which servo value is being calibrated ('servo_min' or 'servo_max').
+            stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
+            invert (bool, optional): Indicates if the joint is inverted.
         """
         logger.debug(f"Entering {servo_label} calibration for Leg {leg_index} {joint_name}.")
         calibrated = False
@@ -346,28 +447,8 @@ class Calibration:
                 if servo_input is None:  # interrupted
                     return
 
-                if not (SERVO_INPUT_MIN <= servo_input <= SERVO_INPUT_MAX):
-                    print(f"Error: {servo_label} must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
+                if not self._validate_servo_input(servo_label, servo_input, invert):
                     continue
-
-                if invert:
-                    if servo_label == 'servo_min' and servo_input >= SERVO_INPUT_MAX:
-                        print(f"Error: {servo_label} must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
-                        servo_input = None
-                        continue
-                    elif servo_label == 'servo_max' and servo_input <= SERVO_INPUT_MIN:
-                        print(f"Error: {servo_label} must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
-                        servo_input = None
-                        continue
-                else:
-                    if servo_label == 'servo_min' and servo_input >= SERVO_INPUT_MAX:
-                        print(f"Error: {servo_label} must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
-                        servo_input = None
-                        continue
-                    elif servo_label == 'servo_max' and servo_input <= SERVO_INPUT_MIN:
-                        print(f"Error: {servo_label} must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
-                        servo_input = None
-                        continue
 
                 servo_value = servo_input * SERVO_UNIT_MULTIPLIER
 
@@ -391,9 +472,11 @@ class Calibration:
             except Exception as e:
                 logger.exception(f"Error during {servo_label} calibration: {e}")
 
-    def _calibrate_servo(self, leg_index, joint, servo_min, servo_max):
+    def _calibrate_servo(self, leg_index: int, joint: str, servo_min: int, servo_max: int) -> None:
         """
-        Updates the servo calibration parameters for a specific joint of a leg.
+        Update the servo calibration parameters for a specific joint of a leg.
+        
+        This method sets the new minimum and maximum servo values and updates the joint's calibration.
         
         Args:
             leg_index (int): Index of the leg (0-5).
