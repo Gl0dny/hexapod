@@ -1,3 +1,5 @@
+import os
+import sys
 import argparse
 import sys
 import time
@@ -8,12 +10,19 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-from src.interface import logger
-from src.kws import VoiceControl
-from src.control import ControlInterface
-from src.lights import ColorRGB
-from src.robot import PredefinedAnglePosition, PredefinedPosition
-from src.utils import rename_thread
+# Get the absolute path of the src directory
+src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
+
+# Add src_path to sys.path if it's not already there
+if src_path not in sys.path:
+    sys.path.append(src_path)
+
+from interface import logger
+from kws import VoiceControl
+from control import ControlInterface
+from lights import ColorRGB
+from robot import PredefinedAnglePosition, PredefinedPosition
+from utils import rename_thread
 
 logger = logging.getLogger("main_logger")
 
@@ -81,6 +90,8 @@ def main() -> None:
 
     control_interface = ControlInterface()
 
+    control_interface.lights_handler.set_single_color(ColorRGB.RED)
+
     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
     voice_control = VoiceControl(
@@ -108,9 +119,6 @@ def main() -> None:
             #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
             #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             #     break
-            # for thread in threading.enumerate():
-            #     logger.user_info(f"{thread.name}, {thread.is_alive()}")
-            # print("---")
             time.sleep(1)
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt detected, initiating shutdown")
@@ -121,9 +129,9 @@ def main() -> None:
             logger.user_info(f"{thread.name}, {thread.is_alive()}")
         print("---")
 
-        control_interface.stop_control_task()
         voice_control.stop()
         voice_control.join()
+        control_interface.stop_control_task()
         control_interface.lights_handler.off()
         logger.debug("Shutdown tasks completed")
     finally:
