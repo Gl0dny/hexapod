@@ -4,12 +4,12 @@ import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from unittest.mock import patch
 import contextlib
 import io
 import csv
 import argparse
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from robot import Hexapod
 
 def main():
