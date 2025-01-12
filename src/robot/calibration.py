@@ -88,17 +88,17 @@ class Calibration:
                             return
 
                         if joint.invert:
-                            self.calibrate_servo_min_inverted(i, joint_name, stop_event)
-                            self.calibrate_servo_max_inverted(i, joint_name, stop_event)
+                            self._calibrate_servo_min_inverted(i, joint_name, stop_event)
+                            self._calibrate_servo_max_inverted(i, joint_name, stop_event)
                         else:
-                            self.calibrate_servo_min(i, joint_name, stop_event)
-                            self.calibrate_servo_max(i, joint_name, stop_event)
+                            self._calibrate_servo_min(i, joint_name, stop_event)
+                            self._calibrate_servo_max(i, joint_name, stop_event)
 
                         if stop_event and stop_event.is_set():
                             logger.error("Calibration interrupted after calibrating Leg {}, Joint {}.".format(i, joint_name))
                             return
 
-                        calibration_success = self.check_zero_angle(i, joint_name, stop_event)
+                        calibration_success = self._check_zero_angle(i, joint_name, stop_event)
                     
                     self.hexapod.move_leg_angles(
                         leg_index=i,
@@ -112,7 +112,7 @@ class Calibration:
                 self.status[i] = "calibrated"
                 logger.debug(f"Calibration status: {self.status}")
             self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-            self.save_calibration()
+            self._save_calibration()
         except Exception as e:
             logger.exception(f"Error during calibration: {e}")
         finally:
@@ -130,337 +130,103 @@ class Calibration:
         """
         return self.status
 
-    def calibrate_servo_min(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+    def load_calibration(self):
         """
-        Calibrates the minimum servo value for a specific joint of a leg.
-        Allows interruption using stop_event.
+        Load calibration data from the save path.
+        """
+        try:
+            with self.calibration_data_path.open("r") as f:
+                calibration_data = json.load(f)
+            for i, leg in enumerate(self.hexapod.legs):
+                leg_data = calibration_data.get(f"leg_{i}", {})
+                for joint_name in ['coxa', 'femur', 'tibia']:
+                    joint_calib = leg_data.get(joint_name, {})
+                    servo_min = joint_calib.get('servo_min')
+                    servo_max = joint_calib.get('servo_max')
+                    if servo_min and servo_max:
+                        if (SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER <= servo_min <= SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER and
+                            SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER <= servo_max <= SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER and
+                            servo_min < servo_max):
+                            self._calibrate_servo(i, joint_name, servo_min, servo_max)
+                            logger.debug(f"Loaded calibration for leg {i} {joint_name}: servo_min={servo_min}, servo_max={servo_max}")
+                        else:
+                            logger.warning(f"Calibration values for leg {i} {joint_name} are invalid (servo_min: {servo_min}, servo_max: {servo_max}). Using default values: servo_min={SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER}, servo_max={SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER}.")
+                            self._calibrate_servo(i, joint_name, SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER, SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER)
+        except FileNotFoundError:
+            logger.exception(f"{self.calibration_data_path} not found. Using default calibration values. Run calibrate_all_servos() to set new values.")
+        except json.JSONDecodeError as e:
+            logger.exception(f"Error decoding {self.calibration_data_path}: {e}. Using default calibration values. Run calibrate_all_servos() to set new values.")
+
+    def _save_calibration(self):
+        """
+        Saves the current calibration settings to a JSON file.
+        Overwrites the existing file at self.calibration_data_path with the latest calibration data.
+        """
+        calibration_data = {}
+        for i, leg in enumerate(self.hexapod.legs):
+            calibration_data[f"leg_{i}"] = {
+                "coxa": {
+                    "servo_min": leg.coxa.servo_min,
+                    "servo_max": leg.coxa.servo_max
+                },
+                "femur": {
+                    "servo_min": leg.femur.servo_min,
+                    "servo_max": leg.femur.servo_max
+                },
+                "tibia": {
+                    "servo_min": leg.tibia.servo_min,
+                    "servo_max": leg.tibia.servo_max
+                }
+            }
         
-        Args:
-            leg_index (int): Index of the leg (0-5).
-            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia').
-            stop_event (threading.Event, optional): Event to signal stopping the calibration process.
+        try:
+            with self.calibration_data_path.open("w") as f:
+                json.dump(calibration_data, f, indent=4)
+            logger.user_info(f"Calibration data saved to {self.calibration_data_path}.")
+        except IOError as e:
+            logger.exception(f"Failed to save calibration data: {e}")
+
+    def _calibrate_servo_min(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
         """
-        logger.debug(f"Entering servo_min calibration for Leg {leg_index} {joint_name}.")
-        calibrated_min = False
-        while not calibrated_min:
-            if stop_event and stop_event.is_set():
-                print(f"Calibration interrupted during calibration of servo_min of Leg {leg_index} {joint_name}.")
-                return
-            try:
-                joint = getattr(self.hexapod.legs[leg_index], joint_name)
-                print(f"Expected angle_min ({joint.angle_min}°) corresponds to servo_min: {SERVO_INPUT_MIN}")
-
-                prompt = f"\nEnter servo_min for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
-                print(prompt, end='', flush=True)  # Print prompt once
-                servo_min_input = None
-                while servo_min_input is None:
-                    if stop_event and stop_event.is_set():
-                        logger.error(f"Calibration interrupted during servo_min input of Leg {leg_index} {joint_name}.")
-                        return
-                    servo_min_input_str = self.input_handler.get_input()
-                    if servo_min_input_str is not None:
-                        try:
-                            servo_min_input = int(servo_min_input_str)
-                        except ValueError:
-                            print("Invalid input. Please enter an integer value for servo_min.")
-                            print(prompt, end='', flush=True)  # Re-prompt once for valid input
-                    else:
-                        if stop_event:
-                            stop_event.wait(timeout=0.1)
-                        else:
-                            time.sleep(0.1)
-
-                if not (SERVO_INPUT_MIN <= servo_min_input <= SERVO_INPUT_MAX):
-                    print(f"Error: servo_min must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
-                    servo_min_input = None
-                    continue
-                                
-                if servo_min_input >= SERVO_INPUT_MAX:
-                    print(f"Error: servo_min must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
-                    servo_min_input = None
-                    continue
-
-                servo_min = servo_min_input * SERVO_UNIT_MULTIPLIER
-
-                self.calibrate_servo(leg_index, joint_name, servo_min, joint.servo_max)
-                
-                joint.set_angle(joint.angle_min, check_custom_limits=False)
-                logger.debug(f"Set {joint_name} of Leg {leg_index} to angle_min: {joint.angle_min}°")
-
-                confirm_min = None
-                confirm_prompt = "Is the servo_min calibration correct? (y/n): "
-                print(confirm_prompt, end='', flush=True)  # Print confirmation prompt once
-                while confirm_min is None:
-                    if stop_event and stop_event.is_set():
-                        logger.error(f"Calibration interrupted during confirmation of servo_min of Leg {leg_index} {joint_name}.")
-                        return
-                    confirm_min_str = self.input_handler.get_input()
-                    if confirm_min_str is not None:
-                        confirm_min = confirm_min_str.strip().lower()
-                    else:
-                        if stop_event:
-                            stop_event.wait(timeout=0.1)
-                        else:
-                            time.sleep(0.1)
-
-                if confirm_min == 'y':
-                    calibrated_min = True
-                else:
-                    print("Re-enter servo_min calibration value.")
-            except Exception as e:
-                logger.exception(f"Error during servo_min calibration: {e}")
-
-    def calibrate_servo_max(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+        Uses _calibrate_joint to handle servo_min calibration.
         """
-        Calibrates the maximum servo value for a specific joint of a leg.
-        Allows interruption using stop_event.
-        
-        Args:
-            leg_index (int): Index of the leg (0-5).
-            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia').
-            stop_event (threading.Event, optional): Event to signal stopping the calibration process.
+        joint = getattr(self.hexapod.legs[leg_index], joint_name)
+        self._calibrate_joint(
+            leg_index, joint_name, 'angle_min', joint.angle_min, 'servo_min',
+            stop_event=stop_event, invert=False
+        )
+
+    def _calibrate_servo_max(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
         """
-        logger.debug(f"Entering servo_max calibration for Leg {leg_index} {joint_name}.")
-        calibrated_max = False
-        while not calibrated_max:
-            if stop_event and stop_event.is_set():
-                logger.error(f"Calibration interrupted during servo_max of Leg {leg_index} {joint_name}.")
-                return
-            try:
-                joint = getattr(self.hexapod.legs[leg_index], joint_name)
-                print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_max: {SERVO_INPUT_MAX}")
-
-                prompt = f"\nEnter servo_max for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
-                print(prompt, end='', flush=True)
-                servo_max_input = None
-                while servo_max_input is None:
-                    if stop_event and stop_event.is_set():
-                        logger.error(f"\nCalibration interrupted during servo_max input of Leg {leg_index} {joint_name}.")
-                        return
-                    servo_max_input_str = self.input_handler.get_input()
-                    if servo_max_input_str is not None:
-                        try:
-                            servo_max_input = int(servo_max_input_str)
-                        except ValueError:
-                            print("Invalid input. Please enter an integer value for servo_max.")
-                            print(prompt, end='', flush=True)
-                    else:
-                        if stop_event:
-                            stop_event.wait(timeout=0.1)
-                        else:
-                            time.sleep(0.1)
-
-                if not (SERVO_INPUT_MIN <= servo_max_input <= SERVO_INPUT_MAX):
-                    print(f"Error: servo_max must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
-                    servo_max_input = None
-                    continue
-
-                if servo_max_input <= SERVO_INPUT_MIN:
-                    print(f"Error: servo_max must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
-                    servo_max_input = None
-                    continue
-
-                servo_max = servo_max_input * SERVO_UNIT_MULTIPLIER
-
-                self.calibrate_servo(leg_index, joint_name, joint.servo_min, servo_max)
-
-                joint.set_angle(joint.angle_max, check_custom_limits=False)
-                logger.debug(f"Set {joint_name} of Leg {leg_index} to angle_max: {joint.angle_max}°")
-
-                confirm_max = None
-                confirm_prompt = "Is the servo_max calibration correct? (y/n): "
-                print(confirm_prompt, end='', flush=True)
-                while confirm_max is None:
-                    if stop_event and stop_event.is_set():
-                        logger.error(f"\nCalibration interrupted during confirmation of servo_max of Leg {leg_index} {joint_name}.")
-                        return
-                    confirm_max_str = self.input_handler.get_input()
-                    if confirm_max_str is not None:
-                        confirm_max = confirm_max_str.strip().lower()
-                    else:
-                        if stop_event:
-                            stop_event.wait(timeout=0.1)
-                        else:
-                            time.sleep(0.1)
-
-                if confirm_max == 'y':
-                    calibrated_max = True
-                else:
-                    print("Re-enter servo_max calibration value.")
-            except Exception as e:
-                logger.exception(f"Error during servo_max calibration: {e}")
-
-    def calibrate_servo_min_inverted(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+        Uses _calibrate_joint to handle servo_max calibration.
         """
-        Calibrates the minimum servo value for an inverted joint of a leg.
-        
-        Inverted joints require swapping the usual servo_min and servo_max values
-        to accommodate their reversed movement directions. This method ensures that
-        the servo_min is set correctly for joints that are inverted, maintaining proper
-        motion ranges and preventing mechanical conflicts.
-        Allows interruption using stop_event.
-        
-        Args:
-            leg_index (int): Index of the leg (0-5).
-            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia').
-            stop_event (threading.Event, optional): Event to signal stopping the calibration process.
+        joint = getattr(self.hexapod.legs[leg_index], joint_name)
+        self._calibrate_joint(
+            leg_index, joint_name, 'angle_max', joint.angle_max, 'servo_max',
+            stop_event=stop_event, invert=False
+        )
+
+    def _calibrate_servo_min_inverted(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
         """
-        logger.debug(f"Entering inverted servo_min calibration for Leg {leg_index} {joint_name}.")
-        calibrated_min = False
-        while not calibrated_min:
-            if stop_event and stop_event.is_set():
-                logger.error(f"Calibration interrupted during calibration of inverted servo_min of Leg {leg_index} {joint_name}.")
-                return
-            try:
-                joint = getattr(self.hexapod.legs[leg_index], joint_name)
-                print(f"Servo inverted. Expected angle_min ({joint.angle_min}°) corresponds to servo_max: {SERVO_INPUT_MAX}")
-                
-                prompt = f"\nEnter servo_max for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
-                print(prompt, end='', flush=True)  # Print prompt once
-                servo_max_input = None
-                while servo_max_input is None:
-                    if stop_event and stop_event.is_set():
-                        logger.error(f"\nCalibration interrupted during inverted servo_min input of Leg {leg_index} {joint_name}.")
-                        return
-                    servo_max_input_str = self.input_handler.get_input()
-                    if servo_max_input_str is not None:
-                        try:
-                            servo_max_input = int(servo_max_input_str)
-                        except ValueError as e:
-                            print(f"Invalid input. Please enter an integer value for servo_max. Error: {e}")
-                            print(prompt, end='', flush=True)  # Re-prompt once for valid input
-                    else:
-                        if stop_event:
-                            stop_event.wait(timeout=0.1)
-                        else:
-                            time.sleep(0.1)
-
-                if not (SERVO_INPUT_MIN <= servo_max_input <= SERVO_INPUT_MAX):
-                    print(f"Error: servo_max must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
-                    servo_max_input = None
-                    continue
-
-                if servo_max_input <= SERVO_INPUT_MIN:
-                    print(f"Error: Inverted servo_max must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
-                    servo_max_input = None
-                    continue
-
-                servo_max = servo_max_input * SERVO_UNIT_MULTIPLIER
-
-                self.calibrate_servo(leg_index, joint_name, joint.servo_min, servo_max)
-
-                joint.set_angle(joint.angle_min, check_custom_limits=False)
-                logger.debug(f"Set {joint_name} of Leg {leg_index} to angle_min: {joint.angle_min}°")
-
-                confirm_min = None
-                confirm_prompt = "Is the servo_max calibration correct? (y/n): "
-                print(confirm_prompt, end='', flush=True)  # Print confirmation prompt once
-                while confirm_min is None:
-                    if stop_event and stop_event.is_set():
-                        logger.error(f"\nCalibration interrupted during inverted servo_min confirmation of Leg {leg_index} {joint_name}.")
-                        return
-                    confirm_min_str = self.input_handler.get_input()
-                    if confirm_min_str is not None:
-                        confirm_min = confirm_min_str.strip().lower()
-                    else:
-                        if stop_event:
-                            stop_event.wait(timeout=0.1)
-                        else:
-                            time.sleep(0.1)
-
-                if confirm_min == 'y':
-                    calibrated_min = True
-                else:
-                    print("Re-enter servo_max calibration value.")
-            except Exception as e:
-                logger.exception(f"Error during servo_min_inverted calibration: {e}")
-
-    def calibrate_servo_max_inverted(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+        Uses _calibrate_joint to handle inverted servo_min calibration.
         """
-        Calibrates the maximum servo value for an inverted joint of a leg.
-        
-        Inverted joints require swapping the usual servo_min and servo_max values
-        to accommodate their reversed movement directions. This method ensures that
-        the servo_max is set correctly for joints that are inverted, maintaining proper
-        motion ranges and preventing mechanical conflicts.
-        Allows interruption using stop_event.
-        
-        Args:
-            leg_index (int): Index of the leg (0-5).
-            joint_name (str): Name of the joint ('coxa', 'femur', or 'tibia').
-            stop_event (threading.Event, optional): Event to signal stopping the calibration process.
+        joint = getattr(self.hexapod.legs[leg_index], joint_name)
+        self._calibrate_joint(
+            leg_index, joint_name, 'angle_min', joint.angle_min, 'servo_max',
+            stop_event=stop_event, invert=True
+        )
+
+    def _calibrate_servo_max_inverted(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
         """
-        logger.debug(f"Entering inverted servo_max calibration for Leg {leg_index} {joint_name}.")
-        calibrated_max = False
-        while not calibrated_max:
-            if stop_event and stop_event.is_set():
-                logger.error(f"Calibration interrupted during inverted servo_max of Leg {leg_index} {joint_name}.")
-                return
-            try:
-                joint = getattr(self.hexapod.legs[leg_index], joint_name)
-                print(f"Servo inverted. Expected angle_max ({joint.angle_max}°) corresponds to servo_min: {SERVO_INPUT_MIN}")
-                
-                prompt = f"\nEnter servo_min for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
-                print(prompt, end='', flush=True)  # Print prompt once
-                servo_min_input = None
-                while servo_min_input is None:
-                    if stop_event and stop_event.is_set():
-                        logger.error(f"\nCalibration interrupted during inverted servo_max input of Leg {leg_index} {joint_name}.")
-                        return
-                    servo_min_input_str = self.input_handler.get_input()
-                    if servo_min_input_str is not None:
-                        try:
-                            servo_min_input = int(servo_min_input_str)
-                        except ValueError:
-                            print("Invalid input. Please enter an integer value for servo_min.")
-                            print(prompt, end='', flush=True)  # Re-prompt once for valid input
-                    else:
-                        if stop_event:
-                            stop_event.wait(timeout=0.1)
-                        else:
-                            time.sleep(0.1)
+        Uses _calibrate_joint to handle inverted servo_max calibration.
+        """
+        joint = getattr(self.hexapod.legs[leg_index], joint_name)
+        self._calibrate_joint(
+            leg_index, joint_name, 'angle_max', joint.angle_max, 'servo_min',
+            stop_event=stop_event, invert=True
+        )
 
-                if not (SERVO_INPUT_MIN <= servo_min_input <= SERVO_INPUT_MAX):
-                    print(f"Error: servo_min must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
-                    servo_min_input = None
-                    continue
-
-                if servo_min_input >= SERVO_INPUT_MAX:
-                    print(f"Error: Inverted servo_min must be less than maximum servo_max input ({SERVO_INPUT_MAX}).")
-                    servo_min_input = None
-                    continue
-
-                servo_min = servo_min_input * SERVO_UNIT_MULTIPLIER
-
-                self.calibrate_servo(leg_index, joint_name, servo_min, joint.servo_max)
-
-                joint.set_angle(joint.angle_max, check_custom_limits=False)
-                logger.debug(f"Set {joint_name} of Leg {leg_index} to angle_max: {joint.angle_max}°")
-
-                confirm_max = None
-                confirm_prompt = "Is the servo_min calibration correct? (y/n): "
-                print(confirm_prompt, end='', flush=True)  # Print confirmation prompt once
-                while confirm_max is None:
-                    if stop_event and stop_event.is_set():
-                        logger.error(f"\nCalibration interrupted during inverted servo_max confirmation of Leg {leg_index} {joint_name}.")
-                        return
-                    confirm_max_str = self.input_handler.get_input()
-                    if confirm_max_str is not None:
-                        confirm_max = confirm_max_str.strip().lower()
-                    else:
-                        if stop_event:
-                            stop_event.wait(timeout=0.1)
-                        else:
-                            time.sleep(0.1)
-
-                if confirm_max == 'y':
-                    calibrated_max = True
-                else:
-                    print("Re-enter servo_min calibration value.")
-            except Exception as e:
-                logger.exception(f"Error during servo_max_inverted calibration: {e}")
-
-    def check_zero_angle(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
+    def _check_zero_angle(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
         """
         Checks and validates the zero angle calibration for a specific joint of a leg.
         Allows interruption using stop_event.
@@ -511,63 +277,121 @@ class Calibration:
                 
         return False
 
-    def save_calibration(self):
+    def _prompt_servo_value(self, leg_index, joint_name, servo_label, stop_event=None) -> int:
         """
-        Saves the current calibration settings to a JSON file.
-        Overwrites the existing file at self.calibration_data_path with the latest calibration data.
+        Handles the user input loop for servo calibration values, ensuring valid input.
         """
-        calibration_data = {}
-        for i, leg in enumerate(self.hexapod.legs):
-            calibration_data[f"leg_{i}"] = {
-                "coxa": {
-                    "servo_min": leg.coxa.servo_min,
-                    "servo_max": leg.coxa.servo_max
-                },
-                "femur": {
-                    "servo_min": leg.femur.servo_min,
-                    "servo_max": leg.femur.servo_max
-                },
-                "tibia": {
-                    "servo_min": leg.tibia.servo_min,
-                    "servo_max": leg.tibia.servo_max
-                }
-            }
-        
-        try:
-            with self.calibration_data_path.open("w") as f:
-                json.dump(calibration_data, f, indent=4)
-            logger.user_info(f"Calibration data saved to {self.calibration_data_path}.")
-        except IOError as e:
-            logger.exception(f"Failed to save calibration data: {e}")
+        prompt = f"\nEnter {servo_label} for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
+        print(prompt, end='', flush=True)
+        servo_input = None
+        while servo_input is None:
+            if stop_event and stop_event.is_set():
+                return None
+            servo_input_str = self.input_handler.get_input()
+            if servo_input_str is not None:
+                try:
+                    servo_input = int(servo_input_str)
+                except ValueError:
+                    print(f"Invalid input. Please enter an integer value for {servo_label}.")
+                    print(prompt, end='', flush=True)
+                    servo_input = None
+            else:
+                if stop_event:
+                    stop_event.wait(timeout=0.1)
+                else:
+                    time.sleep(0.1)
+        return servo_input
 
-    def load_calibration(self):
+    def _confirm_calibration_done(self, servo_label, stop_event=None) -> bool:
         """
-        Load calibration data from the save path.
+        Asks user if the calibration is correct by prompting y/n.
         """
-        try:
-            with self.calibration_data_path.open("r") as f:
-                calibration_data = json.load(f)
-            for i, leg in enumerate(self.hexapod.legs):
-                leg_data = calibration_data.get(f"leg_{i}", {})
-                for joint_name in ['coxa', 'femur', 'tibia']:
-                    joint_calib = leg_data.get(joint_name, {})
-                    servo_min = joint_calib.get('servo_min')
-                    servo_max = joint_calib.get('servo_max')
-                    if servo_min and servo_max:
-                        if (SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER <= servo_min <= SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER and
-                            SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER <= servo_max <= SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER and
-                            servo_min < servo_max):
-                            self.calibrate_servo(i, joint_name, servo_min, servo_max)
-                            logger.debug(f"Loaded calibration for leg {i} {joint_name}: servo_min={servo_min}, servo_max={servo_max}")
-                        else:
-                            logger.warning(f"Calibration values for leg {i} {joint_name} are invalid (servo_min: {servo_min}, servo_max: {servo_max}). Using default values: servo_min={SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER}, servo_max={SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER}.")
-                            self.calibrate_servo(i, joint_name, SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER, SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER)
-        except FileNotFoundError:
-            logger.exception(f"{self.calibration_data_path} not found. Using default calibration values. Run calibrate_all_servos() to set new values.")
-        except json.JSONDecodeError as e:
-            logger.exception(f"Error decoding {self.calibration_data_path}: {e}. Using default calibration values. Run calibrate_all_servos() to set new values.")
+        confirm_prompt = f"Is the {servo_label} calibration correct? (y/n): "
+        print(confirm_prompt, end='', flush=True)
+        confirm = None
+        while confirm is None:
+            if stop_event and stop_event.is_set():
+                return False
+            confirm_str = self.input_handler.get_input()
+            if confirm_str is not None:
+                confirm = confirm_str.strip().lower()
+            else:
+                if stop_event:
+                    stop_event.wait(timeout=0.1)
+                else:
+                    time.sleep(0.1)
+        return confirm == 'y'
 
-    def calibrate_servo(self, leg_index, joint, servo_min, servo_max):
+    def _calibrate_joint(self, leg_index, joint_name, angle_label, expected_angle, 
+                        servo_label, stop_event=None, invert=False):
+        """
+        Generic helper function to prompt user for servo calibration.
+        """
+        logger.debug(f"Entering {servo_label} calibration for Leg {leg_index} {joint_name}.")
+        calibrated = False
+        while not calibrated:
+            if stop_event and stop_event.is_set():
+                logger.error(f"Calibration interrupted during {servo_label} of Leg {leg_index} {joint_name}.")
+                return
+            try:
+                joint = getattr(self.hexapod.legs[leg_index], joint_name)
+
+                if servo_label == 'servo_min':
+                    expected_servo = SERVO_INPUT_MIN
+                else:
+                    expected_servo = SERVO_INPUT_MAX
+                print(f"Expected {angle_label} ({expected_angle}°) corresponds to {servo_label} (Expected Value: {expected_servo}).")
+
+                servo_input = self._prompt_servo_value(leg_index, joint_name, servo_label, stop_event)
+                if servo_input is None:  # interrupted
+                    return
+
+                if not (SERVO_INPUT_MIN <= servo_input <= SERVO_INPUT_MAX):
+                    print(f"Error: {servo_label} must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
+                    continue
+
+                if invert:
+                    if servo_label == 'servo_min' and servo_input >= SERVO_INPUT_MAX:
+                        print(f"Error: {servo_label} must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
+                        servo_input = None
+                        continue
+                    elif servo_label == 'servo_max' and servo_input <= SERVO_INPUT_MIN:
+                        print(f"Error: {servo_label} must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
+                        servo_input = None
+                        continue
+                else:
+                    if servo_label == 'servo_min' and servo_input >= SERVO_INPUT_MAX:
+                        print(f"Error: {servo_label} must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
+                        servo_input = None
+                        continue
+                    elif servo_label == 'servo_max' and servo_input <= SERVO_INPUT_MIN:
+                        print(f"Error: {servo_label} must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
+                        servo_input = None
+                        continue
+
+                servo_value = servo_input * SERVO_UNIT_MULTIPLIER
+
+                if servo_label == 'servo_min':
+                    self._calibrate_servo(leg_index, joint_name, servo_value, joint.servo_max)
+                else:
+                    self._calibrate_servo(leg_index, joint_name, joint.servo_min, servo_value)
+
+                # If this is the second input, ensure servo_max > servo_min
+                if joint.servo_max <= joint.servo_min:
+                    print("Error: servo_max must be greater than servo_min")
+                    continue
+
+                joint.set_angle(expected_angle, check_custom_limits=False)
+                logger.debug(f"Set {joint_name} of Leg {leg_index} to {angle_label}: {expected_angle}°")
+
+                if self._confirm_calibration_done(servo_label, stop_event):
+                    calibrated = True
+                else:
+                    print(f"Re-enter {servo_label} calibration value.")
+            except Exception as e:
+                logger.exception(f"Error during {servo_label} calibration: {e}")
+
+    def _calibrate_servo(self, leg_index, joint, servo_min, servo_max):
         """
         Updates the servo calibration parameters for a specific joint of a leg.
         
