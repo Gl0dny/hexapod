@@ -7,10 +7,21 @@ from typing import Optional
 
 logger = logging.getLogger("interface_logger")
 
-class InputHandler:
+class InputHandler(threading.Thread):
+    """
+    Handles user input by running a listener in a separate thread.
+    
+    Inherits from `threading.Thread` to allow non-blocking input listening.
+    
+    Attributes:
+        input_queue (queue.Queue): Queue to store user inputs.
+        stop_input_listener (bool): Flag to stop the input listener thread.
+    """
+
     def __init__(self):
+        super().__init__(daemon=True)
         """
-        Initializes the InputHandler with a queue.
+        Initializes the InputHandler thread and sets up the input queue.
         """
         logger.debug("Initializing InputHandler")
         self.input_queue = queue.Queue()
@@ -19,17 +30,16 @@ class InputHandler:
     
     def start(self):
         """
-        Starts the input listener thread.
+        Starts the input listener thread by invoking the parent `Thread` start method.
         """
         logger.debug("Starting input listener thread.")
-        if not hasattr(self, 'input_thread') or not self.input_thread.is_alive():
-            self.input_thread = threading.Thread(target=self._input_listener, daemon=True)
-            self.input_thread.start()
+        super().start()
         logger.info("Input listener thread started.")
 
-    def _input_listener(self):
+    def run(self):
         """
-        Continuously listens for user input in a non-blocking manner and places it into the input queue.
+        Overrides the `run` method of `threading.Thread` to continuously listen for user input 
+        and enqueue it.
         """
         logger.debug("Input listener thread running.")
         while not self.stop_input_listener:
@@ -61,9 +71,9 @@ class InputHandler:
 
     def shutdown(self):
         """
-        Shuts down the input listener thread gracefully.
+        Gracefully shuts down the input listener thread by setting the stop flag and joining the thread.
         """
         logger.debug("Shutting down input listener thread.")
         self.stop_input_listener = True
-        self.input_thread.join()
+        self.join()
         logger.info("Input listener thread shut down.")

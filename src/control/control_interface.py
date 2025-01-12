@@ -13,7 +13,8 @@ from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
 from robot.hexapod import Hexapod
 from control.control_tasks import *
-from interface.input_handler import InputHandler
+from interface import InputHandler
+from utils import rename_thread
 
 logger = logging.getLogger("control_logger")
 
@@ -182,12 +183,17 @@ class ControlInterface:
         """
         try:
             input_handler = InputHandler()
+            rename_thread(input_handler, "ShutdownInputHandler")
             input_handler.start()
+
             self.maintenance_mode_event.set()  # Signal maintenance mode
+
             shutdown_delay = 15.0  # seconds
             lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
-            logger.user_info(f"\nShutting down robot. System will power off in {shutdown_delay} seconds. Press any key+Enter to cancel.")
+            logger.critical(f"Shutting down robot. System will power off in {shutdown_delay} seconds.\nPress any key+Enter to cancel.")
+            
             shutdown_timer = threading.Timer(shutdown_delay, self._perform_shutdown, args=(hexapod, lights_handler))
+            rename_thread(shutdown_timer, "ShutdownTimer")
             shutdown_timer.start()
             
             # Start a separate thread to monitor user input
@@ -196,7 +202,9 @@ class ControlInterface:
                 args=(shutdown_timer, input_handler),
                 daemon=True
             )
+            rename_thread(shutdown_monitor_thread, "ShutdownMonitor")
             shutdown_monitor_thread.start()
+            
         except Exception as e:
             logger.exception("Exception occurred in shut_down: %s", e)
             raise

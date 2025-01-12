@@ -3,8 +3,9 @@ import threading
 import time
 import logging
 from typing import Optional
-from interface.input_handler import InputHandler
+from interface import InputHandler
 from pathlib import Path
+from utils import rename_thread
 
 logger = logging.getLogger("robot_logger")
 
@@ -20,7 +21,7 @@ class Calibration:
         self.hexapod = hexapod
         self.calibration_data_path = calibration_data_path
         self.input_handler = None
-        self.status = {}
+        self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
 
         self.calibration_positions = {
             'calibration_init': [
@@ -47,9 +48,9 @@ class Calibration:
         from robot import PredefinedAnglePosition
         
         self.input_handler = InputHandler()
+        rename_thread(self.input_handler, "CalibrationInputHandler")
         self.input_handler.start()
 
-        self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
         self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
         logger.info("Starting calibration of all servos.")
@@ -108,6 +109,7 @@ class Calibration:
         except Exception as e:
             logger.exception(f"Error during calibration: {e}")
         finally:
+            self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
             if self.input_handler:
                 self.input_handler.shutdown()
                 self.input_handler = None
@@ -357,7 +359,7 @@ class Calibration:
                     logger.error("\nRe-enter servo_max calibration value.")
                     print(prompt, end='', flush=True)  # Re-prompt once for re-entry
             except ValueError as e:
-                logger.exception(f"\nInvalid input. Please enter an integer value for servo_max. Error: {e}")
+                logger.error(f"\nInvalid input. Please enter an integer value for servo_max. Error: {e}")
 
     def calibrate_servo_max_inverted(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
         """
@@ -396,7 +398,7 @@ class Calibration:
                         try:
                             servo_min_input = int(servo_min_input_str)
                         except ValueError:
-                            logger.exception("\nInvalid input. Please enter an integer value for servo_min.")
+                            logger.error("\nInvalid input. Please enter an integer value for servo_min.")
                             print(prompt, end='', flush=True)  # Re-prompt once for valid input
                     else:
                         if stop_event:
@@ -442,7 +444,7 @@ class Calibration:
                     logger.error("\nRe-enter servo_min calibration value.")
                     print(prompt, end='', flush=True)  # Re-prompt once for re-entry
             except ValueError:
-                logger.exception("\nInvalid input. Please enter an integer value for servo_min.")
+                logger.error("\nInvalid input. Please enter an integer value for servo_min.")
 
     def check_zero_angle(self, leg_index, joint_name, stop_event: Optional[threading.Event] = None):
         """
@@ -491,7 +493,7 @@ class Calibration:
                     logger.error("\nZero angle calibrated incorrectly. Recalibrating...")
                     return False
             except ValueError as e:
-                logger.exception(f"\nError setting zero angle: {e}")
+                logger.error(f"\nError setting zero angle: {e}")
         return False
 
     def save_calibration(self):

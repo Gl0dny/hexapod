@@ -24,16 +24,16 @@ class ControlTask(threading.Thread, abc.ABC):
         Args:
             callback (Optional[Callable]): Function to execute after task completion.
         """
-        super().__init__()
+        super().__init__(daemon=True)
         rename_thread(self, self.__class__.__name__)
 
-        logger.debug(f"Initializing {self.__class__.__name__}")
         self.stop_event: threading.Event = threading.Event()
         self.callback = callback
+        logger.debug(f"{self.__class__.__name__} initialized successfully.")
 
     def start(self) -> None:
         """
-        Starts the thread.
+        Start the control task in a separate thread.
 
         Clears the stop event and initiates the thread's run method.
         """
@@ -50,6 +50,15 @@ class ControlTask(threading.Thread, abc.ABC):
         if self.callback:
             self.callback()
 
+    @abc.abstractmethod
+    def execute_task(self) -> None:
+        """
+        Execute the task and invoke the callback upon completion.
+
+        This method should be overridden by subclasses to define specific task behaviors.
+        """
+        pass
+
     def stop_task(self) -> None:
         """
         Signals the task to stop and joins the thread.
@@ -62,15 +71,6 @@ class ControlTask(threading.Thread, abc.ABC):
         if self.is_alive():
             logger.info(f"Task {self.__class__.__name__} forcefully stopping.")
             self.join()
-
-    @abc.abstractmethod
-    def execute_task(self) -> None:
-        """
-        Execute the task and invoke the callback upon completion.
-
-        This method should be overridden by subclasses to define specific task behaviors.
-        """
-        pass
 
 class EmergencyStopTask(ControlTask):
     """
@@ -220,8 +220,8 @@ class CompositeCalibrationTask(ControlTask):
         logger.info("CompositeCalibrationTask started")
         try:
             logger.user_info("Starting composite calibration task.")
-            self.run_calibration_task.start()
             self.monitor_calibration_task.start()
+            self.run_calibration_task.start()
             self.run_calibration_task.join()
             self.monitor_calibration_task.join()
             logger.debug("Composite calibration completed")
@@ -265,15 +265,14 @@ class MonitorCalibrationStatusTask(ControlTask):
         """
         logger.user_info("MonitorCalibrationStatusTask started")
         try:
+            updated_status = self.hexapod.calibration.get_calibration_status()
+            self.lights_handler.update_calibration_leds_status(calibration_status=updated_status)
             while not self.stop_event.is_set():
-                updated_status = self.hexapod.calibration.get_calibration_status()
-                self.lights_handler.update_calibration_leds_status(updated_status)
                 logger.debug(f"Calibration status: {updated_status}")
                 if updated_status and all(status == "calibrated" for status in updated_status.values()):
-                    print(updated_status)
-                    print("All legs calibrated. Stopping calibration status monitoring.")
+                    logger.user_info("All legs calibrated. Stopping calibration status monitoring.")
                     self.stop_event.set()
-                self.stop_event.wait(timeout=3)
+                self.stop_event.wait(timeout=5)
                 
         except Exception as e:
             logger.exception(f"Error in calibration status monitoring thread: {e}")

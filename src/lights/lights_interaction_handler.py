@@ -119,7 +119,6 @@ class LightsInteractionHandler:
             color (ColorRGB, optional): The color to use if not using rainbow colors.
             interval (float): The interval between filling LEDs.
         """
-        logger.debug("Starting rainbow animation.")
         self.off()
         self.animation = WheelFillAnimation(
             lights=self.lights,
@@ -143,7 +142,6 @@ class LightsInteractionHandler:
             pulse_color (ColorRGB): The color to pulse.
             pulse_speed (float): The speed of the pulse.
         """
-        logger.debug("Starting listen_wakeword animation.")
         self.off()
         self.animation = PulseSmoothlyAnimation(
             lights=self.lights,
@@ -167,7 +165,6 @@ class LightsInteractionHandler:
             color_odd (ColorRGB): Initial color for odd LEDs.
             delay (float): Delay between rotations.
         """
-        logger.debug("Starting listen_intent animation.")
         self.off()
         self.animation = AlternateRotateAnimation(
             lights=self.lights,
@@ -189,7 +186,6 @@ class LightsInteractionHandler:
             color (ColorRGB): The color of the LEDs.
             interval (float): The delay between updates.
         """
-        logger.debug(f"Starting think animation with color: {color.name}, interval: {interval}")
         self.off()
         self.animation = OppositeRotateAnimation(
             lights=self.lights,
@@ -202,7 +198,6 @@ class LightsInteractionHandler:
         """
         Start the speak animation.
         """
-        logger.debug("Starting speak animation.")
         self.off()
         self.animation = None  # Ensure animation is set to avoid AttributeError
         raise NotImplementedError("The 'speak' method is not implemented yet.")
@@ -215,7 +210,6 @@ class LightsInteractionHandler:
         Args:
             pulse_speed (float): The speed of the pulse.
         """
-        logger.debug(f"Starting police animation with pulse_speed: {pulse_speed}")
         self.off()
         self.animation = PulseAnimation(
             lights=self.lights,
@@ -232,7 +226,6 @@ class LightsInteractionHandler:
         Args:
             interval (float): The interval between filling LEDs.
         """
-        logger.debug(f"Starting shutdown animation with interval: {interval}")
         self.off()
         self.animation = WheelFillAnimation(
             lights=self.lights,
@@ -241,6 +234,7 @@ class LightsInteractionHandler:
             interval=interval
         )
 
+    @animation
     def update_calibration_leds_status(self, calibration_status: Dict[int, str]) -> None:
         """
         Update each leg's LED color based on calibration status.
@@ -248,7 +242,6 @@ class LightsInteractionHandler:
         Args:
             calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
         """
-        logger.debug(f"Updating calibration LED statuses with calibration_status: {calibration_status}")
         self.off()
         self.animation = CalibrationAnimation(
             lights=self.lights,

@@ -75,62 +75,65 @@ def main() -> None:
 
     logger.user_info("Hexapod application started")
 
+
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
 
     control_interface = ControlInterface()
 
-    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+    control_interface.hexapod.calibrate_all_servos()
 
-    voice_control = VoiceControl(
-        keyword_path=keyword_path,
-        context_path=context_path,
-        access_key=args.access_key,
-        device_index=args.audio_device_index,
-        control_interface=control_interface,
-    )
+    # control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
 
-    if args.print_context:
-        logger.debug("Print context flag detected, printing context")
-        voice_control.print_context()
+    # voice_control = VoiceControl(
+    #     keyword_path=keyword_path,
+    #     context_path=context_path,
+    #     access_key=args.access_key,
+    #     device_index=args.audio_device_index,
+    #     control_interface=control_interface,
+    # )
+
+    # if args.print_context:
+    #     logger.debug("Print context flag detected, printing context")
+    #     voice_control.print_context()
         
-    voice_control.start()
+    # voice_control.start()
 
-    try:
-        logger.debug("Entering main loop to monitor controller errors")
-        while True:
-            # controller_error_code = control_interface.hexapod.controller.get_error()
-            # if controller_error_code != 0:
-            #     print(f"Controller error: {controller_error_code}")
-            #     voice_control.pause()
-            #     time.sleep(1)
-            #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
-            #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-            #     break
-            # for thread in threading.enumerate():
-            #     logger.user_info(f"{thread.name}, {thread.is_alive()}")
-            # print("---")
-            time.sleep(1)
-    except KeyboardInterrupt:
-        logger.critical("KeyboardInterrupt detected, initiating shutdown")
-        sys.stdout.write('\b' * 2)
-        logger.critical('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
+    # try:
+    #     logger.debug("Entering main loop to monitor controller errors")
+    #     while True:
+    #         # controller_error_code = control_interface.hexapod.controller.get_error()
+    #         # if controller_error_code != 0:
+    #         #     print(f"Controller error: {controller_error_code}")
+    #         #     voice_control.pause()
+    #         #     time.sleep(1)
+    #         #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
+    #         #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+    #         #     break
+    #         # for thread in threading.enumerate():
+    #         #     logger.user_info(f"{thread.name}, {thread.is_alive()}")
+    #         # print("---")
+    #         time.sleep(1)
+    # except KeyboardInterrupt:
+    #     logger.critical("KeyboardInterrupt detected, initiating shutdown")
+    #     sys.stdout.write('\b' * 2)
+    #     logger.critical('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
 
-        for thread in threading.enumerate():
-            logger.user_info(f"{thread.name}, {thread.is_alive()}")
-        print("---")
+    #     for thread in threading.enumerate():
+    #         logger.user_info(f"{thread.name}, {thread.is_alive()}")
+    #     print("---")
 
-        control_interface.stop_control_task()
-        voice_control.stop()
-        voice_control.join()
-        control_interface.lights_handler.off()
-        logger.debug("Shutdown tasks completed")
-    finally:
-        time.sleep(1)
-        control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-        control_interface.hexapod.deactivate_all_servos()
-        # control_interface.hexapod.controller.close()
-        logger.user_info('Exiting...')
+    #     control_interface.stop_control_task()
+    #     voice_control.stop()
+    #     voice_control.join()
+    #     control_interface.lights_handler.off()
+    #     logger.debug("Shutdown tasks completed")
+    # finally:
+    #     time.sleep(1)
+    #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+    #     control_interface.hexapod.deactivate_all_servos()
+    #     # control_interface.hexapod.controller.close()
+    #     logger.user_info('Exiting...')
 
 if __name__ == '__main__':
     main()
