@@ -1,7 +1,8 @@
-# v2.0.0
 In progress
 
-# v1.0.0
+![](./assets/hexapod_alum.jpg)
+
+# v1
 ## Thesis : "Hexapod walking robot design and implementation of real-time gait generating algorithm"
 
 Diploma project completed at AGH University of Krakow as part of the Bachelor of Science in Automatic Control and Robotics.
