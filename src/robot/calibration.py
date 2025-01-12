@@ -150,7 +150,7 @@ class Calibration:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
                 print(f"Expected angle_min ({joint.angle_min}°) corresponds to servo_min: {SERVO_INPUT_MIN}")
 
-                prompt = f"Enter servo_min for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
+                prompt = f"\nEnter servo_min for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
                 print(prompt, end='', flush=True)  # Print prompt once
                 servo_min_input = None
                 while servo_min_input is None:
@@ -174,13 +174,13 @@ class Calibration:
                     print(f"Error: servo_min must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
                     servo_min_input = None
                     continue
-                
-                servo_min = servo_min_input * SERVO_UNIT_MULTIPLIER
-                
-                if servo_min >= joint.servo_max:
-                    print(f"Error: servo_min must be less than current servo_max ({joint.servo_max}).")
+                                
+                if servo_min_input >= SERVO_INPUT_MAX:
+                    print(f"Error: servo_min must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
                     servo_min_input = None
                     continue
+
+                servo_min = servo_min_input * SERVO_UNIT_MULTIPLIER
 
                 self.calibrate_servo(leg_index, joint_name, servo_min, joint.servo_max)
                 
@@ -230,7 +230,7 @@ class Calibration:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
                 print(f"Expected angle_max ({joint.angle_max}°) corresponds to servo_max: {SERVO_INPUT_MAX}")
 
-                prompt = f"Enter servo_max for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
+                prompt = f"\nEnter servo_max for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
                 print(prompt, end='', flush=True)
                 servo_max_input = None
                 while servo_max_input is None:
@@ -255,9 +255,8 @@ class Calibration:
                     servo_max_input = None
                     continue
 
-                # New validation to ensure servo_max is greater than servo_min
-                if servo_max_input <= (joint.servo_min // SERVO_UNIT_MULTIPLIER):
-                    print(f"Error: servo_max must be greater than current servo_min ({joint.servo_min}).")
+                if servo_max_input <= SERVO_INPUT_MIN:
+                    print(f"Error: servo_max must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
                     servo_max_input = None
                     continue
 
@@ -316,7 +315,7 @@ class Calibration:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
                 print(f"Servo inverted. Expected angle_min ({joint.angle_min}°) corresponds to servo_max: {SERVO_INPUT_MAX}")
                 
-                prompt = f"Enter servo_max for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
+                prompt = f"\nEnter servo_max for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
                 print(prompt, end='', flush=True)  # Print prompt once
                 servo_max_input = None
                 while servo_max_input is None:
@@ -341,12 +340,12 @@ class Calibration:
                     servo_max_input = None
                     continue
 
-                servo_max = servo_max_input * SERVO_UNIT_MULTIPLIER
-
-                if servo_max <= (joint.servo_min / SERVO_UNIT_MULTIPLIER):
-                    print(f"Error: Inverted servo_max must be greater than current servo_min ({joint.servo_min}).")
+                if servo_max_input <= SERVO_INPUT_MIN:
+                    print(f"Error: Inverted servo_max must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
                     servo_max_input = None
                     continue
+
+                servo_max = servo_max_input * SERVO_UNIT_MULTIPLIER
 
                 self.calibrate_servo(leg_index, joint_name, joint.servo_min, servo_max)
 
@@ -401,7 +400,7 @@ class Calibration:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
                 print(f"Servo inverted. Expected angle_max ({joint.angle_max}°) corresponds to servo_min: {SERVO_INPUT_MIN}")
                 
-                prompt = f"Enter servo_min for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
+                prompt = f"\nEnter servo_min for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
                 print(prompt, end='', flush=True)  # Print prompt once
                 servo_min_input = None
                 while servo_min_input is None:
@@ -425,8 +424,9 @@ class Calibration:
                     print(f"Error: servo_min must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
                     servo_min_input = None
                     continue
-                if servo_min_input >= (joint.servo_max / SERVO_UNIT_MULTIPLIER):
-                    print(f"Error: Inverted servo_min must be less than current servo_max ({joint.servo_max}).")
+
+                if servo_min_input >= SERVO_INPUT_MAX:
+                    print(f"Error: Inverted servo_min must be less than maximum servo_max input ({SERVO_INPUT_MAX}).")
                     servo_min_input = None
                     continue
 

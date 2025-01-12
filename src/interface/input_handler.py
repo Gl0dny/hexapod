@@ -23,7 +23,6 @@ class InputHandler(threading.Thread):
         """
         Initializes the InputHandler thread and sets up the input queue.
         """
-        logger.debug("Initializing InputHandler")
         self.input_queue = queue.Queue()
         self.stop_input_listener = False
         logger.debug("InputHandler initialized successfully.")
@@ -32,9 +31,8 @@ class InputHandler(threading.Thread):
         """
         Starts the input listener thread by invoking the parent `Thread` start method.
         """
-        logger.debug("Starting input listener thread.")
         super().start()
-        logger.info("Input listener thread started.")
+        logger.debug("Input listener thread started.")
 
     def run(self):
         """
@@ -60,20 +58,17 @@ class InputHandler(threading.Thread):
         Returns:
             Optional[str]: The user input or None if no input is available.
         """
-        logger.debug(f"Attempting to get input with timeout={timeout}")
         try:
             input_data = self.input_queue.get(timeout=timeout)
             logger.debug(f"Retrieved input: {input_data}")
             return input_data
         except queue.Empty:
-            logger.debug("No input available.")
             return None
 
     def shutdown(self):
         """
         Gracefully shuts down the input listener thread by setting the stop flag and joining the thread.
         """
-        logger.debug("Shutting down input listener thread.")
         self.stop_input_listener = True
         self.join()
-        logger.info("Input listener thread shut down.")
+        logger.debug("Input listener thread shut down.")
