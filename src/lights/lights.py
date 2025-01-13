@@ -1,8 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
-from gpiozero import LED
-from lights.apa102 import APA102
-from typing import Tuple, Optional
 from enum import Enum
+
+from gpiozero import LED
+
+from lights.apa102 import APA102
+
+if TYPE_CHECKING:
+    from typing import Optional, Tuple
 
 logger = logging.getLogger("lights_logger")
 

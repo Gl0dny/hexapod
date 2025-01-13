@@ -23,11 +23,15 @@ in decimal: **170, 12, 4, 0, 112, 46**
 
 Note that 0x04 is the command 0x84 with its most significant bit cleared.
 """
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
 import serial
 import time
 import threading
-from typing import Optional
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 COMMAND_START: int = 0xAA
 DEFAULT_DEVICE_NUMBER: int = 0x0C

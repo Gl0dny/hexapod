@@ -1,28 +1,31 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+import logging.config
 import os
 import sys
 import argparse
 import sys
 import time
-import logging.config
-import yaml
 import atexit
 import threading
 from pathlib import Path
-from typing import Optional
+
+import yaml
 
 # Get the absolute path of the src directory
 src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
-
 # Add src_path to sys.path if it's not already there
 if src_path not in sys.path:
     sys.path.append(src_path)
 
-from interface import logger
 from kws import VoiceControl
 from control import ControlInterface
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
 from utils import rename_thread
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 logger = logging.getLogger("main_logger")
 

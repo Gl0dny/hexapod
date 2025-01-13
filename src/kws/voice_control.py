@@ -1,19 +1,20 @@
-import os
-import threading
-import sys
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
-from typing import Any
+import threading
 from pathlib import Path
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
-from kws.intent_dispatcher import IntentDispatcher
+
+from kws import IntentDispatcher
 from control import ControlInterface
-from control import ControlTask
 from lights import ColorRGB
 from utils import rename_thread
+
+if TYPE_CHECKING:
+    from typing import Any
+    from control import ControlTask
 
 logger = logging.getLogger("kws_logger")
 

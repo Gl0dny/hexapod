@@ -1,12 +1,16 @@
-
+from __future__ import annotations
+from typing import TYPE_CHECKING
+import logging
 import threading
 import time
-import logging
 
 logger = logging.getLogger("robot_logger")
 
+if TYPE_CHECKING:
+    from robot import Hexapod
+
 class GaitGenerator:
-    def __init__(self, hexapod: 'Hexapod') -> None:
+    def __init__(self, hexapod: Hexapod) -> None:
         """
         Initializes the GaitGenerator with a reference to the Hexapod.
 

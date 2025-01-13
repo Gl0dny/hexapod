@@ -1,13 +1,16 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import json
 import threading
 import time
 import logging
-from typing import Optional
 from interface import InputHandler
 from pathlib import Path
 from utils import rename_thread
 
-from robot import Hexapod
+if TYPE_CHECKING:
+    from typing import Optional
+    from robot import Hexapod
 
 logger = logging.getLogger("robot_logger")
 

@@ -1,9 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, override
+import logging
 import threading
 import abc
-from typing import Optional, override, Dict
 from lights import Lights, ColorRGB 
-import logging
 from utils import rename_thread
+
+if TYPE_CHECKING:
+    from typing import Optional, Dict
 
 logger = logging.getLogger("lights_logger")
 

@@ -1,11 +1,16 @@
-import math
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
+import math
 from robot import Joint
-from typing import Optional, Tuple
+
+if TYPE_CHECKING:
+    from typing import Optional, Tuple, Dict, Union
+    from maestro import MaestroUART
 
 logger = logging.getLogger("robot_logger")
 
-# Define constants for angle offsets
+# Define constants for angle offsets derived from the adopted reference frame.
 FEMUR_ANGLE_OFFSET = -90
 TIBIA_ANGLE_OFFSET = -90
 
@@ -26,7 +31,14 @@ class Leg:
         tibia (Joint): The tibia joint instance.
         end_effector_offset (tuple): (x, y, z) offset for the end effector's position relative to the leg's base.
     """
-    def __init__(self, coxa_params, femur_params, tibia_params, controller, end_effector_offset):
+    def __init__(
+        self,
+        coxa_params: Dict[str, Union[float, bool]],
+        femur_params: Dict[str, Union[float, bool]],
+        tibia_params: Dict[str, Union[float, bool]],
+        controller: MaestroUART,
+        end_effector_offset: Tuple[float, float, float]
+    ) -> None:
         """
         Initialize a single leg of the hexapod robot.
 
@@ -73,7 +85,7 @@ class Leg:
             logger.error(f"Triangle inequality validation failed with errors: {errors}")
             raise ValueError(error_message)
 
-    def compute_inverse_kinematics(self, x, y, z):
+    def compute_inverse_kinematics(self, x: float, y: float, z: float) -> Tuple[float, float, float]:
         """
         Calculate the necessary joint angles to position the foot at the specified coordinates.
 
@@ -259,7 +271,15 @@ class Leg:
         if joint.angle_limit_max is not None and angle > joint.angle_limit_max:
             raise ValueError(f"{joint} angle {angle}° is above custom limit ({joint.angle_limit_max}°).")
 
-    def move_to(self, x, y, z, speed: Optional[int] = None, accel: Optional[int] = None, check_custom_limits: bool = True) -> None:
+    def move_to(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        speed: Optional[int] = None,
+        accel: Optional[int] = None,
+        check_custom_limits: bool = True
+    ) -> None:
         """
         Move the leg's end effector to the specified (x, y, z) coordinates.
 

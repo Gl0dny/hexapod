@@ -1,17 +1,20 @@
-import os
-import sys
-from typing import Optional, List, Tuple, Dict
+from __future__ import annotations
+from typing import TYPE_CHECKING
+import logging
 import threading
 import time
-import yaml
-import logging
 from enum import Enum
 from pathlib import Path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import yaml
+
 from maestro import MaestroUART
 from robot import Leg, Joint, Calibration, GaitGenerator
 from imu import Imu
 from utils import map_range
+
+if TYPE_CHECKING:
+    from typing import Optional, List, Tuple, Dict, Union
 
 logger = logging.getLogger("robot_logger")
 
@@ -80,9 +83,9 @@ class Hexapod:
 
         self.imu = Imu()
 
-        coxa_params: Dict[str, float] = config['coxa_params']
-        femur_params: Dict[str, float] = config['femur_params']
-        tibia_params: Dict[str, float] = config['tibia_params']
+        coxa_params: Dict[str, Union[float, bool]] = config['coxa_params']
+        femur_params: Dict[str, Union[float, bool]] = config['femur_params']
+        tibia_params: Dict[str, Union[float, bool]] = config['tibia_params']
 
         self.coxa_channel_map = config['coxa_channel_map']
         self.femur_channel_map = config['femur_channel_map']
@@ -102,9 +105,9 @@ class Hexapod:
 
         self.leg_to_led: Dict[int, int] = config['leg_to_led']
 
-        self.coxa_params = coxa_params
-        self.femur_params = femur_params
-        self.tibia_params = tibia_params
+        self.coxa_params: Dict[str, Union[float, bool]] = coxa_params
+        self.femur_params: Dict[str, Union[float, bool]] = femur_params
+        self.tibia_params: Dict[str, Union[float, bool]] = tibia_params
 
         self.calibration: Calibration = Calibration(self, calibration_data_path=calibration_data_path)
         self.calibration.load_calibration()

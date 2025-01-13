@@ -2,18 +2,31 @@
 
 Provides custom logging levels and formatters.
 """
-
+from __future__ import annotations
+from typing import TYPE_CHECKING, override
+import logging
 import datetime as dt
 import json
-import logging
-from typing import override
+
+if TYPE_CHECKING:
+    from typing import Optional, Dict, Any
 
 USER_INFO_LEVEL = 25
 logging.addLevelName(USER_INFO_LEVEL, "USER_INFO")
 logging.USER_INFO = USER_INFO_LEVEL
 
-def user_info(self, message, *args, **kwargs):
-    """Log a user-level informational message."""
+def user_info(self, message: str, *args: Any, **kwargs: Any) -> None:
+    """
+    Log a user-level informational message.
+
+    Args:
+        message (str): The message to be logged.
+        *args (Any): Variable length argument list.
+        **kwargs (Any): Arbitrary keyword arguments.
+    
+    Returns:
+        None
+    """
     if self.isEnabledFor(USER_INFO_LEVEL):
         self._log(USER_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
 
@@ -28,19 +41,42 @@ class MyJSONFormatter(logging.Formatter):
     def __init__(
         self,
         *,
-        fmt_keys: dict[str, str] | None = None,
-    ):
-        """Initialize the JSON formatter with optional format keys."""
+        fmt_keys: Optional[Dict[str, str]] = None,
+    ) -> None:
+        """Initialize the JSON formatter with optional format keys.
+
+        Args:
+            fmt_keys (Optional[Dict[str, str]]): A dictionary mapping of format keys.
+        
+        Returns:
+            None
+        """
         super().__init__()
         self.fmt_keys = fmt_keys if fmt_keys is not None else {}
 
     @override
     def format(self, record: logging.LogRecord) -> str:
-        """Format the log record as a JSON string."""
+        """Format the log record as a JSON string.
+
+        Args:
+            record (logging.LogRecord): The log record to format.
+        
+        Returns:
+            str: The formatted log record as a JSON string.
+        """
         message = self._prepare_log_dict(record)
         return json.dumps(message, default=str)
     
-    def _prepare_log_dict(self, record: logging.LogRecord):
+    def _prepare_log_dict(self, record: logging.LogRecord) -> Dict[str, Any]:
+        """
+        Prepare the log record dictionary with specified format keys.
+
+        Args:
+            record (logging.LogRecord): The log record to prepare.
+        
+        Returns:
+            Dict[str, Any]: The prepared log record dictionary.
+        """
         always_fields = {
             "message": record.getMessage(),
             "timestamp": dt.datetime.fromtimestamp(record.created, tz=dt.timezone.utc).isoformat(),
@@ -64,16 +100,33 @@ class MyJSONFormatter(logging.Formatter):
 class VerboseFormatter(logging.Formatter):
     """Formatter that outputs verbose logs with additional context."""
 
-    def __init__(self, fmt=None, datefmt=None, style='%', validate=True):
-        """Initialize the verbose formatter with optional format and date format."""
+    def __init__(self, fmt: Optional[str] = None, datefmt: Optional[str] = None, style: str = '%', validate: bool = True) -> None:
+        """Initialize the verbose formatter with optional format and date format.
+
+        Args:
+            fmt (Optional[str]): The format string for the log messages.
+            datefmt (Optional[str]): The date format string.
+            style (str): The style of the format string.
+            validate (bool): Whether to validate the format string.
+        
+        Returns:
+            None
+        """
         if fmt is None:
             fmt = "[%(levelname)s - %(module)s - %(threadName)s - %(funcName)s - Line: %(lineno)-4d] - %(asctime)s - %(message)s"
         if datefmt is None:
             datefmt = "%Y-%m-%dT%H:%M:%S%z"
         super().__init__(fmt=fmt, datefmt=datefmt, style=style, validate=validate)
     
-    def format(self, record):
-        """Format the log record with custom spacing."""
+    def format(self, record: logging.LogRecord) -> str:
+        """Format the log record with custom spacing.
+
+        Args:
+            record (logging.LogRecord): The log record to format.
+        
+        Returns:
+            str: The formatted log record string.
+        """
         record.levelname = f"{record.levelname:^9}"
         record.module = f"{record.module:^30}"
         record.threadName = f"{record.threadName:^30}"
@@ -108,8 +161,15 @@ FORMATS = {
 class ColoredTerminalFormatter(logging.Formatter):
     """Formatter that adds ANSI color codes to log messages based on severity."""
 
-    def format(self, record):
-        """Format the log record with color codes."""
+    def format(self, record: logging.LogRecord) -> str:
+        """Format the log record with color codes.
+
+        Args:
+            record (logging.LogRecord): The log record to format.
+        
+        Returns:
+            str: The formatted log record string with ANSI color codes.
+        """
         log_fmt = FORMATS[record.levelno]
         formatter = logging.Formatter(log_fmt, style="{")
         return formatter.format(record)

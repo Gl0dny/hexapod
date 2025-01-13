@@ -1,9 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
 import threading
 import queue
 import sys
 import select
-from typing import Optional
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 logger = logging.getLogger("interface_logger")
 

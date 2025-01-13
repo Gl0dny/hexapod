@@ -1,5 +1,9 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
-from typing import Dict, Callable, Any
+
+if TYPE_CHECKING:
+    from typing import Dict, Callable, Any
 
 logger = logging.getLogger("kws_logger")
 

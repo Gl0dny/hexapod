@@ -1,4 +1,10 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
+
+if TYPE_CHECKING:
+    from typing import Optional
+    from maestro import MaestroUART
 
 logger = logging.getLogger("robot_logger")
 
@@ -10,7 +16,7 @@ class Joint:
     SERVO_INPUT_MAX = 2000 # Maximum servo pulse width in microseconds as defined by the Maestro controller.
     SERVO_UNIT_MULTIPLIER = 4 # Multiplier to convert microseconds to quarter-microseconds.
 
-    def __init__(self, controller, length, channel, angle_min, angle_max, servo_min=SERVO_INPUT_MIN*SERVO_UNIT_MULTIPLIER, servo_max=SERVO_INPUT_MAX*SERVO_UNIT_MULTIPLIER, angle_limit_min=None, angle_limit_max=None, invert=False):
+    def __init__(self, controller: MaestroUART, length: float, channel: int, angle_min: float, angle_max: float, servo_min: int = SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER, servo_max: int = SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER, angle_limit_min: Optional[float] = None, angle_limit_max: Optional[float] = None, invert: bool = False) -> None:
         """
         Represents a single joint controlled by a servo.
 
@@ -63,7 +69,7 @@ class Joint:
             logger.error(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
             raise ValueError(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
 
-    def set_angle(self, angle, speed=DEFAULT_SPEED, accel=DEFAULT_ACCEL, check_custom_limits=True):
+    def set_angle(self, angle: float, speed: int = DEFAULT_SPEED, accel: int = DEFAULT_ACCEL, check_custom_limits: bool = True) -> None:
         """
         Set the joint to a specific angle.
 
@@ -89,7 +95,7 @@ class Joint:
         self.controller.set_target(self.channel, target)
         logger.info(f"Angle set to {angle}°, Servo target set to {target}.")
 
-    def angle_to_servo_target(self, angle):
+    def angle_to_servo_target(self, angle: float) -> int:
         """
         Map a joint angle to the servo target value.
 
@@ -105,7 +111,7 @@ class Joint:
         logger.debug(f"Mapping angle {angle}° to servo target {int(target)}")
         return int(target)
 
-    def update_calibration(self, servo_min, servo_max):
+    def update_calibration(self, servo_min: int, servo_max: int) -> None:
         """
         Update the servo_min and servo_max calibration values.
 

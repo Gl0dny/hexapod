@@ -1,13 +1,11 @@
-from typing import Callable, Any, Optional
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
-import sys
 import os
 import time
 import threading
 from functools import wraps
 from types import MethodType
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from lights import LightsInteractionHandler
 from lights.lights import ColorRGB
@@ -15,6 +13,9 @@ from robot.hexapod import Hexapod
 from control.control_tasks import *
 from interface import InputHandler
 from utils import rename_thread
+
+if TYPE_CHECKING:
+    from typing import Callable, Any, Optional
 
 logger = logging.getLogger("control_logger")
 

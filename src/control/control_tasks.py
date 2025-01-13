@@ -1,10 +1,17 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, override
+import logging
 import threading
 import abc
-from lights import ColorRGB, LightsInteractionHandler
-import logging
-from typing import Optional, Callable, override
-from robot.hexapod import PredefinedPosition, PredefinedAnglePosition, Hexapod
+
+from lights import ColorRGB
+from robot import PredefinedPosition, PredefinedAnglePosition
 from utils import rename_thread
+
+if TYPE_CHECKING:
+    from typing import Optional, Callable
+    from robot import Hexapod
+    from lights import LightsInteractionHandler
 
 logger = logging.getLogger("control_logger")
 

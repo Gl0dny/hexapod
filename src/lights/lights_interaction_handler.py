@@ -1,8 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
-from typing import Callable, Any, Optional, Dict
 from functools import wraps
+
 from lights import Lights, ColorRGB
-from .animation import *
+from lights.animation import *
+
+if TYPE_CHECKING:
+    from typing import Callable, Any, Optional, Dict
 
 logger = logging.getLogger("lights_logger")
 
