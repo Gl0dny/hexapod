@@ -23,10 +23,15 @@ in decimal: **170, 12, 4, 0, 112, 46**
 
 Note that 0x04 is the command 0x84 with its most significant bit cleared.
 """
+from __future__ import annotations
+from typing import TYPE_CHECKING
+import logging
 import serial
 import time
 import threading
-from typing import Optional
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 COMMAND_START: int = 0xAA
 DEFAULT_DEVICE_NUMBER: int = 0x0C
@@ -38,6 +43,8 @@ COMMAND_SET_TARGET: int = 0x04
 COMMAND_GO_HOME: int = 0x22
 COMMAND_GET_MOVING_STATE: int = 0x13
 COMMAND_SET_MULTIPLE_TARGETS: int = 0x1F
+
+logger = logging.getLogger("maestro_logger")
 
 class MaestroUART(object):
 	def __init__(self, device: str = '/dev/ttyS0', baudrate: int = 9600) -> None:
@@ -58,6 +65,7 @@ class MaestroUART(object):
 		self.ser.xonxoff = False
 		self.ser.timeout = 0 # makes the read non-blocking
 		self.lock = threading.Lock()
+		logger.debug(f"MaestroUART initialized successfully with device={device}, baudrate={baudrate}")
 
 	def get_error(self) -> int:
 		"""Check if there was an error and print the corresponding error messages.
@@ -96,6 +104,7 @@ class MaestroUART(object):
 			>0: error, see the Maestro manual for the error values
 			0: no error, or error getting the position, check the connections, could also be low power
 		"""
+		logger.debug("Checking for errors.")
 		self.ser.reset_input_buffer()
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GET_ERROR])
 
@@ -112,25 +121,25 @@ class MaestroUART(object):
 		error_code = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
 
 		if error_code != 0:
-			print("Error detected with code:", error_code)
+			logger.error(f"Error detected with code: {error_code}")
 			if error_code & (1 << 0):
-				print("Serial signal error: Stop bit not detected at the expected place.")
+				logger.error("Serial signal error: Stop bit not detected at the expected place.")
 			if error_code & (1 << 1):
-				print("Serial overrun error: UART's internal buffer filled up.")
+				logger.error("Serial overrun error: UART's internal buffer filled up.")
 			if error_code & (1 << 2):
-				print("Serial buffer full: Firmware buffer for received bytes is full.")
+				logger.error("Serial buffer full: Firmware buffer for received bytes is full.")
 			if error_code & (1 << 3):
-				print("Serial CRC error: CRC byte does not match the computed CRC.")
+				logger.error("Serial CRC error: CRC byte does not match the computed CRC.")
 			if error_code & (1 << 4):
-				print("Serial protocol error: Incorrectly formatted or nonsensical command packet.")
+				logger.error("Serial protocol error: Incorrectly formatted or nonsensical command packet.")
 			if error_code & (1 << 5):
-				print("Serial timeout: Timeout period elapsed without receiving valid serial commands.")
+				logger.error("Serial timeout: Timeout period elapsed without receiving valid serial commands.")
 			if error_code & (1 << 6):
-				print("Script stack error: Stack overflow or underflow.")
+				logger.error("Script stack error: Stack overflow or underflow.")
 			if error_code & (1 << 7):
-				print("Script call stack error: Call stack overflow or underflow.")
+				logger.error("Script call stack error: Call stack overflow or underflow.")
 			if error_code & (1 << 8):
-				print("Script program counter error: Program counter went out of bounds.")
+				logger.error("Script program counter error: Program counter went out of bounds.")
 				
 		return error_code
 
@@ -158,7 +167,9 @@ class MaestroUART(object):
 				if data[n] == b'': continue
 				n = n + 1
 
-		return int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
+		position = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
+		logger.info(f"Position for channel {channel} is {position}.")
+		return position
 
 	def set_speed(self, channel: int, speed: int) -> None:
 		"""Sets the speed of a Maestro channel.
@@ -188,6 +199,7 @@ class MaestroUART(object):
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_SPEED, channel, speed & 0x7F, (speed >> 7) & 0x7F])
 		with self.lock:
 			self.ser.write(command)
+		logger.debug(f"Speed for channel {channel} set to {speed}.")
 
 	def set_acceleration(self, channel: int, accel: int) -> None:
 		"""Sets the acceleration of a Maestro channel. Note that once you set
@@ -230,6 +242,7 @@ class MaestroUART(object):
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_ACCELERATION, channel, accel & 0x7F, (accel >> 7) & 0x7F])
 		with self.lock:
 			self.ser.write(command)
+		logger.debug(f"Acceleration for channel {channel} set to {accel}.")
 
 	def set_target(self, channel: int, target: int) -> None:
 		"""Sets the target of a Maestro channel. 
@@ -250,6 +263,7 @@ class MaestroUART(object):
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_SET_TARGET, channel, target & 0x7F, (target >> 7) & 0x7F])
 		with self.lock:
 			self.ser.write(command)
+		logger.debug(f"Target for channel {channel} set to {target}.")
 
 	def set_multiple_targets(self, targets: list[tuple[int, int]]) -> None:
 		"""
@@ -287,6 +301,7 @@ class MaestroUART(object):
 			command += bytes([target & 0x7F, (target >> 7) & 0x7F])
 		with self.lock:
 			self.ser.write(command)
+		logger.debug(f"Multiple targets set: {targets}")
 
 	def go_home(self) -> None:
 		"""
@@ -304,10 +319,10 @@ class MaestroUART(object):
 		Returns:
 			none
 		"""
-
 		command = bytes([COMMAND_START, DEFAULT_DEVICE_NUMBER, COMMAND_GO_HOME])
 		with self.lock:
 			self.ser.write(command)
+		logger.debug("Go Home command sent.")
 
 	def get_moving_state(self) -> Optional[int]:
 		"""
@@ -335,8 +350,11 @@ class MaestroUART(object):
 			# Read a single byte response indicating the moving state
 			response = self.ser.read(1)
 		if response == b'':
+			logger.debug("Failed to get moving state.")
 			return None
-		return ord(response)
+		moving_state = ord(response)
+		logger.info(f"Moving state: {moving_state}")
+		return moving_state
 
 	def close(self) -> None:
 		"""
@@ -349,8 +367,8 @@ class MaestroUART(object):
 			none
 		"""
 		with self.lock:
-			print("Closing the serial port.")
-			self.ser.close();
+			self.ser.close()
+		logger.info("Serial port closed.")
 
 if __name__ == '__main__':
 	# min_pos and max_pos are the minimum and maxium positions for the servos

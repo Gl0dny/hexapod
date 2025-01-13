@@ -1,6 +1,5 @@
 from icm20948 import ICM20948
 
-
 class Imu:
     """Interface for interacting with the ICM20948 IMU sensor, providing access to acceleration, gyroscope, magnetometer, and temperature data.
 

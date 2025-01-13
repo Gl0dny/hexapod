@@ -1,8 +1,22 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+import logging
+
+if TYPE_CHECKING:
+    from typing import Optional
+    from maestro import MaestroUART
+
+logger = logging.getLogger("robot_logger")
+
 class Joint:
     DEFAULT_SPEED = 32  # Speed setting for the servo in units of (0.25us/10ms). A speed of 32 means 0.8064us/ms.
     DEFAULT_ACCEL = 5   # Acceleration setting for the servo in units of (0.25us/10ms/80ms). A value of 5 means 0.0016128us/ms/ms.
+    
+    SERVO_INPUT_MIN = 992  # Minimum servo pulse width in microseconds as defined by the Maestro controller.
+    SERVO_INPUT_MAX = 2000 # Maximum servo pulse width in microseconds as defined by the Maestro controller.
+    SERVO_UNIT_MULTIPLIER = 4 # Multiplier to convert microseconds to quarter-microseconds.
 
-    def __init__(self, controller, length, channel, angle_min, angle_max, servo_min=992*4, servo_max=2000*4, angle_limit_min=None, angle_limit_max=None, invert=False):
+    def __init__(self, controller: MaestroUART, length: float, channel: int, angle_min: float, angle_max: float, servo_min: int = SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER, servo_max: int = SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER, angle_limit_min: Optional[float] = None, angle_limit_max: Optional[float] = None, invert: bool = False) -> None:
         """
         Represents a single joint controlled by a servo.
 
@@ -40,18 +54,22 @@ class Joint:
         Raises:
             ValueError: If the angle is outside the allowed limits.
         """
+        logger.debug(f"Validating angle: {angle}°, Check custom limits: {check_custom_limits}")
         if not check_custom_limits:
             return
 
         if not (self.angle_min <= angle <= self.angle_max):
+            logger.error(f"{self} angle {angle}° is out of bounds ({self.angle_min}° to {self.angle_max}°).")
             raise ValueError(f"{self} angle {angle}° is out of bounds ({self.angle_min}° to {self.angle_max}°).")
         
         if self.angle_limit_min is not None and angle < self.angle_limit_min:
+            logger.error(f"{self} angle {angle}° is below custom limit ({self.angle_limit_min}°).")
             raise ValueError(f"{self} angle {angle}° is below custom limit ({self.angle_limit_min}°).")
         if self.angle_limit_max is not None and angle > self.angle_limit_max:
+            logger.error(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
             raise ValueError(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
 
-    def set_angle(self, angle, speed=DEFAULT_SPEED, accel=DEFAULT_ACCEL, check_custom_limits=True):
+    def set_angle(self, angle: float, speed: int = DEFAULT_SPEED, accel: int = DEFAULT_ACCEL, check_custom_limits: bool = True) -> None:
         """
         Set the joint to a specific angle.
 
@@ -61,19 +79,23 @@ class Joint:
             accel (int): Acceleration setting for the servo.
             check_custom_limits (bool): Whether to enforce angle limits.
         """
+        logger.info(f"Setting angle to {angle}° with speed={speed} and accel={accel}. Invert: {self.invert}")
         if self.invert:
             angle = -angle
+            logger.debug(f"Inverted angle: {angle}°")
 
         self._validate_angle(angle, check_custom_limits)
 
         target = self.angle_to_servo_target(angle)
+        logger.debug(f"Calculated servo target: {target}")
 
         self.controller.set_speed(self.channel, speed)
         self.controller.set_acceleration(self.channel, accel)
 
         self.controller.set_target(self.channel, target)
+        logger.info(f"Angle set to {angle}°, Servo target set to {target}.")
 
-    def angle_to_servo_target(self, angle):
+    def angle_to_servo_target(self, angle: float) -> int:
         """
         Map a joint angle to the servo target value.
 
@@ -86,9 +108,10 @@ class Joint:
         angle_range = self.angle_max - self.angle_min
         servo_range = self.servo_max - self.servo_min
         target = self.servo_min + servo_range * ((angle - self.angle_min) / angle_range)
+        logger.debug(f"Mapping angle {angle}° to servo target {int(target)}")
         return int(target)
 
-    def update_calibration(self, servo_min, servo_max):
+    def update_calibration(self, servo_min: int, servo_max: int) -> None:
         """
         Update the servo_min and servo_max calibration values.
 
@@ -98,4 +121,4 @@ class Joint:
         """
         self.servo_min = servo_min
         self.servo_max = servo_max
-        print(f"Updated calibration for channel {self.channel}: servo_min={self.servo_min}, servo_max={self.servo_max}")
+        logger.debug(f"Updated calibration for channel {self.channel}: servo_min={self.servo_min}, servo_max={self.servo_max}")

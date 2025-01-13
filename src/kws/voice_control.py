@@ -1,18 +1,22 @@
-import os
-import threading
-import sys
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
-from typing import Any
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import threading
+from pathlib import Path
 
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
-from kws.intent_dispatcher import IntentDispatcher
-from control import ControlInterface
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from kws import IntentDispatcher
+from control import ControlInterface
+from lights import ColorRGB
+from utils import rename_thread
+
+if TYPE_CHECKING:
+    from typing import Any
+    from control import ControlTask
+
+logger = logging.getLogger("kws_logger")
 
 class VoiceControl(threading.Thread):
     """
@@ -21,8 +25,8 @@ class VoiceControl(threading.Thread):
 
     def __init__(
             self,
-            keyword_path: str,
-            context_path: str,
+            keyword_path: Path,
+            context_path: Path,
             access_key: str,
             device_index: int,
             control_interface: ControlInterface,
@@ -32,25 +36,27 @@ class VoiceControl(threading.Thread):
         Initialize the VoiceControl thread.
 
         Args:
-            keyword_path (str): Path to the wake word keyword file.
-            context_path (str): Path to the language context file.
+            keyword_path (Path): Path to the wake word keyword file.
+            context_path (Path): Path to the language context file.
             access_key (str): Access key for Picovoice services.
             device_index (int): Index of the audio input device.
             control_interface (ControlInterface): Control interface instance.
             porcupine_sensitivity (float, optional): Sensitivity for wake word detection.
             rhino_sensitivity (float, optional): Sensitivity for intent recognition.
         """
-        super(VoiceControl, self).__init__()
+        super().__init__(daemon=True)
+        rename_thread(self, "VoiceControl")
 
         # Picovoice API callback
         def inference_callback(inference: Any) -> None:
+            logger.debug("Picovoice inference callback triggered")
             return self._inference_callback(inference)
 
         self.picovoice = Picovoice(
             access_key=access_key,
             keyword_path=keyword_path,
             wake_word_callback=self._wake_word_callback,
-            context_path=context_path,
+            context_path=str(context_path),
             inference_callback=inference_callback,
             porcupine_sensitivity=porcupine_sensitivity,
             rhino_sensitivity=rhino_sensitivity)
@@ -59,6 +65,7 @@ class VoiceControl(threading.Thread):
         self.device_index = device_index
 
         self.control_interface = control_interface
+        self.control_interface.set_task_complete_callback(self.on_task_complete)
 
         self.intent_dispatcher = IntentDispatcher(self.control_interface)
 
@@ -67,6 +74,8 @@ class VoiceControl(threading.Thread):
         self.pause_lock = threading.Lock()
         self.pause_event = threading.Event()
         self.pause_event.set()
+
+        logger.debug("VoiceControl thread initialized successfully")
 
     def print_context(self) -> None:
         """
@@ -78,8 +87,9 @@ class VoiceControl(threading.Thread):
         """
         Callback function invoked when the wake word is detected.
         """
-        print('[wake word]\n')
-        self.control_interface.lights_handler.listen()
+        logger.user_info('[wake word]')
+        self.control_interface.lights_handler.listen_intent()
+        logger.user_info("Listening for intent...")
 
     def _inference_callback(self, inference: Any) -> None:
         """
@@ -88,23 +98,30 @@ class VoiceControl(threading.Thread):
         Args:
             inference (Any): The inference result.
         """
-        self.control_interface.lights_handler.off()
-
-        print('{')
-        print("  is_understood : '%s'," % ('true' if inference.is_understood else 'false'))
-        if inference.is_understood:
-            print("  intent : '%s'," % inference.intent)
-            if len(inference.slots) > 0:
-                print('  slots : {')
-                for slot, value in inference.slots.items():
-                    print("    '%s' : '%s'," % (slot, value))
-                print('  }')
-        print('}\n')
+        log_data = {
+            "is_understood": inference.is_understood,
+            "intent": inference.intent if inference.is_understood else None,
+            "slots": inference.slots if inference.is_understood and inference.slots else None
+        }
+        logger.user_info(f"Inference Result: {log_data}")
 
         if inference.is_understood:
             self.intent_dispatcher.dispatch(inference.intent, inference.slots)
         else:
-            self.control_interface.lights_handler.ready()
+            logger.error("Inference not understood")
+            self.control_interface.lights_handler.listen_wakeword(base_color=ColorRGB.RED, pulse_color=ColorRGB.GOLDEN)
+            logger.user_info("Listening for wake word...")
+
+    def on_task_complete(self, task: ControlTask) -> None:
+        """
+        Callback function invoked when a ControlTask completes.
+
+        Args:
+            task (ControlTask): The task that has completed.
+        """
+        logger.user_info(f"Voice control task {task.__class__.__name__} has been completed.")
+        self.control_interface.lights_handler.listen_wakeword()
+        logger.user_info("Listening for wake word...")
 
     def pause(self) -> None:
         """
@@ -114,7 +131,7 @@ class VoiceControl(threading.Thread):
             self.pause_event.clear()
             if self.recorder and self.recorder.is_recording:
                 self.recorder.stop()
-            logger.info('Voice control paused.')
+            logger.user_info('Voice control paused')
 
     def unpause(self) -> None:
         """
@@ -124,27 +141,30 @@ class VoiceControl(threading.Thread):
             if self.recorder and not self.recorder.is_recording:
                 self.recorder.start()
             self.pause_event.set()
-            logger.info('Voice control unpaused.')
-            self.control_interface.lights_handler.ready()
+            logger.user_info('Voice control unpaused')
+            self.control_interface.lights_handler.listen_wakeword()
 
     def stop(self):
         """Signal the thread to stop."""
-        logger.info('Stopping voice control thread...')
         self.stop_event.set()
         if self.recorder and self.recorder.is_recording:
             self.recorder.stop()
+            logger.user_info('Voice control thread stopped')
 
     def run(self) -> None:
         """
         Runs the voice control thread, initializing Picovoice and handling audio input.
         """
+        logger.debug("VoiceControl thread running")
         try:
             self.control_interface.voice_control_context_info = self.context
 
             self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
             self.recorder.start()
+            # rename_thread(self.recorder._thread, "PvRecorder")
 
-            self.control_interface.lights_handler.ready()
+            self.control_interface.lights_handler.listen_wakeword()
+            logger.user_info("Listening for wake word...")
             
             paused = False
 
@@ -160,7 +180,7 @@ class VoiceControl(threading.Thread):
                     self.picovoice.process(pcm)
 
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
+            logger.exception(f"Unexpected error: {e}")
         
         finally:
             if self.recorder and self.recorder.is_recording:
@@ -171,4 +191,4 @@ class VoiceControl(threading.Thread):
 
             self.picovoice.delete()
             
-            print('Voice control thread stopped.')
+            logger.debug("VoiceControl thread finished")

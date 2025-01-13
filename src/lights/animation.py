@@ -1,55 +1,76 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, override
+import logging
 import threading
 import abc
-from typing import Optional
 from lights import Lights, ColorRGB 
-import logging
+from utils import rename_thread
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from typing import Optional, Dict
 
-class Animation(abc.ABC):
+logger = logging.getLogger("lights_logger")
+
+class Animation(threading.Thread, abc.ABC):
     """
     Abstract base class for animations using Lights.
 
     Attributes:
         lights (Lights): The Lights object to control the LEDs.
-        thread (threading.Thread): The thread running the animation.
         stop_event (threading.Event): Event to signal the animation to stop.
     """
 
     def __init__(self, lights: Lights) -> None:
         """
-        Initialize the Animation object.
+        Initialize the Animation thread and sets up necessary attributes.
 
         Args:
             lights (Lights): The Lights object to control the LEDs.
         """
+        super().__init__(daemon=True)
+        rename_thread(self, self.__class__.__name__)
+
         self.lights: Lights = lights
-        self.thread: threading.Thread = None
         self.stop_event: threading.Event = threading.Event()
+        logger.debug(f"{self.__class__.__name__} initialized successfully.")
 
     def start(self) -> None:
         """
         Start the animation in a separate thread.
+        Clears the stop event and initiates the thread's run method.
         """
+        logger.debug(f"Starting animation: {self.__class__.__name__}")
         self.stop_event.clear()
-        self.thread = threading.Thread(target=self.run)
-        self.thread.start()
-
-    @abc.abstractmethod
-    def run(self) -> None:
+        super().start()
+        
+    def run(self):
         """
-        The method to be implemented by subclasses to define the animation logic.
+        Execute the animation.
+        """
+        logger.debug(f"Running animation: {self.__class__.__name__}")
+        self.execute_animation()
+    
+    @abc.abstractmethod
+    def execute_animation(self) -> None:
+        """
+        Execute the animation logic.
+
+        This method should be overridden by subclasses to define specific animation behaviors.
         """
         pass
 
     def stop_animation(self) -> None:
         """
-        Stop the animation and wait for the thread to finish.
+        Signals the animation to stop and joins the thread.
+
+        Sets the stop_event to notify the thread to terminate.
+        If the thread is alive, it forcefully stops the thread.
         """
+        logger.debug(f"Stopping animation: {self.__class__.__name__}")
         self.stop_event.set()
-        logger.info(f"Animation {self.__class__.__name__} forcefully stopping.")
-        if self.thread and self.thread.is_alive():
-            self.thread.join()
+        if self.is_alive():
+            logger.info(f"Animation {self.__class__.__name__} forcefully stopping.")
+            self.join()
 
 class AlternateRotateAnimation(Animation):
     """
@@ -79,11 +100,11 @@ class AlternateRotateAnimation(Animation):
         self.delay: float = delay
         self.positions: int = positions
 
-    def run(self) -> None:
+    @override
+    def execute_animation(self) -> None:
         """
         Run the animation logic.
         """
-
         for i in range(self.lights.num_led):
             if self.stop_event.wait(self.delay):
                 return
@@ -108,7 +129,7 @@ class WheelFillAnimation(Animation):
         interval (float): The interval between filling LEDs.
     """
 
-    def __init__(self, lights: Lights, use_rainbow: bool = True, color: Optional[ColorRGB] = None, interval: float = 0.2) -> None:
+    def __init__(self, lights: Lights, use_rainbow: bool = True, color: Optional[ColorRGB] = None, interval: float = 1) -> None:
         """
         Initialize the WheelFillAnimation object.
 
@@ -123,12 +144,14 @@ class WheelFillAnimation(Animation):
         """
         super().__init__(lights)
         if not use_rainbow and color is None:
+            logger.error("color must be provided when use_rainbow is False.")
             raise ValueError("color must be provided when use_rainbow is False.")
         self.use_rainbow: bool = use_rainbow
         self.color: Optional[ColorRGB] = color
         self.interval: float = interval
 
-    def run(self) -> None:
+    @override
+    def execute_animation(self) -> None:
         """
         Run the animation logic.
         """
@@ -142,7 +165,6 @@ class WheelFillAnimation(Animation):
                 rgb = self.color.rgb if self.color else (0, 0, 0)
             
             self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)
-
                 
 class PulseSmoothlyAnimation(Animation):
     """
@@ -169,7 +191,8 @@ class PulseSmoothlyAnimation(Animation):
         self.pulse_color: ColorRGB = pulse_color
         self.pulse_speed: float = pulse_speed
 
-    def run(self) -> None:
+    @override
+    def execute_animation(self) -> None:
         """
         Run the animation logic.
         """
@@ -223,7 +246,8 @@ class PulseAnimation(Animation):
         self.pulse_color: ColorRGB = pulse_color
         self.pulse_speed: float = pulse_speed
 
-    def run(self) -> None:
+    @override
+    def execute_animation(self) -> None:
         """
         Run the animation logic.
         """
@@ -263,12 +287,14 @@ class WheelAnimation(Animation):
         """
         super().__init__(lights)
         if not use_rainbow and color is None:
+            logger.error("color must be provided when use_rainbow is False.")
             raise ValueError("color must be provided when use_rainbow is False.")
         self.use_rainbow: bool = use_rainbow
         self.color: Optional[ColorRGB] = color
         self.interval: float = interval
 
-    def run(self) -> None:
+    @override
+    def execute_animation(self) -> None:
         """
         Run the animation logic.
         """
@@ -316,7 +342,8 @@ class OppositeRotateAnimation(Animation):
         self.color: ColorRGB = color
         self.direction: int = self.FORWARD
 
-    def run(self) -> None:
+    @override
+    def execute_animation(self) -> None:
         """
         Run the animation logic.
         """
@@ -354,3 +381,48 @@ class OppositeRotateAnimation(Animation):
             # Switch direction and update starting index
             self.direction = self.BACKWARD if self.direction == self.FORWARD else self.FORWARD
             start_index = end_index
+
+class CalibrationAnimation(Animation):
+    """
+    Animation that updates LED colors based on the calibration status of each leg.
+
+    This animation sets LEDs to:
+        - Yellow when a leg is calibrating.
+        - Green when a leg is calibrated.
+        - Red when a leg is not calibrated.
+    """
+
+    def __init__(self, lights: Lights, calibration_status: Dict[int, str], leg_to_led: Dict[int, int], refresh_delay: float = 1.0) -> None:
+        """
+        Initialize the CalibrationAnimation.
+
+        Args:
+            lights (Lights): The Lights object to control the LEDs.
+            calibration_status (Dict[int, str]): Current calibration status of each leg.
+            leg_to_led (Dict[int, int]): Mapping from leg indices to LED indices.
+            refresh_delay (float): The interval between updates.
+        """
+        super().__init__(lights)
+        self.calibration_status = calibration_status
+        self.leg_to_led = leg_to_led
+        self.refresh_delay: float = refresh_delay
+
+    @override
+    def execute_animation(self) -> None:
+        try:
+            while not self.stop_event.is_set():
+                status_color_map = {
+                    "calibrating": ColorRGB.YELLOW,
+                    "calibrated": ColorRGB.GREEN,
+                    "not_calibrated": ColorRGB.RED
+                }
+                for leg_index, led_index in self.leg_to_led.items():
+                    status = self.calibration_status.get(leg_index)
+                    color = status_color_map.get(status)
+                    if color is None:
+                        raise ValueError(f"Invalid calibration status: {status}")
+                    self.lights.set_color(color, led_index=led_index)
+                if self.stop_event.wait(self.refresh_delay):
+                    return
+        except Exception as e:
+            logger.exception(f"CalibrationAnimation failed: {e}.")
