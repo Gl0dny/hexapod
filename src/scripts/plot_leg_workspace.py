@@ -9,7 +9,6 @@ import contextlib
 import io
 import csv
 import argparse
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from robot import Hexapod
 
 def main():

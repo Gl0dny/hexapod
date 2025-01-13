@@ -1,16 +1,7 @@
 import pytest
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/')))
-from lights.lights import ColorRGB
-from lights.animation import (
-    AlternateRotateAnimation,
-    WheelFillAnimation,
-    PulseSmoothlyAnimation,
-    PulseAnimation,
-    WheelAnimation,
-    OppositeRotateAnimation
-)
+
+from lights import ColorRGB
+from lights.animation import *
 
 @pytest.fixture
 def mock_lights(mocker):

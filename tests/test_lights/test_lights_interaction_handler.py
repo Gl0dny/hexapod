@@ -1,9 +1,7 @@
 import pytest
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/')))
-from lights.lights_interaction_handler import LightsInteractionHandler
-from lights.animation import OppositeRotateAnimation, WheelFillAnimation, PulseSmoothlyAnimation
+
+from lights import LightsInteractionHandler
+from lights.animation import *
 
 @pytest.fixture
 def mock_lights(mocker):

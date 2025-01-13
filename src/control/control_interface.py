@@ -7,9 +7,8 @@ import threading
 from functools import wraps
 from types import MethodType
 
-from lights import LightsInteractionHandler
-from lights.lights import ColorRGB
-from robot.hexapod import Hexapod
+from lights import LightsInteractionHandler, ColorRGB
+from robot import Hexapod
 from control.control_tasks import *
 from interface import InputHandler
 from utils import rename_thread

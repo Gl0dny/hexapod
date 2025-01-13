@@ -1,8 +1,6 @@
 import pytest
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/')))
-from robot.joint import Joint
+
+from robot import Joint
 
 @pytest.fixture
 def joint_fixture(mocker):
