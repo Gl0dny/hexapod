@@ -1,22 +1,20 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+import logging
 import json
 import threading
 import time
-import logging
-from interface import InputHandler
 from pathlib import Path
+
+from interface import InputHandler
 from utils import rename_thread
+from robot import Joint
 
 if TYPE_CHECKING:
     from typing import Optional
     from robot import Hexapod
 
 logger = logging.getLogger("robot_logger")
-
-SERVO_INPUT_MIN = 992  # Minimum servo pulse width in microseconds as defined by the Maestro controller.
-SERVO_INPUT_MAX = 2000 # Maximum servo pulse width in microseconds as defined by the Maestro controller.
-SERVO_UNIT_MULTIPLIER = 4 # Multiplier to convert microseconds to quarter-microseconds.
 
 class Calibration:
     def __init__(self, hexapod: Hexapod, calibration_data_path: Path) -> None:
@@ -154,14 +152,14 @@ class Calibration:
                     servo_min = joint_calib.get('servo_min')
                     servo_max = joint_calib.get('servo_max')
                     if servo_min and servo_max:
-                        if (SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER <= servo_min <= SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER and
-                            SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER <= servo_max <= SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER and
+                        if (Joint.SERVO_INPUT_MIN * Joint.SERVO_UNIT_MULTIPLIER <= servo_min <= Joint.SERVO_INPUT_MAX * Joint.SERVO_UNIT_MULTIPLIER and
+                            Joint.SERVO_INPUT_MIN * Joint.SERVO_UNIT_MULTIPLIER <= servo_max <= Joint.SERVO_INPUT_MAX * Joint.SERVO_UNIT_MULTIPLIER and
                             servo_min < servo_max):
                             self._calibrate_servo(i, joint_name, servo_min, servo_max)
                             logger.debug(f"Loaded calibration for leg {i} {joint_name}: servo_min={servo_min}, servo_max={servo_max}")
                         else:
-                            logger.warning(f"Calibration values for leg {i} {joint_name} are invalid (servo_min: {servo_min}, servo_max: {servo_max}). Using default values: servo_min={SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER}, servo_max={SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER}.")
-                            self._calibrate_servo(i, joint_name, SERVO_INPUT_MIN * SERVO_UNIT_MULTIPLIER, SERVO_INPUT_MAX * SERVO_UNIT_MULTIPLIER)
+                            logger.warning(f"Calibration values for leg {i} {joint_name} are invalid (servo_min: {servo_min}, servo_max: {servo_max}). Using default values: servo_min={Joint.SERVO_INPUT_MIN * Joint.SERVO_UNIT_MULTIPLIER}, servo_max={Joint.SERVO_INPUT_MAX * Joint.SERVO_UNIT_MULTIPLIER}.")
+                            self._calibrate_servo(i, joint_name, Joint.SERVO_INPUT_MIN * Joint.SERVO_UNIT_MULTIPLIER, Joint.SERVO_INPUT_MAX * Joint.SERVO_UNIT_MULTIPLIER)
         except FileNotFoundError:
             logger.exception(f"{self.calibration_data_path} not found. Using default calibration values. Run calibrate_all_servos() to set new values.")
         except json.JSONDecodeError as e:
@@ -327,7 +325,7 @@ class Calibration:
         Returns:
             int: The validated servo input value, or None if interrupted.
         """
-        prompt = f"\nEnter {servo_label} for Leg {leg_index} {joint_name} ({SERVO_INPUT_MIN}-{SERVO_INPUT_MAX}): "
+        prompt = f"\nEnter {servo_label} for Leg {leg_index} {joint_name} ({Joint.SERVO_INPUT_MIN}-{Joint.SERVO_INPUT_MAX}): "
         print(prompt, end='', flush=True)
         servo_input = None
         while servo_input is None:
@@ -393,23 +391,23 @@ class Calibration:
         Returns:
             bool: True if the input is valid, False otherwise.
         """
-        if not (SERVO_INPUT_MIN <= servo_input <= SERVO_INPUT_MAX):
-            print(f"Error: {servo_label} must be between {SERVO_INPUT_MIN} and {SERVO_INPUT_MAX}.")
+        if not (Joint.SERVO_INPUT_MIN <= servo_input <= Joint.SERVO_INPUT_MAX):
+            print(f"Error: {servo_label} must be between {Joint.SERVO_INPUT_MIN} and {Joint.SERVO_INPUT_MAX}.")
             return False
 
         if invert:
-            if servo_label == 'servo_min' and servo_input >= SERVO_INPUT_MAX:
-                print(f"Error: {servo_label} must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
+            if servo_label == 'servo_min' and servo_input >= Joint.SERVO_INPUT_MAX:
+                print(f"Error: {servo_label} must be less than current maximum servo_max input ({Joint.SERVO_INPUT_MAX}).")
                 return False
-            elif servo_label == 'servo_max' and servo_input <= SERVO_INPUT_MIN:
-                print(f"Error: {servo_label} must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
+            elif servo_label == 'servo_max' and servo_input <= Joint.SERVO_INPUT_MIN:
+                print(f"Error: {servo_label} must be greater than current minimum servo_min input ({Joint.SERVO_INPUT_MIN}).")
                 return False
         else:
-            if servo_label == 'servo_min' and servo_input >= SERVO_INPUT_MAX:
-                print(f"Error: {servo_label} must be less than current maximum servo_max input ({SERVO_INPUT_MAX}).")
+            if servo_label == 'servo_min' and servo_input >= Joint.SERVO_INPUT_MAX:
+                print(f"Error: {servo_label} must be less than current maximum servo_max input ({Joint.SERVO_INPUT_MAX}).")
                 return False
-            elif servo_label == 'servo_max' and servo_input <= SERVO_INPUT_MIN:
-                print(f"Error: {servo_label} must be greater than current minimum servo_min input ({SERVO_INPUT_MIN}).")
+            elif servo_label == 'servo_max' and servo_input <= Joint.SERVO_INPUT_MIN:
+                print(f"Error: {servo_label} must be greater than current minimum servo_min input ({Joint.SERVO_INPUT_MIN}).")
                 return False
 
         return True
@@ -441,9 +439,9 @@ class Calibration:
                 joint = getattr(self.hexapod.legs[leg_index], joint_name)
 
                 if servo_label == 'servo_min':
-                    expected_servo = SERVO_INPUT_MIN
+                    expected_servo = Joint.SERVO_INPUT_MIN
                 else:
-                    expected_servo = SERVO_INPUT_MAX
+                    expected_servo = Joint.SERVO_INPUT_MAX
                 print(f"Expected {angle_label} ({expected_angle}°) corresponds to {servo_label} (Expected Value: {expected_servo}).")
 
                 servo_input = self._prompt_servo_value(leg_index, joint_name, servo_label, stop_event)
@@ -453,7 +451,7 @@ class Calibration:
                 if not self._validate_servo_input(servo_label, servo_input, invert):
                     continue
 
-                servo_value = servo_input * SERVO_UNIT_MULTIPLIER
+                servo_value = servo_input * Joint.SERVO_UNIT_MULTIPLIER
 
                 if servo_label == 'servo_min':
                     self._calibrate_servo(leg_index, joint_name, servo_value, joint.servo_max)
