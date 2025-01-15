@@ -200,15 +200,6 @@ class LightsInteractionHandler:
         )
 
     @animation
-    def speak(self) -> None:
-        """
-        Start the speak animation.
-        """
-        self.off()
-        self.animation = None  # Ensure animation is set to avoid AttributeError
-        raise NotImplementedError("The 'speak' method is not implemented yet.")
-
-    @animation
     def police(self, pulse_speed: float = 0.25) -> None:
         """
         Start the police pulsing animation.
@@ -254,3 +245,12 @@ class LightsInteractionHandler:
             calibration_status=calibration_status,
             leg_to_led=self.leg_to_led
         )
+
+    @animation
+    def speak(self) -> None:
+        """
+        Start the speak animation.
+        """
+        self.off()
+        self.animation = None  # Ensure animation is set to avoid AttributeError
+        raise NotImplementedError("The 'speak' method is not implemented yet.")

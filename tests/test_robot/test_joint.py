@@ -23,12 +23,12 @@ class TestJoint:
     def test_set_angle_below_min(self, joint_fixture):
         with pytest.raises(ValueError) as excinfo:
             joint_fixture.set_angle(-50)
-        assert "out of limits" in str(excinfo.value)
+        assert "out of bounds" in str(excinfo.value)
 
     def test_set_angle_above_max(self, joint_fixture):
         with pytest.raises(ValueError) as excinfo:
             joint_fixture.set_angle(50)
-        assert "out of limits" in str(excinfo.value)
+        assert "out of bounds" in str(excinfo.value)
 
     def test_angle_to_servo_target(self, joint_fixture):
         target = joint_fixture.angle_to_servo_target(0)
