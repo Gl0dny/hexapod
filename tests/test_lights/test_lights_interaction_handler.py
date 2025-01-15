@@ -1,7 +1,7 @@
 import pytest
 
 from lights import LightsInteractionHandler
-from lights.animation import *
+from lights.animations.animation import *
 
 @pytest.fixture
 def mock_lights(mocker):
