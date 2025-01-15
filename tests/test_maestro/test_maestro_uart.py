@@ -1,8 +1,6 @@
 import pytest
-import sys
-import os
 import serial
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/')))
+
 from maestro import MaestroUART
 
 @pytest.fixture

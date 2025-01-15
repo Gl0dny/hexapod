@@ -1,8 +1,6 @@
 import pytest
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/')))
-from lights.lights import Lights, ColorRGB
+
+from lights import Lights, ColorRGB
 
 @pytest.fixture
 def lights_fixture(mocker):

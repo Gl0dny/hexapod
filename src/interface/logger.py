@@ -1,6 +1,5 @@
-"""Logger module for the Hexapod project.
-
-Provides custom logging levels and formatters.
+"""
+Logger module for the Hexapod project. Provides custom logging levels and formatters.
 """
 from __future__ import annotations
 from typing import TYPE_CHECKING, override
@@ -11,29 +10,40 @@ import json
 if TYPE_CHECKING:
     from typing import Optional, Dict, Any
 
-USER_INFO_LEVEL = 25
-logging.addLevelName(USER_INFO_LEVEL, "USER_INFO")
-logging.USER_INFO = USER_INFO_LEVEL
-
-def user_info(self, message: str, *args: Any, **kwargs: Any) -> None:
-    """
-    Log a user-level informational message.
-
-    Args:
-        message (str): The message to be logged.
-        *args (Any): Variable length argument list.
-        **kwargs (Any): Arbitrary keyword arguments.
-    
-    Returns:
-        None
-    """
-    if self.isEnabledFor(USER_INFO_LEVEL):
-        self._log(USER_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
-
-logging.Logger.user_info = user_info
-
-
+# Define built-in log record attributes for custom formatting
 LOG_RECORD_BUILTIN_ATTRS = {...}
+
+def add_user_info_level() -> None:
+    """
+    Initialize and add a custom logging level 'USER_INFO' to the logging module.
+    
+    This function sets up a new logging level with a numeric value of 25 and 
+    associates it with the name "USER_INFO". It also adds the `user_info` method 
+    to the `logging.Logger` class for ease of logging at this level.
+    """
+    USER_INFO_LEVEL = 25
+    logging.addLevelName(USER_INFO_LEVEL, "USER_INFO")
+    logging.USER_INFO = USER_INFO_LEVEL
+
+    def user_info(self, message: str, *args: Any, **kwargs: Any) -> None:
+        """
+        Log a user-level informational message.
+
+        Args:
+            message (str): The message to be logged.
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+        
+        Returns:
+            None
+        """
+        if self.isEnabledFor(USER_INFO_LEVEL):
+            self._log(USER_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
+
+    logging.Logger.user_info = user_info
+
+add_user_info_level()
+
 
 class MyJSONFormatter(logging.Formatter):
     """Formatter that outputs logs in JSON format."""
@@ -132,34 +142,38 @@ class VerboseFormatter(logging.Formatter):
         record.threadName = f"{record.threadName:^30}"
         record.funcName = f"{record.funcName:^30}"
         return super().format(record)
-    
-ANSI_COLORS = {
-    'BLUE': '\033[94m',
-    'GREEN': '\033[92m',
-    'CYAN': '\033[96m',
-    'YELLOW': '\033[93m',
-    'RED': '\033[91m',
-    'BOLD_RED': '\033[1;31m',
-    'MAGENTA': '\033[95m',
-    'ORANGE': '\033[38;5;208m',
-    'PINK': '\033[38;5;205m',
-}
-
-RESET_COLOR = '\033[0m'
-
-FMT = "[{levelname:^9} - {module:^30} - {asctime}] - {message}"
-
-FORMATS = {
-    logging.DEBUG: FMT,
-    logging.INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
-    logging.USER_INFO: f"{ANSI_COLORS['CYAN']}{FMT}{RESET_COLOR}",
-    logging.WARNING: f"{ANSI_COLORS['YELLOW']}{FMT}{RESET_COLOR}",
-    logging.ERROR: f"{ANSI_COLORS['RED']}{FMT}{RESET_COLOR}",
-    logging.CRITICAL: f"{ANSI_COLORS['BOLD_RED']}{FMT}{RESET_COLOR}",
-}
 
 class ColoredTerminalFormatter(logging.Formatter):
     """Formatter that adds ANSI color codes to log messages based on severity."""
+
+    # ANSI color codes for different log levels
+    ANSI_COLORS = {
+        'BLUE': '\033[94m',
+        'GREEN': '\033[92m',
+        'CYAN': '\033[96m',
+        'YELLOW': '\033[93m',
+        'RED': '\033[91m',
+        'BOLD_RED': '\033[1;31m',
+        'MAGENTA': '\033[95m',
+        'ORANGE': '\033[38;5;208m',
+        'PINK': '\033[38;5;205m',
+    }
+
+    # Reset color code to default
+    RESET_COLOR = '\033[0m'
+
+    # Log message format string
+    FMT = "[{levelname:^9} - {module:^30} - {asctime}] - {message}"
+
+    # Mapping of log levels to their respective formatted strings with colors
+    FORMATS = {
+        logging.DEBUG: FMT,
+        logging.INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
+        logging.USER_INFO: f"{ANSI_COLORS['CYAN']}{FMT}{RESET_COLOR}",
+        logging.WARNING: f"{ANSI_COLORS['YELLOW']}{FMT}{RESET_COLOR}",
+        logging.ERROR: f"{ANSI_COLORS['RED']}{FMT}{RESET_COLOR}",
+        logging.CRITICAL: f"{ANSI_COLORS['BOLD_RED']}{FMT}{RESET_COLOR}",
+    }
 
     def format(self, record: logging.LogRecord) -> str:
         """Format the log record with color codes.
@@ -170,6 +184,6 @@ class ColoredTerminalFormatter(logging.Formatter):
         Returns:
             str: The formatted log record string with ANSI color codes.
         """
-        log_fmt = FORMATS[record.levelno]
+        log_fmt = self.FORMATS.get(record.levelno, self.FMT)
         formatter = logging.Formatter(log_fmt, style="{")
         return formatter.format(record)

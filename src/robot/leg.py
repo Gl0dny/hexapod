@@ -10,10 +10,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("robot_logger")
 
-# Define constants for angle offsets derived from the adopted reference frame.
-FEMUR_ANGLE_OFFSET = -90
-TIBIA_ANGLE_OFFSET = -90
-
 class Leg:
     """
     Initialize a single leg of the hexapod robot.
@@ -30,7 +26,12 @@ class Leg:
         femur (Joint): The femur joint instance.
         tibia (Joint): The tibia joint instance.
         end_effector_offset (tuple): (x, y, z) offset for the end effector's position relative to the leg's base.
+        FEMUR_ANGLE_OFFSET (int): 
+        TIBIA_ANGLE_OFFSET (int): 
     """
+    FEMUR_ANGLE_OFFSET = -90 # Default angle offset for the femur joint in degrees derived from the adopted reference frame.
+    TIBIA_ANGLE_OFFSET = -90 # Default angle offset for the tibia joint in degrees derived from the adopted reference frame.
+
     def __init__(
         self,
         coxa_params: Dict[str, Union[float, bool]],
@@ -141,8 +142,8 @@ class Leg:
         logger.debug(f"beta (radians): {beta}")
 
         coxa_angle_deg = math.degrees(coxa_angle)
-        femur_angle_deg = math.degrees(alpha1) + math.degrees(alpha2) + FEMUR_ANGLE_OFFSET
-        tibia_angle_deg = math.degrees(beta) + TIBIA_ANGLE_OFFSET
+        femur_angle_deg = math.degrees(alpha1) + math.degrees(alpha2) + Leg.FEMUR_ANGLE_OFFSET
+        tibia_angle_deg = math.degrees(beta) + Leg.TIBIA_ANGLE_OFFSET
 
         # Round angles to eliminate floating-point precision errors
         coxa_angle_deg = round(coxa_angle_deg, 2)
@@ -171,7 +172,7 @@ class Leg:
         # Convert angles from degrees to radians for calculations
         coxa_angle = math.radians(coxa_angle_deg)
         femur_angle = math.radians(femur_angle_deg)
-        beta_angle_deg = tibia_angle_deg - TIBIA_ANGLE_OFFSET
+        beta_angle_deg = tibia_angle_deg - Leg.TIBIA_ANGLE_OFFSET
         beta = math.radians(beta_angle_deg)
 
         logger.debug(f"coxa_angle (radians): {coxa_angle}")

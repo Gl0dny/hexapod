@@ -4,10 +4,11 @@ import logging
 from functools import wraps
 
 from lights import Lights, ColorRGB
-from lights.animation import *
+import lights.animations
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional, Dict
+    from typing import Animation
 
 logger = logging.getLogger("lights_logger")
 
@@ -125,7 +126,7 @@ class LightsInteractionHandler:
             interval (float): The interval between filling LEDs.
         """
         self.off()
-        self.animation = WheelFillAnimation(
+        self.animation = lights.animations.WheelFillAnimation(
             lights=self.lights,
             use_rainbow=use_rainbow,
             color=color if color else ColorRGB.WHITE,
@@ -148,7 +149,7 @@ class LightsInteractionHandler:
             pulse_speed (float): The speed of the pulse.
         """
         self.off()
-        self.animation = PulseSmoothlyAnimation(
+        self.animation = lights.animations.PulseSmoothlyAnimation(
             lights=self.lights,
             base_color=base_color,
             pulse_color=pulse_color,
@@ -171,7 +172,7 @@ class LightsInteractionHandler:
             delay (float): Delay between rotations.
         """
         self.off()
-        self.animation = AlternateRotateAnimation(
+        self.animation = lights.animations.AlternateRotateAnimation(
             lights=self.lights,
             color_even=color_even,
             color_odd=color_odd,
@@ -192,20 +193,11 @@ class LightsInteractionHandler:
             interval (float): The delay between updates.
         """
         self.off()
-        self.animation = OppositeRotateAnimation(
+        self.animation = lights.animations.OppositeRotateAnimation(
             lights=self.lights,
             interval=interval,
             color=color,
         )
-
-    @animation
-    def speak(self) -> None:
-        """
-        Start the speak animation.
-        """
-        self.off()
-        self.animation = None  # Ensure animation is set to avoid AttributeError
-        raise NotImplementedError("The 'speak' method is not implemented yet.")
 
     @animation
     def police(self, pulse_speed: float = 0.25) -> None:
@@ -216,7 +208,7 @@ class LightsInteractionHandler:
             pulse_speed (float): The speed of the pulse.
         """
         self.off()
-        self.animation = PulseAnimation(
+        self.animation = lights.animations.PulseAnimation(
             lights=self.lights,
             base_color=ColorRGB.BLUE,
             pulse_color=ColorRGB.RED,
@@ -232,7 +224,7 @@ class LightsInteractionHandler:
             interval (float): The interval between filling LEDs.
         """
         self.off()
-        self.animation = WheelFillAnimation(
+        self.animation = lights.animations.WheelFillAnimation(
             lights=self.lights,
             use_rainbow=False,
             color=ColorRGB.RED,
@@ -248,8 +240,17 @@ class LightsInteractionHandler:
             calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
         """
         self.off()
-        self.animation = CalibrationAnimation(
+        self.animation = lights.animations.CalibrationAnimation(
             lights=self.lights,
             calibration_status=calibration_status,
             leg_to_led=self.leg_to_led
         )
+
+    @animation
+    def speak(self) -> None:
+        """
+        Start the speak animation.
+        """
+        self.off()
+        self.animation = None  # Ensure animation is set to avoid AttributeError
+        raise NotImplementedError("The 'speak' method is not implemented yet.")

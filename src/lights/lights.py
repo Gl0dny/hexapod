@@ -48,8 +48,8 @@ class Lights:
         brightness (int): The brightness of the LEDs (0-100).
     """
 
-    DEFAULT_NUM_LED: int = 12
-    DEFAULT_POWER_PIN: int = 5
+    DEFAULT_NUM_LED: int = 12 # Default number of LEDs in the hardware
+    DEFAULT_POWER_PIN: int = 5 # Default GPIO pin number for LED power control
 
     def __init__(
         self,

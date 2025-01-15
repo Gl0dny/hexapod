@@ -9,6 +9,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger("robot_logger")
 
 class Joint:
+    """
+    Represents a servo motor joint in the hexapod robot.
+    
+    Attributes:
+        servo_min (int): Minimum servo input value.
+        servo_max (int): Maximum servo input value.
+        angle_min (float): Minimum angle for the joint in degrees.
+        angle_max (float): Maximum angle for the joint in degrees.
+        invert (bool): Indicates if the joint is inverted.
+        speed (int): Default speed for servo movements.
+        accel (int): Default acceleration for servo movements.
+    """
     DEFAULT_SPEED = 32  # Speed setting for the servo in units of (0.25us/10ms). A speed of 32 means 0.8064us/ms.
     DEFAULT_ACCEL = 5   # Acceleration setting for the servo in units of (0.25us/10ms/80ms). A value of 5 means 0.0016128us/ms/ms.
     

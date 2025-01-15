@@ -27,7 +27,7 @@ class PredefinedPosition(Enum):
     ZERO = 'zero'
 
 class Hexapod:
-    CONTROLLER_CHANNELS = 24
+    CONTROLLER_CHANNELS = 24  # Number of all controller channels used to manage the servos.
     
     """
     Represents the hexapod robot with six legs, managing servo motors, sensor data, and gait generation.
