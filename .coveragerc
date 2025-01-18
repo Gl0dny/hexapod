@@ -1,0 +1,12 @@
+[run]
+omit =
+    tests/*
+    */test_*.py
+    */__init__.py
+
+[report]
+show_missing = True
+fail_under = 80
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:

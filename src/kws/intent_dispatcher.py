@@ -1,6 +1,16 @@
+"""
+Module: intent_dispatcher
+
+This module defines the IntentDispatcher class, which is responsible for
+dispatching intents to their corresponding handler methods. It interacts
+with the ControlInterface to execute actions based on the received intents
+and associated slots.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging
+from functools import wraps
 
 from utils import parse_percentage
 
@@ -8,6 +18,14 @@ if TYPE_CHECKING:
     from typing import Dict, Callable, Any
 
 logger = logging.getLogger("kws_logger")
+
+def handler(func: Callable[..., Any]) -> Callable[..., Any]:
+    @wraps(func)
+    def wrapper(self, slots: Dict[str, Any]) -> None:
+        logger.debug(f"Handling intent with {func.__name__}")
+        func(self, slots)
+        logger.debug(f"Handled intent with {func.__name__}")
+    return wrapper
 
 class IntentDispatcher:
     """
@@ -75,6 +93,7 @@ class IntentDispatcher:
         else:
             raise NotImplementedError(f"No handler for intent: {intent}")
 
+    @handler
     def handle_help(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'help' intent.
@@ -82,10 +101,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'help' intent with slots: {slots}")
         self.control_interface.hexapod_help()
-        logger.debug("Handled 'help' intent successfully.")
-        
+            
+    @handler
     def handle_system_status(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'system_status' intent.
@@ -93,10 +111,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'system_status' intent with slots: {slots}")
         self.control_interface.system_status()
-        logger.debug("Handled 'system_status' intent successfully.")
-        
+            
+    @handler
     def handle_shut_down(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'shut_down' intent.
@@ -104,10 +121,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'shut_down' intent with slots: {slots}")
         self.control_interface.shut_down()
-        logger.debug("Handled 'shut_down' intent successfully.")
 
+    @handler
     def handle_emergency_stop(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'emergency_stop' intent.
@@ -115,10 +131,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'emergency_stop' intent with slots: {slots}")
         self.control_interface.emergency_stop()
-        logger.debug("Handled 'emergency_stop' intent successfully.")
 
+    @handler
     def handle_wake_up(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'wake_up' intent.
@@ -126,10 +141,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'wake_up' intent with slots: {slots}")
         self.control_interface.wake_up()
-        logger.debug("Handled 'wake_up' intent successfully.")
 
+    @handler
     def handle_sleep(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'sleep' intent.
@@ -137,10 +151,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'sleep' intent with slots: {slots}")
         self.control_interface.sleep()
-        logger.debug("Handled 'sleep' intent successfully.")
 
+    @handler
     def handle_calibrate(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'calibrate' intent.
@@ -148,10 +161,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'calibrate' intent with slots: {slots}")
         self.control_interface.calibrate()
-        logger.debug("Handled 'calibrate' intent successfully.")
 
+    @handler
     def handle_run_sequence(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'run_sequence' intent.
@@ -159,14 +171,13 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'run_sequence' intent with slots: {slots}")
-        sequence_name = slots.get('sequence_name')
-        if sequence_name:
+        try:
+            sequence_name = slots['sequence_name']
             self.control_interface.run_sequence(sequence_name=sequence_name)
-            logger.debug("Handled 'run_sequence' intent successfully.")
-        else:
-            logger.error("No sequence_name provided for run_sequence command.")
+        except KeyError:
+            logger.exception("No sequence_name provided for run_sequence command.")
 
+    @handler
     def handle_repeat(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'repeat' intent.
@@ -174,10 +185,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'repeat' intent with slots: {slots}")
         self.control_interface.repeat_last_command()
-        logger.debug("Handled 'repeat' intent successfully.")
 
+    @handler
     def handle_turn_lights(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'turn_lights' intent.
@@ -185,11 +195,10 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'turn_lights' intent with slots: {slots}")
         switch_state = slots.get('switch_state')
-        self.control_interface.turn_lights(switch_state=switch_state)
-        logger.debug("Handled 'turn_lights' intent successfully.")
+        self.control_interface.turn_lights(switch_state)
 
+    @handler
     def handle_change_color(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'change_color' intent.
@@ -197,11 +206,10 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'change_color' intent with slots: {slots}")
         color = slots.get('color')
         self.control_interface.change_color(color=color)
-        logger.debug("Handled 'change_color' intent successfully.")
 
+    @handler
     def handle_set_brightness(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'set_brightness' intent.
@@ -209,19 +217,16 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'set_brightness' intent with slots: {slots}")
-        brightness_percentage = slots.get('brightness_percentage')
-        if brightness_percentage:
-            try:
-                brightness_value = parse_percentage(brightness_percentage, 'brightness_percentage')
-                self.control_interface.set_brightness(brightness_percentage=brightness_value)
-                logger.debug("Handled 'set_brightness' intent successfully.")
-            except ValueError as e:
-                logger.error(f"Invalid brightness_percentage value: {brightness_percentage}. Error: {e}")
-                print(f"Error: {e}")
-        else:
-            logger.error("No brightness_percentage provided for set_brightness command.")
+        try:
+            brightness_percentage = slots['brightness_percentage']
+            brightness_value = parse_percentage(brightness_percentage)
+            self.control_interface.set_brightness(brightness_value)
+        except KeyError:
+            logger.exception("No brightness_percentage provided for set_brightness command.")
+        except ValueError:
+            logger.exception(f"Invalid brightness_percentage value: {brightness_percentage}.")
 
+    @handler
     def handle_set_speed(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'set_speed' intent.
@@ -229,19 +234,16 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'set_speed' intent with slots: {slots}")
-        speed_percentage = slots.get('speed_percentage')
-        if speed_percentage:
-            try:
-                speed_value = parse_percentage(speed_percentage, 'speed_percentage')
-                self.control_interface.set_speed(speed_percentage=speed_value)
-                logger.debug("Handled 'set_speed' intent successfully.")
-            except ValueError as e:
-                logger.error(f"Invalid speed_percentage value: {speed_percentage}. Error: {e}")
-                print(f"Error: {e}")
-        else:
-            logger.error("No speed_percentage provided for set_speed command.")
+        try:
+            speed_percentage = slots['speed_percentage']
+            speed_value = parse_percentage(speed_percentage)
+            self.control_interface.set_speed(speed_value)
+        except KeyError:
+            logger.exception("No speed_percentage provided for set_speed command.")
+        except ValueError:
+            logger.exception(f"Invalid speed_percentage value: {speed_percentage}.")
 
+    @handler
     def handle_set_accel(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'set_accel' intent.
@@ -249,19 +251,16 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'set_accel' intent with slots: {slots}")
-        accel_percentage = slots.get('accel_percentage')
-        if accel_percentage:
-            try:
-                accel_value = parse_percentage(accel_percentage, 'accel_percentage')
-                self.control_interface.set_accel(accel_percentage=accel_value)
-                logger.debug("Handled 'set_accel' intent successfully.")
-            except ValueError as e:
-                logger.error(f"Invalid accel_percentage value: {accel_percentage}. Error: {e}")
-                print(f"Error: {e}")
-        else:
-            logger.error("No accel_percentage provided for set_accel command.")
+        try:
+            accel_percentage = slots['accel_percentage']
+            accel_value = parse_percentage(accel_percentage)
+            self.control_interface.set_accel(accel_value)
+        except KeyError:
+            logger.exception("No accel_percentage provided for set_accel command.")
+        except ValueError:
+            logger.exception(f"Invalid accel_percentage value: {accel_percentage}.")
 
+    @handler
     def handle_low_profile_mode(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'low_profile_mode' intent.
@@ -269,10 +268,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'low_profile_mode' intent with slots: {slots}")
         self.control_interface.set_low_profile_mode()
-        logger.debug("Handled 'low_profile_mode' intent successfully.")
 
+    @handler
     def handle_upright_mode(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'upright_mode' intent.
@@ -280,10 +278,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'upright_mode' intent with slots: {slots}")
         self.control_interface.set_upright_mode()
-        logger.debug("Handled 'upright_mode' intent successfully.")
 
+    @handler
     def handle_idle_stance(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'idle_stance' intent.
@@ -291,10 +288,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'idle_stance' intent with slots: {slots}")
         self.control_interface.idle_stance()
-        logger.debug("Handled 'idle_stance' intent successfully.")
 
+    @handler
     def handle_move(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'move' intent.
@@ -302,14 +298,13 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'move' intent with slots: {slots}")
-        direction = slots.get('direction')
-        if direction:
+        try:
+            direction = slots['direction']
             self.control_interface.move(direction=direction)
-            logger.debug("Handled 'move' intent successfully.")
-        else:
-            logger.error("No direction provided for move command.")
+        except KeyError:
+            logger.exception("No direction provided for move command.")
 
+    @handler
     def handle_stop(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'stop' intent.
@@ -317,10 +312,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'stop' intent with slots: {slots}")
         self.control_interface.stop()
-        logger.debug("Handled 'stop' intent successfully.")
-        
+            
+    @handler
     def handle_rotate(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'rotate' intent.
@@ -328,18 +322,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'rotate' intent with slots: {slots}")
-        angle = slots.get('angle')
-        turn_direction = slots.get('turn_direction')
-        if angle:
-            self.control_interface.rotate(angle=angle)
-            logger.debug("Handled 'rotate' intent successfully.")
-        elif turn_direction:
-            self.control_interface.rotate(direction=turn_direction)
-            logger.debug("Handled 'rotate' intent successfully.")
-        else:
-            logger.error("No angle or turn_direction provided for rotate command.")
+        self.control_interface.rotate()
 
+    @handler
     def handle_follow(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'follow' intent.
@@ -347,10 +332,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'follow' intent with slots: {slots}")
         self.control_interface.follow()
-        logger.debug("Handled 'follow' intent successfully.")
 
+    @handler
     def handle_sound_source_analysis(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'sound_source_analysis' intent.
@@ -358,10 +342,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'sound_source_analysis' intent with slots: {slots}")
         self.control_interface.sound_source_analysis()
-        logger.debug("Handled 'sound_source_analysis' intent successfully.")
 
+    @handler
     def handle_direction_of_arrival(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'direction_of_arrival' intent.
@@ -369,10 +352,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'direction_of_arrival' intent with slots: {slots}")
         self.control_interface.direction_of_arrival()
-        logger.debug("Handled 'direction_of_arrival' intent successfully.")
 
+    @handler
     def handle_police(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'police' intent.
@@ -380,10 +362,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'police' intent with slots: {slots}")
         self.control_interface.police()
-        logger.debug("Handled 'police' intent successfully.")
 
+    @handler
     def handle_rainbow(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'rainbow' intent.
@@ -391,10 +372,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'rainbow' intent with slots: {slots}")
         self.control_interface.rainbow()
-        logger.debug("Handled 'rainbow' intent successfully.")
-        
+            
+    @handler
     def handle_sit_up(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'sit_up' intent.
@@ -402,10 +382,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'sit_up' intent with slots: {slots}")
         self.control_interface.sit_up()
-        logger.debug("Handled 'sit_up' intent successfully.")
 
+    @handler
     def handle_dance(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'dance' intent.
@@ -413,10 +392,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'dance' intent with slots: {slots}")
         self.control_interface.dance()
-        logger.debug("Handled 'dance' intent successfully.")
 
+    @handler
     def handle_helix(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'helix' intent.
@@ -424,10 +402,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'helix' intent with slots: {slots}")
         self.control_interface.helix()
-        logger.debug("Handled 'helix' intent successfully.")
 
+    @handler
     def handle_show_off(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'show_off' intent.
@@ -435,10 +412,9 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'show_off' intent with slots: {slots}")
         self.control_interface.show_off()
-        logger.debug("Handled 'show_off' intent successfully.")
 
+    @handler
     def handle_hello(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'hello' intent.
@@ -446,6 +422,4 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        logger.debug(f"Handling 'hello' intent with slots: {slots}")
         self.control_interface.say_hello()
-        logger.debug("Handled 'hello' intent successfully.")

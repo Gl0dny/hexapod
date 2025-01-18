@@ -26,13 +26,12 @@ def map_range(value: int, in_min: int, in_max: int, out_min: int, out_max: int) 
         else:
             return (value - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
 
-def parse_percentage(value: Any, param_name: str) -> int:
+def parse_percentage(value: Any) -> int:
     """
     Parse a percentage value ensuring it's between 0 and 100.
     
     Args:
         value (Any): The value to parse.
-        param_name (str): The name of the parameter for error messages.
     
     Returns:
         int: The parsed percentage value.
@@ -44,7 +43,7 @@ def parse_percentage(value: Any, param_name: str) -> int:
         value = value.rstrip('%')
     int_value = int(value)
     if not 0 <= int_value <= 100:
-        raise ValueError(f"{param_name} must be between 0 and 100.")
+        raise ValueError(f"The parameter for percentage parsing must be between 0 and 100.")
     return int_value
         
 def rename_thread(thread: threading.Thread, custom_name: str) -> None:
