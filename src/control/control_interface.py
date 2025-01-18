@@ -468,7 +468,7 @@ class ControlInterface:
    
     @voice_command 
     @inject_hexapod
-    def set_acceleration(self, hexapod: Hexapod, accel_percentage: float) -> None:
+    def set_accel(self, hexapod: Hexapod, accel_percentage: float) -> None:
         """
         Set the acceleration of all servos.
 

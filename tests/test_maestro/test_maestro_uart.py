@@ -13,8 +13,7 @@ def maestro_fixture(mocker):
 
 class TestMaestroUART:
     def test_init(self, maestro_fixture):
-        # Test initialization of MaestroUART
-        mock_serial, maestro = maestro_fixture
+        mock_serial, _ = maestro_fixture
         mock_serial.assert_called_with('/dev/ttyS0')
         instance = mock_serial.return_value
         assert instance.baudrate == 9600

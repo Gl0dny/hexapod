@@ -35,7 +35,7 @@ class IntentDispatcher:
             'set_brightness': self.handle_set_brightness,
             'set_speed': self.handle_set_speed,
             'set_accel': self.handle_set_accel,
-            'low_profle_mode': self.handle_low_profile_mode,
+            'low_profile_mode': self.handle_low_profile_mode,
             'upright_mode': self.handle_upright_mode,
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
@@ -160,7 +160,7 @@ class IntentDispatcher:
         logger.debug(f"Handling 'run_sequence' intent with slots: {slots}")
         sequence_name = slots.get('sequence_name')
         if sequence_name:
-            self.control_interface.run_sequence(sequence_name)
+            self.control_interface.run_sequence(sequence_name=sequence_name)
             logger.debug("Handled 'run_sequence' intent successfully.")
         else:
             logger.error("No sequence_name provided for run_sequence command.")
@@ -185,7 +185,7 @@ class IntentDispatcher:
         """
         logger.debug(f"Handling 'turn_lights' intent with slots: {slots}")
         switch_state = slots.get('switch_state')
-        self.control_interface.turn_lights(switch_state)
+        self.control_interface.turn_lights(switch_state=switch_state)
         logger.debug("Handled 'turn_lights' intent successfully.")
 
     def handle_change_color(self, slots: Dict[str, Any]) -> None:
@@ -197,7 +197,7 @@ class IntentDispatcher:
         """
         logger.debug(f"Handling 'change_color' intent with slots: {slots}")
         color = slots.get('color')
-        self.control_interface.change_color(color)
+        self.control_interface.change_color(color=color)
         logger.debug("Handled 'change_color' intent successfully.")
 
     def handle_set_brightness(self, slots: Dict[str, Any]) -> None:
@@ -212,7 +212,7 @@ class IntentDispatcher:
         if brightness_percentage:
             try:
                 brightness_value = parse_percentage(brightness_percentage, 'brightness_percentage')
-                self.control_interface.set_brightness(brightness_value)
+                self.control_interface.set_brightness(brightness_percentage=brightness_value)
                 logger.debug("Handled 'set_brightness' intent successfully.")
             except ValueError as e:
                 logger.error(f"Invalid brightness_percentage value: {brightness_percentage}. Error: {e}")
@@ -232,7 +232,7 @@ class IntentDispatcher:
         if speed_percentage:
             try:
                 speed_value = parse_percentage(speed_percentage, 'speed_percentage')
-                self.control_interface.set_speed(speed_value)
+                self.control_interface.set_speed(speed_percentage=speed_value)
                 logger.debug("Handled 'set_speed' intent successfully.")
             except ValueError as e:
                 logger.error(f"Invalid speed_percentage value: {speed_percentage}. Error: {e}")
@@ -252,7 +252,7 @@ class IntentDispatcher:
         if accel_percentage:
             try:
                 accel_value = parse_percentage(accel_percentage, 'accel_percentage')
-                self.control_interface.set_acceleration(accel_value)
+                self.control_interface.set_accel(accel_percentage=accel_value)
                 logger.debug("Handled 'set_accel' intent successfully.")
             except ValueError as e:
                 logger.error(f"Invalid accel_percentage value: {accel_percentage}. Error: {e}")
@@ -303,7 +303,7 @@ class IntentDispatcher:
         logger.debug(f"Handling 'move' intent with slots: {slots}")
         direction = slots.get('direction')
         if direction:
-            self.control_interface.move(direction)
+            self.control_interface.move(direction=direction)
             logger.debug("Handled 'move' intent successfully.")
         else:
             logger.error("No direction provided for move command.")
