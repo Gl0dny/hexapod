@@ -1,7 +1,7 @@
 import pytest
 
 from control import ControlInterface
-from kws import IntentDispatcher
+from kws.intent_dispatcher import IntentDispatcher
 
 @pytest.fixture
 def control_interface_mock(mocker):
