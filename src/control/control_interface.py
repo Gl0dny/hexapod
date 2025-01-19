@@ -468,7 +468,7 @@ class ControlInterface:
    
     @voice_command 
     @inject_hexapod
-    def set_acceleration(self, hexapod: Hexapod, accel_percentage: float) -> None:
+    def set_accel(self, hexapod: Hexapod, accel_percentage: float) -> None:
         """
         Set the acceleration of all servos.
 
@@ -567,7 +567,6 @@ class ControlInterface:
             direction (str): The direction to move.
         """
         try:
-            logger.user_info(f"Initiating move in direction: {direction}.")
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = control.tasks.MoveTask(
@@ -575,7 +574,6 @@ class ControlInterface:
                 direction, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            print(f"Moving {direction}.")
         except Exception as e:
             logger.exception(f"Move task failed: {e}")
 
@@ -600,7 +598,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            print("Stop executed.")
         except Exception as e:
             logger.exception(f"Stop task failed: {e}")
 
@@ -656,7 +653,6 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            print("Follow task started.")
         except Exception as e:
             logger.exception(f"Follow task failed: {e}")
 
