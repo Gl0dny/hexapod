@@ -7,14 +7,15 @@ from enum import Enum
 from pathlib import Path
 
 import yaml
+import numpy as np
 
 from maestro import MaestroUART
 from robot import Leg, Joint, Calibration, GaitGenerator
 from imu import Imu
-from utils import map_range
+from utils import map_range, homogeneous_transformation_matrix
 
 if TYPE_CHECKING:
-    from typing import Optional, List, Tuple, Dict, Union
+    from typing import Optional, List, Tuple, Dict, Union, Callable
 
 logger = logging.getLogger("robot_logger")
 
@@ -27,12 +28,12 @@ class PredefinedPosition(Enum):
     ZERO = 'zero'
 
 class Hexapod:
-    CONTROLLER_CHANNELS = 24  # Number of all controller channels used to manage the servos.
-    
     """
     Represents the hexapod robot with six legs, managing servo motors, sensor data, and gait generation.
 
     Attributes:
+        hexagon_side_length (float): Side length of the hexagon formed by the legs.
+        leg_angles (List[int]): Angles for each leg in a regular hexagon.
         controller (MaestroUART): Serial controller for managing servo motors.
         speed (int): Default speed setting for servo movements.
         accel (int): Default acceleration setting for servo movements.
@@ -43,6 +44,7 @@ class Hexapod:
         femur_params (Dict[str, float]): Parameters for the femur joint, including length (mm), channel, angle limits (degrees), and servo settings.
         tibia_params (Dict[str, float]): Parameters for the tibia joint, including length (mm), channel, angle limits (degrees), and servo settings.
         end_effector_offset (Tuple[float, float, float]): Default offset for the end effector position - (x, y, z) in mm.
+        self.end_effector_radius (float): Distance from the body center to the end effector.
         calibration (Calibration): Instance managing servo calibrations and related processes.
         predefined_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined positions for the legs.
         predefined_angle_positions (Dict[str, List[Tuple[float, float, float]]]): Predefined angle positions for the legs.
@@ -50,18 +52,18 @@ class Hexapod:
         current_leg_positions (List[Tuple[float, float, float]]): Current positions of the legs.
         gait_generator (GaitGenerator): Instance managing gait patterns.
     """
+    CONTROLLER_CHANNELS: int = 24  # Number of all controller channels used to manage the servos.
     
     def __init__(
         self, 
         config_path: Path = Path('src/robot/config/hexapod_config.yaml'),
         calibration_data_path: Path = Path('src/robot/config/calibration.json')
     ) -> None:
-        logger.info("Initializing Hexapod")
         """
         Initializes the Hexapod robot by loading configuration parameters, setting up servo controllers,
         and initializing all legs.
 
-        Parameters:
+        Args:
             config_path (Path): Path to the hexapod configuration YAML file.
             calibration_data_path (Path): Path to the calibration data JSON file.
         """
@@ -72,6 +74,12 @@ class Hexapod:
         else:
             raise FileNotFoundError(f"Hexapod configuration file not found at {config_path}")
         
+        self.hexagon_side_length: float = config['hexagon_side_length']
+        
+        # Initialize hexagon angles
+        self.compute_hexagon_angles: Callable[[], List[int]] = lambda: [i * 60 for i in range(6)]
+        self.leg_angles: List[int] = self.compute_hexagon_angles()
+
         self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
         
         # Speed setting for the servo in percent. Speed unit - (0.25us/10ms).
@@ -108,6 +116,8 @@ class Hexapod:
         self.coxa_params: Dict[str, Union[float, bool]] = coxa_params
         self.femur_params: Dict[str, Union[float, bool]] = femur_params
         self.tibia_params: Dict[str, Union[float, bool]] = tibia_params
+
+        self.end_effector_radius = self.hexagon_side_length + self.coxa_params['length'] + self.femur_params['length'] # For regular hexagon, side length = radius ; Tibia points downward, Coxa and Femur are horizontal in initial position
 
         self.calibration: Calibration = Calibration(self, calibration_data_path=calibration_data_path)
         self.calibration.load_calibration()
@@ -188,7 +198,15 @@ class Hexapod:
         self.controller.set_multiple_targets(targets)
         logger.info("All servos deactivated")
 
-    def move_leg(self, leg_index: int, x: float, y: float, z: float, speed: Optional[int] = None, accel: Optional[int] = None) -> None:
+    def move_leg(
+        self, 
+        leg_index: int, 
+        x: float, 
+        y: float, 
+        z: float, 
+        speed: Optional[int] = None, 
+        accel: Optional[int] = None
+    ) -> None:
         logger.info(f"Moving leg {leg_index} to position x: {x}, y: {y}, z: {z} with speed: {speed} and accel: {accel}")
         """
         Move a specific leg to the given (x, y, z) coordinate.
@@ -210,7 +228,12 @@ class Hexapod:
         self.current_leg_positions[leg_index] = (x, y, z)
         logger.info(f"Leg {leg_index} moved to position x: {x}, y: {y}, z: {z}")
 
-    def move_all_legs(self, positions: List[Tuple[float, float, float]], speed: Optional[int] = None, accel: Optional[int] = None) -> None:
+    def move_all_legs(
+        self, 
+        positions: List[Tuple[float, float, float]], 
+        speed: Optional[int] = None, 
+        accel: Optional[int] = None
+    ) -> None:
         logger.info(f"move_all_legs called with positions: {positions}, speed: {speed}, accel: {accel}")
         """
         Move all legs simultaneously to specified positions.
@@ -320,7 +343,12 @@ class Hexapod:
         self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
         logger.info(f"Leg {leg_index} moved to angles coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
         
-    def move_all_legs_angles(self, angles_list: List[Tuple[float, float, float]], speed: Optional[int] = None, accel: Optional[int] = None) -> None:
+    def move_all_legs_angles(
+        self, 
+        angles_list: List[Tuple[float, float, float]], 
+        speed: Optional[int] = None, 
+        accel: Optional[int] = None
+    ) -> None:
         logger.info(f"move_all_legs_angles called with angles_list: {angles_list}, speed: {speed}, accel: {accel}")
         """
         Move all legs' angles simultaneously.
@@ -414,7 +442,10 @@ class Hexapod:
         else:
             return False
 
-    def wait_until_motion_complete(self, stop_event: Optional[threading.Event] = None) -> None:
+    def wait_until_motion_complete(
+        self, 
+        stop_event: Optional[threading.Event] = None
+    ) -> None:
         logger.info("Waiting until motion is complete")
         """
         Waits up to 1 second for the robot to start moving. This short wait is required
@@ -444,6 +475,88 @@ class Hexapod:
             if stop_event:
                 stop_event.wait(timeout=0.2)
         logger.info("Motion complete")
+
+    def compute_body_inverse_kinematics(
+        self, 
+        tx: float = 0.0, 
+        ty: float = 0.0, 
+        tz: float = 0.0,
+        roll: float = 0.0, 
+        pitch: float = 0.0, 
+        yaw: float = 0.0
+    ) -> np.ndarray:
+        """
+        Calculate leg position deltas using homogeneous transformations.
+
+        Args:
+            tx (float): Translation along the x-axis in mm.
+            ty (float): Translation along the y-axis in mm.
+            tz (float): Translation along the z-axis in mm.
+            roll (float): Rotation around the x-axis in degrees.
+            pitch (float): Rotation around the y-axis in degrees.
+            yaw (float): Rotation around the z-axis in degrees.
+
+        Returns:
+            np.ndarray: 6x3 array of (Δx, Δy, Δz) for each leg.
+        """
+
+        # Parameters from initial problem
+
+        # Calculate total horizontal extension from body center
+
+        # Calculate initial end effector positions
+        leg_angles = self.leg_angles
+        initial_positions = np.array([
+            [
+                self.end_effector_radius * np.cos(theta),
+                self.end_effector_radius * np.sin(theta),
+                -self.tibia_params["length"]  # Tibia points downward
+            ] for theta in leg_angles
+        ])
+
+        # Create homogeneous transformation matrix
+        T = homogeneous_transformation_matrix(tx, ty, tz, roll, pitch, yaw)
+        
+        # Apply transformation
+        homogenous_pos = np.hstack((initial_positions, np.ones((6, 1))))
+        transformed = (homogenous_pos @ T.T)[:, :3]
+    
+        # Calculate deltas relative to initial positions
+        deltas = transformed - initial_positions
+        return np.round(deltas, 2)
+
+    def transform_body_to_leg_frames(
+        self, 
+        body_frame_deltas: np.ndarray
+    ) -> np.ndarray:
+        """
+        Transform deltas from body reference frame to each leg's local frame.
+        Each leg's local frame is rotated -90° relative to its mounting angle.
+
+        Args:
+            body_frame_deltas (np.ndarray): Deltas in the body reference frame.
+
+        Returns:
+            np.ndarray: Deltas in each leg's local frame.
+        """
+        # Leg mounting angles (in radians)
+        leg_mounting_angles_rad = np.radians(self.leg_angles)
+        
+        # Initialize array for leg frame deltas
+        leg_frame_deltas = np.zeros_like(body_frame_deltas)
+        
+        for i, leg_angle_rad in enumerate(leg_mounting_angles_rad):
+            # Create rotation matrix for leg's local frame (-90° relative to mounting angle)
+            rotation_matrix_leg_frame = np.array([
+                [np.sin(leg_angle_rad), -np.cos(leg_angle_rad), 0],  # X-axis: perpendicular to mounting angle
+                [np.cos(leg_angle_rad), np.sin(leg_angle_rad), 0],   # Y-axis: along mounting angle
+                [0, 0, 1]                                             # Z-axis: unchanged
+            ])
+            
+            # Transform delta to leg frame
+            leg_frame_deltas[i] = rotation_matrix_leg_frame @ body_frame_deltas[i]
+        
+        return np.round(leg_frame_deltas, 2)
 
     # def start_gait(self, gait_type: str) -> None:
     #     """

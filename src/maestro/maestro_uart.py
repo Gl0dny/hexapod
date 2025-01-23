@@ -169,6 +169,7 @@ class MaestroUART(object):
 
         position = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
         logger.info(f"Position for channel {channel} is {position}.")
+        logger.debug(f"Position for channel {channel} is {position}.")
         return position
 
     def set_speed(self, channel: int, speed: int) -> None:
@@ -264,6 +265,7 @@ class MaestroUART(object):
         with self.lock:
             self.ser.write(command)
         logger.debug(f"Target for channel {channel} set to {target}.")
+        logger.debug(f"Target for channel {channel} set to {target}.")
 
     def set_multiple_targets(self, targets: list[tuple[int, int]]) -> None:
         """
@@ -302,6 +304,7 @@ class MaestroUART(object):
         with self.lock:
             self.ser.write(command)
         logger.debug(f"Multiple targets set: {targets}")
+        logger.debug(f"Multiple targets set: {targets}")
 
     def go_home(self) -> None:
         """
@@ -322,6 +325,7 @@ class MaestroUART(object):
         command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_GO_HOME])
         with self.lock:
             self.ser.write(command)
+        logger.debug("Go Home command sent.")
         logger.debug("Go Home command sent.")
 
     def get_moving_state(self) -> Optional[int]:
@@ -351,9 +355,11 @@ class MaestroUART(object):
             response = self.ser.read(1)
         if response == b'':
             logger.debug("Failed to get moving state.")
+            logger.debug("Failed to get moving state.")
             return None
         moving_state = ord(response)
         logger.info(f"Moving state: {moving_state}")
+        logger.debug(f"Moving state: {moving_state}")
         return moving_state
 
     def close(self) -> None:
