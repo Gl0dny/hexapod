@@ -1,0 +1,21 @@
+Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved.
+
+This project includes third-party software components under the following licenses:
+
+===============================================================================
+Component: odas (Open embeddeD Audition System)
+License: MIT
+Source: https://github.com/introlab/odas
+Copyright: Copyright 2018 François Grondin <francois.grondin2@usherbrooke.ca>
+
+Modifications to odas:
+Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved.
+
+===============================================================================
+Component: odas_web
+License: MIT
+Source: https://github.com/introlab/odas_web
+Copyright: Copyright (c) 2019 IntRoLab
+
+Modifications to odas_web:
+Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved.
