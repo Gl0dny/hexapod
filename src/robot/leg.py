@@ -150,6 +150,11 @@ class Leg:
         femur_angle_deg = round(femur_angle_deg, 2)
         tibia_angle_deg = round(tibia_angle_deg, 2)
 
+        # Normalize -0.0 to 0.0
+        coxa_angle_deg = 0.0 if coxa_angle_deg == -0.0 else coxa_angle_deg
+        femur_angle_deg = 0.0 if femur_angle_deg == -0.0 else femur_angle_deg
+        tibia_angle_deg = 0.0 if tibia_angle_deg == -0.0 else tibia_angle_deg
+
         logger.debug(f"coxa_angle_deg: {coxa_angle_deg}")
         logger.debug(f"femur_angle_deg: {femur_angle_deg}")
         logger.debug(f"tibia_angle_deg: {tibia_angle_deg}")
@@ -244,7 +249,11 @@ class Leg:
         x = round(x, 2)
         y = round(y, 2)
         z = round(z, 2)
-        # logger.debug(f"End effector offset applied - x: {x}, y: {y}, z: {z}")
+
+        # Normalize -0.0 to 0.0
+        x = 0.0 if x == -0.0 else x
+        y = 0.0 if y == -0.0 else y
+        z = 0.0 if z == -0.0 else z
 
         logger.debug(f"Computed forward kinematics - x: {x}, y: {y}, z: {z}")
         return x, y, z

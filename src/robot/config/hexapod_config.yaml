@@ -1,3 +1,6 @@
+# Hexapod geometry parameters
+hexagon_side_length: 137.0        # Length of one side of the hexagon in mm ( distance between leg's coxa joints in hexagon setup )
+
 # Controller settings
 controller:
   port: "/dev/ttyS0"       # Serial port for Maestro UART
