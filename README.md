@@ -117,3 +117,7 @@ The developed prototype has a wide scope of possible improvements in the future 
 - Data acquisition in a time-series database
 - Graphical user interface
 - Software implementation using the Robot Operating System framework
+
+## License
+
+Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved.

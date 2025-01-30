@@ -1,23 +1,25 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from pathlib import Path
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 from robot import Hexapod
 
 def main():
-    hexapod = Hexapod()
-    # hexapod.calibrate_all_servos()
+    config_path = Path('../../src/robot/config/hexapod_config.yaml')
+    calibration_data_path = Path('../../src/robot/config/calibration.json')
+    hexapod = Hexapod(config_path=config_path, calibration_data_path=calibration_data_path)
 
     # Define target positions for each leg
     positions = [
-        (-22.5,  0.0, 0.0),  # Leg 0
+        (-22.5, 0.0, 0.0),  # Leg 0
         (-22.5, 0.0, 0.0),  # Leg 1
-        (-22.5,  0.0, 0.0),   # Leg 2
+        (-22.5, 0.0, 0.0),   # Leg 2
         (-22.5, 0.0, 0.0),   # Leg 3
-        (-22.5,  0.0, 0.0),   # Leg 4
-        (-25.5, 0.0, 0.0),   # Leg 5
+        (-22.5, 0.0, 0.0),   # Leg 4
+        (-22.5, 0.0, 0.0),   # Leg 5
     ]
 
-    # # Test move_all_legs method
     hexapod.move_all_legs(positions)
     print("Moved all legs to initial positions.")
 
