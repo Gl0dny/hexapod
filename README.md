@@ -7,11 +7,8 @@ A Keyword Spotting (KWS) module, powered by machine learning, is incorporated to
 The project includes designing and building the robot's platform, encompassing both the mechanical structure and embedded systems. The hexapod's platform is engineered to support advanced auditory processing, ensuring optimal performance in real-world scenarios. This involves creating a robust mechanical framework for stable, agile locomotion and an embedded system architecture for real-time processing and decision-making.
 
 The hardware is designed to accommodate the circular microphone array, ensuring precise sound capture, while the software facilitates seamless communication between auditory processing modules, the control system, and actuators. This comprehensive approach ensures the robot can perform complex tasks, such as navigating dynamic environments and responding accurately to auditory cues.
----
 
 ![](./assets/hexapod_alum.jpg)
-
----
 
 # v1
 ## Thesis : "Hexapod walking robot design and implementation of real-time gait generating algorithm"
