@@ -1,11 +1,23 @@
-In progress
+# v2
+## Thesis : "Hexapod autonomous control system based on auditory scene analysis: real-time sound source localization and keyword spotting for voice command recognition"
+--- In progress
+
+Diploma project completed at Warsaw University of Science and Technology as a part of Master of Science in Engineering - Computer Science.
+
+This project aims to develop an autonomous control system for a hexapod walking robot, using auditory scene analysis as the primary modality for navigation and environmental interaction. The system integrates sound source localization (Direction of Arrival estimation - DOA) and beamforming techniques via the ODAS framework, employing a circular microphone array for enhanced spatial precision. This enables the robot to accurately detect and characterize sound sources, allowing real-time responses to acoustic stimuli for dynamic, context-aware behavior.
+
+A Keyword Spotting (KWS) module, powered by machine learning, is incorporated to recognize predefined voice commands, enabling effective human-robot interaction. The research focuses on developing the hardware and software infrastructure to seamlessly integrate acoustic processing with the robot's control system.
+
+The project includes designing and building the robot's platform, encompassing both the mechanical structure and embedded systems. The hexapod's platform is engineered to support advanced auditory processing, ensuring optimal performance in real-world scenarios. This involves creating a robust mechanical framework for stable, agile locomotion and an embedded system architecture for real-time processing and decision-making.
+
+The hardware is designed to accommodate the circular microphone array, ensuring precise sound capture, while the software facilitates seamless communication between auditory processing modules, the control system, and actuators. This comprehensive approach ensures the robot can perform complex tasks, such as navigating dynamic environments and responding accurately to auditory cues.
 
 ![](./assets/hexapod_alum.jpg)
 
 # v1
 ## Thesis : "Hexapod walking robot design and implementation of real-time gait generating algorithm"
 
-Diploma project completed at AGH University of Krakow as part of the Bachelor of Science in Automatic Control and Robotics.
+Diploma project completed at AGH University of Krakow as a part of Bachelor of Science in Engineering - Automatic Control and Robotics.
  
 ## Table of Contents
 
