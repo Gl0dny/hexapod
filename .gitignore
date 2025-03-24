@@ -28,3 +28,6 @@ __pycache__/
 *.log.jsonl
 *.coverage
 tests/reports/
+
+# Mac OS
+*.DS_Store
