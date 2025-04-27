@@ -78,7 +78,7 @@ class Hexapod:
         
         # Initialize hexagon angles
         self.compute_hexagon_angles: Callable[[], List[int]] = lambda: [i * 60 for i in range(6)]
-        self.leg_angles: List[int] = self.compute_hexagon_angles()
+        self.leg_angles: List[int] = np.radians(self.compute_hexagon_angles()).tolist()
 
         self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
         
@@ -500,10 +500,6 @@ class Hexapod:
             np.ndarray: 6x3 array of (Δx, Δy, Δz) for each leg.
         """
 
-        # Parameters from initial problem
-
-        # Calculate total horizontal extension from body center
-
         # Calculate initial end effector positions
         leg_angles = self.leg_angles
         initial_positions = np.array([
@@ -515,7 +511,7 @@ class Hexapod:
         ])
 
         # Create homogeneous transformation matrix
-        T = homogeneous_transformation_matrix(tx, ty, tz, roll, pitch, yaw)
+        T = homogeneous_transformation_matrix(tx, ty, -tz, roll, pitch, yaw)
         
         # Apply transformation
         homogenous_pos = np.hstack((initial_positions, np.ones((6, 1))))
@@ -539,13 +535,11 @@ class Hexapod:
         Returns:
             np.ndarray: Deltas in each leg's local frame.
         """
-        # Leg mounting angles (in radians)
-        leg_mounting_angles_rad = np.radians(self.leg_angles)
         
         # Initialize array for leg frame deltas
         leg_frame_deltas = np.zeros_like(body_frame_deltas)
         
-        for i, leg_angle_rad in enumerate(leg_mounting_angles_rad):
+        for i, leg_angle_rad in enumerate(self.leg_angles):
             # Create rotation matrix for leg's local frame (-90° relative to mounting angle)
             rotation_matrix_leg_frame = np.array([
                 [np.sin(leg_angle_rad), -np.cos(leg_angle_rad), 0],  # X-axis: perpendicular to mounting angle
