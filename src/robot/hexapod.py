@@ -519,7 +519,9 @@ class Hexapod:
     
         # Calculate deltas relative to initial positions
         deltas = transformed - initial_positions
-        return np.round(deltas, 2)
+        deltas = np.round(deltas, 2)
+        logger.debug(f"Computed body IK deltas: {deltas}")
+        return deltas
 
     def transform_body_to_leg_frames(
         self, 
@@ -549,8 +551,45 @@ class Hexapod:
             
             # Transform delta to leg frame
             leg_frame_deltas[i] = rotation_matrix_leg_frame @ body_frame_deltas[i]
+            deltas = np.round(leg_frame_deltas, 2)
+            logger.debug(f"Computed local body:leg frame IK deltas: {deltas}")
         
-        return np.round(leg_frame_deltas, 2)
+        return deltas
+
+    def move_body(
+        self,
+        tx: float = 0.0,
+        ty: float = 0.0,
+        tz: float = 0.0,
+        roll: float = 0.0,
+        pitch: float = 0.0, 
+        yaw: float = 0.0
+        ):
+        """
+        Compute body inverse kinematics using provided translation and rotation parameters,
+        transform the computed deltas to leg frames, and move all legs to new target positions.
+        
+        Args:
+            tx (float): Translation along the x-axis in mm.
+            ty (float): Translation along the y-axis in mm.
+            tz (float): Translation along the z-axis in mm.
+            roll (float): Rotation around the x-axis in degrees.
+            pitch (float): Rotation around the y-axis in degrees.
+            yaw (float): Rotation around the z-axis in degrees.
+        """
+        logger.debug(f"Moving body: tx={tx}, ty={ty}, tz={tz}, roll={roll}, pitch={pitch}, yaw={yaw}")
+        global_deltas = self.compute_body_inverse_kinematics(tx, ty, tz, roll, pitch, yaw)
+        local_deltas = self.transform_body_to_leg_frames(global_deltas)
+        target_positions = [
+            (
+                current_x + delta_x,
+                current_y + delta_y,
+                current_z + delta_z
+            )
+            for (current_x, current_y, current_z), (delta_x, delta_y, delta_z) in zip(self.current_leg_positions, local_deltas)
+        ]
+        logger.debug(f"Moving body to target positions: {target_positions}")
+        self.move_all_legs(target_positions)
 
     # def start_gait(self, gait_type: str) -> None:
     #     """
