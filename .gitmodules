@@ -6,12 +6,12 @@
 	path = firmware/seeed-voicecard
 	url = git@github.com:Gl0dny/seeed-voicecard.git
 	branch = hexapod
-[submodule "odas"]
-	path = odas
+[submodule "lib/odas"]
+	path = lib/odas
 	url = git@github.com:Gl0dny/odas.git
 	branch = hexapod
-[submodule "odas_web"]
-	path = odas_web
+[submodule "lib/odas_web"]
+	path = lib/odas_web
 	url = git@github.com:Gl0dny/odas_web.git
 	branch = hexapod
 [submodule "raestro"]
