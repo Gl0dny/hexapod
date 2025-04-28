@@ -34,3 +34,14 @@ tests/reports/
 hexapod_venv/
 python3.11/
 python3.12/
+
+# Audio
+*.wav
+*.mp3
+*.raw
+*.flac
+*.ogg
+*.m4a
+*.aac
+*.wma
+*.avi

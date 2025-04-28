@@ -25,7 +25,10 @@ from datetime import datetime
 import os
 import signal
 import logging
+import subprocess
+from pathlib import Path
 from typing import Optional, List, TextIO, Any, Dict, Tuple
+import argparse
 
 logger = logging.getLogger("odas")
 # logging.basicConfig(level=logging.INFO)
@@ -44,18 +47,25 @@ class ODASServer:
         running (bool): Server running state flag
         log_files (list): List of open log file objects
         base_logs_dir (str): Path to the base logs directory
+        mode (str): Operation mode - 'local' or 'remote'
+        odas_process (subprocess.Popen): ODAS process handle when running in local mode
     """
 
-    def __init__(self, host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001) -> None:
+    def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001) -> None:
         """
         Initialize the ODAS server with configuration parameters.
 
         Args:
+            mode (str): Operation mode - 'local' or 'remote' (default: 'local')
             host (str): IP address to bind the server to (default: '192.168.0.171')
             tracked_port (int): Port for tracked sources (default: 9000)
             potential_port (int): Port for potential sources (default: 9001)
         """
-        self.host: str = host
+        self.mode: str = mode.lower()
+        if self.mode == 'local':
+            self.host: str = '127.0.0.1'
+        else:
+            self.host: str = host
         self.tracked_port: int = tracked_port
         self.potential_port: int = potential_port
         self.tracked_server: Optional[socket.socket] = None
@@ -65,33 +75,33 @@ class ODASServer:
         self.running: bool = True
         self.threads: List[threading.Thread] = []
         self.log_files: List[TextIO] = []
+        self.odas_process: Optional[subprocess.Popen] = None
 
         # Create base logs directory in hexapod root
-        workspace_root: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.base_logs_dir: str = os.path.join(workspace_root, "logs", "odas")
+        workspace_root: Path = Path(__file__).parent.parent.parent
+        self.base_logs_dir: Path = workspace_root / "logs" / "odas"
         try:
-            if not os.path.exists(self.base_logs_dir):
-                os.makedirs(self.base_logs_dir)
-                print(f"Created log directory: {self.base_logs_dir}")
+            self.base_logs_dir.mkdir(parents=True, exist_ok=True)
+            print(f"Created log directory: {self.base_logs_dir}")
         except Exception as e:
             print(f"Error creating log directory {self.base_logs_dir}: {str(e)}")
             # Fallback to current directory
-            self.base_logs_dir = os.path.dirname(os.path.abspath(__file__))
+            self.base_logs_dir = Path(__file__).parent
 
         # Create log files with fixed names
-        self.tracked_log: TextIO = self._open_log_file(os.path.join(self.base_logs_dir, "tracked.log"))
-        self.potential_log: TextIO = self._open_log_file(os.path.join(self.base_logs_dir, "potential.log"))
+        self.tracked_log: TextIO = self._open_log_file(self.base_logs_dir / "tracked.log")
+        self.potential_log: TextIO = self._open_log_file(self.base_logs_dir / "potential.log")
 
         # Set up signal handler
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
 
-    def _open_log_file(self, path: str) -> TextIO:
+    def _open_log_file(self, path: Path) -> TextIO:
         """
         Open a log file and add it to the list of managed log files.
 
         Args:
-            path (str): Path to the log file to open
+            path (Path): Path to the log file to open
 
         Returns:
             TextIO: Opened file object or a dummy file object if opening fails
@@ -309,6 +319,56 @@ class ODASServer:
                 self.log(f"Error accepting {client_type} connection: {str(e)}", print_to_console=True)
             return None
 
+    def start_odas_process(self) -> None:
+        """
+        Start the ODAS process in local mode.
+        """
+        if self.mode != 'local':
+            return
+
+        try:
+            # Get the path to the config file
+            config_path = Path(__file__).parent / "config" / "local_odas.cfg"
+            if not config_path.exists():
+                raise FileNotFoundError(f"ODAS config file not found at {config_path}")
+
+            # Start the ODAS process
+            self.odas_process = subprocess.Popen(
+                ["odaslive", "-c", str(config_path)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print(f"Started ODAS process with PID {self.odas_process.pid}")
+            
+            # Start a thread to monitor the ODAS process output
+            threading.Thread(target=self._monitor_odas_output, daemon=True).start()
+            
+        except Exception as e:
+            print(f"Error starting ODAS process: {str(e)}")
+            self.running = False
+
+    def _monitor_odas_output(self) -> None:
+        """
+        Monitor the ODAS process output and log it.
+        """
+        if not self.odas_process:
+            return
+
+        try:
+            while self.running and self.odas_process.poll() is None:
+                # Read stdout and stderr
+                stdout = self.odas_process.stdout.readline() if self.odas_process.stdout else None
+                stderr = self.odas_process.stderr.readline() if self.odas_process.stderr else None
+
+                if stdout:
+                    print(f"ODAS: {stdout.strip()}")
+                if stderr:
+                    print(f"ODAS Error: {stderr.strip()}")
+
+        except Exception as e:
+            print(f"Error monitoring ODAS output: {str(e)}")
+
     def start(self) -> None:
         """
         Start the ODAS server.
@@ -317,6 +377,12 @@ class ODASServer:
         handling threads, and manages the server lifecycle.
         """
         try:
+            # Start ODAS process if in local mode
+            if self.mode == 'local':
+                self.start_odas_process()
+                if not self.running:
+                    return
+
             # Start both servers first
             self.tracked_server = self.start_server(self.tracked_port)
             self.potential_server = self.start_server(self.potential_port)
@@ -382,9 +448,23 @@ class ODASServer:
         2. Closing server sockets
         3. Waiting for threads to finish
         4. Closing log files
+        5. Terminating ODAS process if running in local mode
         """
         print("\nShutting down server...")
         self.running = False
+
+        # Terminate ODAS process if running
+        if self.odas_process:
+            try:
+                self.odas_process.terminate()
+                self.odas_process.wait(timeout=5)
+            except:
+                try:
+                    self.odas_process.kill()
+                except:
+                    pass
+            finally:
+                self.odas_process = None
 
         # Close client sockets
         for client in [self.tracked_client, self.potential_client]:
@@ -425,8 +505,25 @@ def main() -> None:
 
     Creates and runs the server, handling keyboard interrupts for graceful shutdown.
     """
-    # Create ODAS server
-    server: ODASServer = ODASServer()
+    parser = argparse.ArgumentParser(description='ODAS Server for sound source tracking')
+    parser.add_argument('--mode', choices=['local', 'remote'], default='local',
+                      help='Operation mode: local (127.0.0.1) or remote (default: local)')
+    parser.add_argument('--host', default='192.168.0.171',
+                      help='Host IP address for remote mode (default: 192.168.0.171)')
+    parser.add_argument('--tracked-port', type=int, default=9000,
+                      help='Port for tracked sources (default: 9000)')
+    parser.add_argument('--potential-port', type=int, default=9001,
+                      help='Port for potential sources (default: 9001)')
+    
+    args = parser.parse_args()
+    
+    # Create ODAS server with parsed arguments
+    server: ODASServer = ODASServer(
+        mode=args.mode,
+        host=args.host,
+        tracked_port=args.tracked_port,
+        potential_port=args.potential_port
+    )
 
     try:
         # Start the servers
