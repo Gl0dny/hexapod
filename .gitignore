@@ -1,5 +1,26 @@
 # Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.python-version
+.python2/
 
 # Log files
 *.log
@@ -12,3 +33,5 @@ tests/reports/
 
 # venv
 hexapod_venv/
+python3.11/
+python3.12/
