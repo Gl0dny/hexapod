@@ -79,7 +79,7 @@ class ODASServer:
 
         # Create base logs directory in hexapod root
         workspace_root: Path = Path(__file__).parent.parent.parent
-        self.base_logs_dir: Path = workspace_root / "logs" / "odas"
+        self.base_logs_dir: Path = workspace_root / "logs" / "odas" / "ssl"
         try:
             self.base_logs_dir.mkdir(parents=True, exist_ok=True)
             print(f"Created log directory: {self.base_logs_dir}")
