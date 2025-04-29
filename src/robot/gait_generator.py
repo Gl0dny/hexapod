@@ -36,11 +36,23 @@ class GaitState:
 
 class BaseGait(ABC):
     """Base class for all gait patterns."""
-    def __init__(self, hexapod: Hexapod, imu: Optional[IMU] = None) -> None:
+    def __init__(self, hexapod: Hexapod,
+                 swing_distance: float = 0.0,
+                 swing_height: float = 30.0,
+                 stance_distance: float = 0.0,
+                 dwell_time: float = 2.0,
+                 stability_threshold: float = 0.2) -> None:
         self.hexapod = hexapod
-        self.imu = imu
         self.reference_position = (-22.5, 0.0, 0.0)  # This should match the zero position
         self.gait_graph: Dict[GaitPhase, List[GaitPhase]] = {}
+        
+        # Gait parameters
+        self.swing_distance = swing_distance
+        self.swing_height = swing_height
+        self.stance_distance = stance_distance
+        self.dwell_time = dwell_time
+        self.stability_threshold = stability_threshold
+        
         self._setup_gait_graph()
 
     @abstractmethod
@@ -65,11 +77,14 @@ class BaseGait(ABC):
 
 class TripodGait(BaseGait):
     """Tripod gait pattern where three legs move at a time."""
-    def __init__(self, hexapod: Hexapod, imu: Optional[IMU] = None) -> None:
-        super().__init__(hexapod, imu)
-        self.swing_distance = 0  # mm
-        self.swing_height = 30   # mm
-        self.stance_distance = 30  # mm
+    def __init__(self, hexapod: Hexapod,
+                 swing_distance: float = 0.0,
+                 swing_height: float = 30.0,
+                 stance_distance: float = 0.0,
+                 dwell_time: float = 2.0,
+                 stability_threshold: float = 0.2) -> None:
+        super().__init__(hexapod, swing_distance, swing_height, stance_distance,
+                        dwell_time, stability_threshold)
 
     def _setup_gait_graph(self) -> None:
         """Set up the tripod gait graph."""
@@ -83,16 +98,16 @@ class TripodGait(BaseGait):
                 phase=phase,
                 swing_legs=[0, 2, 4],  # Legs 1,3,5 (0-based indexing)
                 stance_legs=[1, 3, 5],  # Legs 2,4,6
-                dwell_time=2.0,
-                stability_threshold=0.2
+                dwell_time=self.dwell_time,
+                stability_threshold=self.stability_threshold
             )
         else:  # TRIPOD_B
             return GaitState(
                 phase=phase,
                 swing_legs=[1, 3, 5],
                 stance_legs=[0, 2, 4],
-                dwell_time=2.0,
-                stability_threshold=0.2
+                dwell_time=self.dwell_time,
+                stability_threshold=self.stability_threshold
             )
 
     def get_swing_position(self, leg_index: int) -> Tuple[float, float, float]:
@@ -113,11 +128,14 @@ class TripodGait(BaseGait):
 
 class WaveGait(BaseGait):
     """Wave gait pattern where one leg moves at a time."""
-    def __init__(self, hexapod: Hexapod, imu: Optional[IMU] = None) -> None:
-        super().__init__(hexapod, imu)
-        self.swing_distance = 0  # mm
-        self.swing_height = 30   # mm
-        self.stance_distance = 30  # mm
+    def __init__(self, hexapod: Hexapod,
+                 swing_distance: float = 0.0,
+                 swing_height: float = 30.0,
+                 stance_distance: float = 0.0,
+                 dwell_time: float = 1.0,  # Shorter dwell time for wave gait
+                 stability_threshold: float = 0.2) -> None:
+        super().__init__(hexapod, swing_distance, swing_height, stance_distance,
+                        dwell_time, stability_threshold)
 
     def _setup_gait_graph(self) -> None:
         """Set up the wave gait graph."""
@@ -145,8 +163,8 @@ class WaveGait(BaseGait):
             phase=phase,
             swing_legs=[swing_leg],
             stance_legs=stance_legs,
-            dwell_time=1.0,
-            stability_threshold=0.2
+            dwell_time=self.dwell_time,
+            stability_threshold=self.stability_threshold
         )
 
     def get_swing_position(self, leg_index: int) -> Tuple[float, float, float]:
