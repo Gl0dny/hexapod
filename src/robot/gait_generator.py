@@ -7,7 +7,6 @@ from enum import Enum, auto
 from dataclasses import dataclass
 import numpy as np
 from abc import ABC, abstractmethod
-import math
 
 logger = logging.getLogger("robot_logger")
 
@@ -42,8 +41,7 @@ class BaseGait(ABC):
                  swing_height: float = 30.0,
                  stance_distance: float = 0.0,
                  dwell_time: float = 2.0,
-                 stability_threshold: float = 0.2,
-                 transition_steps: int = 20) -> None:  # Number of steps for smooth transition
+                 stability_threshold: float = 0.2) -> None:
         self.hexapod = hexapod
         self.reference_position = (-22.5, 0.0, 0.0)  # This should match the zero position
         self.gait_graph: Dict[GaitPhase, List[GaitPhase]] = {}
@@ -54,69 +52,8 @@ class BaseGait(ABC):
         self.stance_distance = stance_distance
         self.dwell_time = dwell_time
         self.stability_threshold = stability_threshold
-        self.transition_steps = transition_steps
         
         self._setup_gait_graph()
-
-    def ease_in_out_quad(self, t: float) -> float:
-        """Quadratic easing function for smooth acceleration and deceleration."""
-        return 2 * t * t if t < 0.5 else 1 - pow(-2 * t + 2, 2) / 2
-
-    def calculate_swing_trajectory(self, start_pos: Tuple[float, float, float], 
-                                 end_pos: Tuple[float, float, float], 
-                                 progress: float) -> Tuple[float, float, float]:
-        """
-        Calculate a point along the swing trajectory using a parabolic path.
-        
-        Args:
-            start_pos: Starting position (x, y, z)
-            end_pos: Ending position (x, y, z)
-            progress: Progress from 0 to 1
-            
-        Returns:
-            Current position along the trajectory
-        """
-        # Apply easing to the progress
-        eased_progress = self.ease_in_out_quad(progress)
-        
-        # Linear interpolation for x and y
-        x = start_pos[0] + eased_progress * (end_pos[0] - start_pos[0])
-        y = start_pos[1] + eased_progress * (end_pos[1] - start_pos[1])
-        
-        # Parabolic height profile
-        # Use 4 * t * (1-t) to create a smooth parabolic curve
-        # But ensure we reach the target height at the end
-        if progress < 1.0:
-            height_factor = 4 * eased_progress * (1 - eased_progress)
-            z = start_pos[2] + height_factor * self.swing_height
-        else:
-            z = end_pos[2]  # Ensure we reach the target height
-        
-        return (x, y, z)
-
-    def calculate_stance_trajectory(self, start_pos: Tuple[float, float, float],
-                                  end_pos: Tuple[float, float, float],
-                                  progress: float) -> Tuple[float, float, float]:
-        """
-        Calculate a point along the stance trajectory with smooth transition.
-        
-        Args:
-            start_pos: Starting position (x, y, z)
-            end_pos: Ending position (x, y, z)
-            progress: Progress from 0 to 1
-            
-        Returns:
-            Current position along the trajectory
-        """
-        # Apply easing to the progress
-        eased_progress = self.ease_in_out_quad(progress)
-        
-        # Linear interpolation for all coordinates
-        x = start_pos[0] + eased_progress * (end_pos[0] - start_pos[0])
-        y = start_pos[1] + eased_progress * (end_pos[1] - start_pos[1])
-        z = start_pos[2] + eased_progress * (end_pos[2] - start_pos[2])
-        
-        return (x, y, z)
 
     @abstractmethod
     def _setup_gait_graph(self) -> None:
@@ -261,7 +198,6 @@ class GaitGenerator:
         self.thread = None
         self.current_state: Optional[GaitState] = None
         self.current_gait: Optional[BaseGait] = None
-        self.current_positions: List[Tuple[float, float, float]] = [None] * 6
 
     def _check_stability(self) -> bool:
         """Checks if the robot is stable based on IMU readings."""
@@ -280,13 +216,13 @@ class GaitGenerator:
                 gyro_magnitude < self.current_state.stability_threshold)
 
     def _execute_phase(self, state: GaitState) -> None:
-        """Executes a single gait phase with smooth transitions."""
+        """Executes a single gait phase."""
         print(f"\nExecuting phase: {state.phase}")
         print(f"Swing legs: {state.swing_legs}")
         print(f"Stance legs: {state.stance_legs}")
         
         # Calculate target positions for all legs
-        target_positions = [None] * 6
+        target_positions = [None] * 6  # Initialize list for all 6 legs
         
         # Set swing positions
         for leg_idx in state.swing_legs:
@@ -300,32 +236,12 @@ class GaitGenerator:
             target_positions[leg_idx] = self.current_gait.get_stance_position(leg_idx)
             print(f"Leg {leg_idx} stance target: {target_positions[leg_idx]}")
         
-        # Execute smooth transitions
-        for step in range(self.current_gait.transition_steps):
-            progress = step / (self.current_gait.transition_steps - 1)
-            current_positions = [None] * 6
-            
-            # Calculate current positions for all legs
-            for leg_idx in range(6):
-                if leg_idx in state.swing_legs:
-                    current_positions[leg_idx] = self.current_gait.calculate_swing_trajectory(
-                        self.current_positions[leg_idx] or self.hexapod.get_leg_position(leg_idx),
-                        target_positions[leg_idx],
-                        progress
-                    )
-                else:
-                    current_positions[leg_idx] = self.current_gait.calculate_stance_trajectory(
-                        self.current_positions[leg_idx] or self.hexapod.get_leg_position(leg_idx),
-                        target_positions[leg_idx],
-                        progress
-                    )
-            
-            # Move all legs to their current positions
-            self.hexapod.move_all_legs(current_positions)
-            self.current_positions = current_positions
-            
-            # Small delay between steps for smooth movement
-            time.sleep(0.02)  # 50Hz update rate
+        print("\nMoving all legs to target positions:")
+        for i, pos in enumerate(target_positions):
+            print(f"Leg {i} target: {pos}")
+        
+        # Move all legs to their target positions
+        self.hexapod.move_all_legs(target_positions)
 
     def start(self, gait: BaseGait) -> None:
         """
