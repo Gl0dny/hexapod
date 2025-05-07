@@ -24,6 +24,7 @@ from datetime import datetime
 import paramiko
 import tempfile
 import platform
+from typing import Optional
 
 # Set up logging
 logging.basicConfig(
@@ -305,6 +306,45 @@ class RemoteODASAudioPlayer:
             pass
         
         self.processes.clear()
+
+    def get_audio_data(self) -> Optional[bytes]:
+        """
+        Get the latest audio data from ODAS.
+
+        Returns:
+            Optional[bytes]: The latest audio data if available, None otherwise.
+        """
+        try:
+            sftp = self.ssh.open_sftp()
+            remote_file = str(self.remote_dir / "postfiltered.raw")
+            
+            try:
+                current_size = sftp.stat(remote_file).st_size
+            except FileNotFoundError:
+                logger.warning("Audio stream not found on remote machine")
+                return None
+                
+            if not hasattr(self, '_last_file_size'):
+                self._last_file_size = current_size
+                return None
+                
+            if current_size > self._last_file_size:
+                with sftp.open(remote_file, 'rb') as remote:
+                    remote.seek(self._last_file_size)
+                    new_data = remote.read(current_size - self._last_file_size)
+                    self._last_file_size = current_size
+                    return new_data
+                    
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting audio data: {e}")
+            return None
+        finally:
+            try:
+                sftp.close()
+            except:
+                pass
 
 def main():
     """Main entry point for the remote ODAS audio player."""

@@ -1,11 +1,13 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Callable
 import logging
 import threading
 from pathlib import Path
+import numpy as np
 
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
+from odas import ODASVoiceInput
 
 from kws import IntentDispatcher
 from control import ControlInterface
@@ -16,7 +18,8 @@ if TYPE_CHECKING:
     from typing import Any
     from control import ControlTask
 
-logger = logging.getLogger("kws_logger")
+# Configure logger
+logger = logging.getLogger("voice_control")
 
 class VoiceControl(threading.Thread):
     """
@@ -28,10 +31,15 @@ class VoiceControl(threading.Thread):
             keyword_path: Path,
             context_path: Path,
             access_key: str,
-            device_index: int,
             control_interface: ControlInterface,
-            porcupine_sensitivity: float = 0.75,
-            rhino_sensitivity: float = 0.25) -> None:
+            device_index: int,
+            use_odas: bool = False,
+            odas_dir: Optional[Path] = None,
+            odas_channel: int = 0,
+            log_dir: Optional[Path] = None,
+            log_config_file: Optional[Path] = None,
+            clean: bool = False,
+            print_context: bool = False) -> None:
         """
         Initialize the VoiceControl thread.
 
@@ -39,17 +47,24 @@ class VoiceControl(threading.Thread):
             keyword_path (Path): Path to the wake word keyword file.
             context_path (Path): Path to the language context file.
             access_key (str): Access key for Picovoice services.
-            device_index (int): Index of the audio input device.
             control_interface (ControlInterface): Control interface instance.
-            porcupine_sensitivity (float, optional): Sensitivity for wake word detection.
-            rhino_sensitivity (float, optional): Sensitivity for intent recognition.
+            device_index (int): Index of the audio input device for PvRecorder.
+            use_odas (bool, optional): Whether to use ODAS for audio input.
+            odas_dir (Optional[Path]): Directory where ODAS creates raw files.
+            odas_channel (int): Which channel to use from the ODAS array.
+            log_dir (Optional[Path]): Directory for log files.
+            log_config_file (Optional[Path]): Path to log configuration file.
+            clean (bool): Whether to clean log files before starting.
+            print_context (bool): Whether to print context information.
         """
         super().__init__(daemon=True)
         rename_thread(self, "VoiceControl")
 
+        print(f"[DEBUG] Initializing VoiceControl with device_index={device_index}, use_odas={use_odas}")
+
         # Picovoice API callback
         def inference_callback(inference: Any) -> None:
-            logger.debug("Picovoice inference callback triggered")
+            print("[DEBUG] Picovoice inference callback triggered")
             return self._inference_callback(inference)
 
         self.picovoice = Picovoice(
@@ -58,8 +73,8 @@ class VoiceControl(threading.Thread):
             wake_word_callback=self._wake_word_callback,
             context_path=str(context_path),
             inference_callback=inference_callback,
-            porcupine_sensitivity=porcupine_sensitivity,
-            rhino_sensitivity=rhino_sensitivity)
+            porcupine_sensitivity=0.75,
+            rhino_sensitivity=0.25)
 
         self.context = self.picovoice.context_info
         self.device_index = device_index
@@ -69,13 +84,42 @@ class VoiceControl(threading.Thread):
 
         self.intent_dispatcher = IntentDispatcher(self.control_interface)
 
-        self.recorder = None
+        self.use_odas = use_odas
+        if use_odas:
+            if not odas_dir:
+                raise ValueError("When using ODAS, odas_dir must be provided")
+            
+            print(f"[DEBUG] Using ODAS for audio input from {odas_dir}")
+            # Initialize ODAS voice input with Picovoice-compatible settings
+            self.odas_input = ODASVoiceInput(
+                odas_dir=odas_dir,
+                selected_channel=odas_channel,
+                frame_length=self.picovoice.frame_length)
+            # Set up audio callback
+            self.odas_input.set_audio_callback(self._process_audio)
+        else:
+            print(f"[DEBUG] Using PvRecorder for audio input with device_index={device_index}")
+            # Initialize PvRecorder
+            self.recorder = PvRecorder(device_index=device_index, frame_length=self.picovoice.frame_length)
+        
         self.stop_event = threading.Event()
         self.pause_lock = threading.Lock()
         self.pause_event = threading.Event()
         self.pause_event.set()
 
-        logger.debug("VoiceControl thread initialized successfully")
+        # Set up logging
+        if log_dir:
+            log_dir.mkdir(parents=True, exist_ok=True)
+            if clean:
+                for log_file in log_dir.glob("*.log"):
+                    log_file.unlink()
+            if log_config_file:
+                logging.config.fileConfig(log_config_file)
+                
+        if print_context:
+            self.print_context()
+        
+        print("[DEBUG] VoiceControl thread initialized successfully")
 
     def print_context(self) -> None:
         """
@@ -123,46 +167,24 @@ class VoiceControl(threading.Thread):
         self.control_interface.lights_handler.listen_wakeword()
         logger.user_info("Listening for wake word...")
 
-    def pause(self) -> None:
-        """
-        Pauses the voice control processing.
-        """
-        with self.pause_lock:
-            self.pause_event.clear()
-            if self.recorder and self.recorder.is_recording:
-                self.recorder.stop()
-            logger.user_info('Voice control paused')
-
-    def unpause(self) -> None:
-        """
-        Unpauses the voice control processing.
-        """
-        with self.pause_lock:
-            if self.recorder and not self.recorder.is_recording:
-                self.recorder.start()
-            self.pause_event.set()
-            logger.user_info('Voice control unpaused')
-            self.control_interface.lights_handler.listen_wakeword()
-
-    def stop(self):
-        """Signal the thread to stop."""
-        self.stop_event.set()
-        if self.recorder and self.recorder.is_recording:
-            self.recorder.stop()
-            logger.user_info('Voice control thread stopped')
-
     def run(self) -> None:
         """
-        Runs the voice control thread, initializing Picovoice and handling audio input.
+        Runs the voice control thread, initializing audio input and handling audio processing.
         """
-        logger.debug("VoiceControl thread running")
+        print("[DEBUG] VoiceControl thread running")
         try:
             self.control_interface.voice_control_context_info = self.context
 
-            self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
-            self.recorder.start()
-            # rename_thread(self.recorder._thread, "PvRecorder")
-
+            if self.use_odas:
+                # Start ODAS audio input
+                print("[DEBUG] Starting ODAS audio input")
+                self.odas_input.start()
+            else:
+                # Start PvRecorder
+                print("[DEBUG] Starting PvRecorder")
+                self.recorder.start()
+                # rename_thread(self.recorder._thread, "PvRecorder")
+            
             self.control_interface.lights_handler.listen_wakeword()
             logger.user_info("Listening for wake word...")
             
@@ -175,20 +197,66 @@ class VoiceControl(threading.Thread):
                 elif not self.control_interface.maintenance_mode_event.is_set() and paused:
                     self.unpause()
                     paused = False
-                if self.pause_event.wait(timeout=0.1):
-                    pcm = self.recorder.read()
-                    self.picovoice.process(pcm)
+                
+                if self.use_odas:
+                    if not self.pause_event.wait(timeout=0.1):
+                        continue
+                else:
+                    if self.pause_event.wait(timeout=0.1):
+                        pcm = self.recorder.read()
+                        self.picovoice.process(pcm)
 
         except Exception as e:
             logger.exception(f"Unexpected error: {e}")
         
         finally:
-            if self.recorder and self.recorder.is_recording:
-                self.recorder.stop()
-
-            if self.recorder is not None:
-                self.recorder.delete()
-
+            if self.use_odas:
+                print("[DEBUG] Stopping ODAS audio input")
+                self.odas_input.stop()
+            else:
+                if self.recorder and self.recorder.is_recording:
+                    print("[DEBUG] Stopping PvRecorder")
+                    self.recorder.stop()
+                if self.recorder is not None:
+                    self.recorder.delete()
             self.picovoice.delete()
-            
-            logger.debug("VoiceControl thread finished")
+            print("[DEBUG] VoiceControl thread finished")
+
+    def _process_audio(self, audio_data: np.ndarray) -> None:
+        """
+        Process audio data from ODAS through Picovoice.
+
+        Args:
+            audio_data (np.ndarray): Audio data from ODAS
+        """
+        if self.pause_event.is_set():
+            print(f"[DEBUG] Processing audio frame of length {len(audio_data)}")
+            self.picovoice.process(audio_data)
+
+    def pause(self) -> None:
+        """
+        Pauses the voice control processing.
+        """
+        with self.pause_lock:
+            self.pause_event.clear()
+            if not self.use_odas and self.recorder and self.recorder.is_recording:
+                self.recorder.stop()
+            logger.user_info('Voice control paused')
+
+    def unpause(self) -> None:
+        """
+        Unpauses the voice control processing.
+        """
+        with self.pause_lock:
+            if not self.use_odas and self.recorder and not self.recorder.is_recording:
+                self.recorder.start()
+            self.pause_event.set()
+            logger.user_info('Voice control unpaused')
+            self.control_interface.lights_handler.listen_wakeword()
+
+    def stop(self):
+        """Signal the thread to stop."""
+        self.stop_event.set()
+        if not self.use_odas and self.recorder and self.recorder.is_recording:
+            self.recorder.stop()
+        logger.user_info('Voice control thread stopped')
