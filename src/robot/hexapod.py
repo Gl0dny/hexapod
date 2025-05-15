@@ -78,7 +78,7 @@ class Hexapod:
         
         # Initialize hexagon angles
         self.compute_hexagon_angles: Callable[[], List[int]] = lambda: [i * 60 for i in range(6)]
-        self.leg_angles: List[int] = self.compute_hexagon_angles()
+        self.leg_angles: List[int] = np.radians(self.compute_hexagon_angles()).tolist()
 
         self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
         
@@ -500,10 +500,6 @@ class Hexapod:
             np.ndarray: 6x3 array of (Δx, Δy, Δz) for each leg.
         """
 
-        # Parameters from initial problem
-
-        # Calculate total horizontal extension from body center
-
         # Calculate initial end effector positions
         leg_angles = self.leg_angles
         initial_positions = np.array([
@@ -515,7 +511,7 @@ class Hexapod:
         ])
 
         # Create homogeneous transformation matrix
-        T = homogeneous_transformation_matrix(tx, ty, tz, roll, pitch, yaw)
+        T = homogeneous_transformation_matrix(tx, ty, -tz, roll, pitch, yaw)
         
         # Apply transformation
         homogenous_pos = np.hstack((initial_positions, np.ones((6, 1))))
@@ -523,7 +519,9 @@ class Hexapod:
     
         # Calculate deltas relative to initial positions
         deltas = transformed - initial_positions
-        return np.round(deltas, 2)
+        deltas = np.round(deltas, 2)
+        logger.debug(f"Computed body IK deltas: {deltas}")
+        return deltas
 
     def transform_body_to_leg_frames(
         self, 
@@ -539,13 +537,11 @@ class Hexapod:
         Returns:
             np.ndarray: Deltas in each leg's local frame.
         """
-        # Leg mounting angles (in radians)
-        leg_mounting_angles_rad = np.radians(self.leg_angles)
         
         # Initialize array for leg frame deltas
         leg_frame_deltas = np.zeros_like(body_frame_deltas)
         
-        for i, leg_angle_rad in enumerate(leg_mounting_angles_rad):
+        for i, leg_angle_rad in enumerate(self.leg_angles):
             # Create rotation matrix for leg's local frame (-90° relative to mounting angle)
             rotation_matrix_leg_frame = np.array([
                 [np.sin(leg_angle_rad), -np.cos(leg_angle_rad), 0],  # X-axis: perpendicular to mounting angle
@@ -555,23 +551,45 @@ class Hexapod:
             
             # Transform delta to leg frame
             leg_frame_deltas[i] = rotation_matrix_leg_frame @ body_frame_deltas[i]
+            deltas = np.round(leg_frame_deltas, 2)
+            logger.debug(f"Computed local body:leg frame IK deltas: {deltas}")
         
-        return np.round(leg_frame_deltas, 2)
+        return deltas
 
-    # def start_gait(self, gait_type: str) -> None:
-    #     """
-    #     Start a gait pattern.
-
-    #     Args:
-    #         gait_type (str): The type of gait to start.
-    #     """
-    #     self.gait_generator.start(gait_type)
-
-    # def stop_gait(self) -> None:
-    #     """
-    #     Stop the current gait pattern.
-    #     """
-    #     self.gait_generator.stop()
+    def move_body(
+        self,
+        tx: float = 0.0,
+        ty: float = 0.0,
+        tz: float = 0.0,
+        roll: float = 0.0,
+        pitch: float = 0.0, 
+        yaw: float = 0.0
+        ):
+        """
+        Compute body inverse kinematics using provided translation and rotation parameters,
+        transform the computed deltas to leg frames, and move all legs to new target positions.
+        
+        Args:
+            tx (float): Translation along the x-axis in mm.
+            ty (float): Translation along the y-axis in mm.
+            tz (float): Translation along the z-axis in mm.
+            roll (float): Rotation around the x-axis in degrees.
+            pitch (float): Rotation around the y-axis in degrees.
+            yaw (float): Rotation around the z-axis in degrees.
+        """
+        logger.debug(f"Moving body: tx={tx}, ty={ty}, tz={tz}, roll={roll}, pitch={pitch}, yaw={yaw}")
+        global_deltas = self.compute_body_inverse_kinematics(tx, ty, tz, roll, pitch, yaw)
+        local_deltas = self.transform_body_to_leg_frames(global_deltas)
+        target_positions = [
+            (
+                current_x + delta_x,
+                current_y + delta_y,
+                current_z + delta_z
+            )
+            for (current_x, current_y, current_z), (delta_x, delta_y, delta_z) in zip(self.current_leg_positions, local_deltas)
+        ]
+        logger.debug(f"Moving body to target positions: {target_positions}")
+        self.move_all_legs(target_positions)
 
 if __name__ == '__main__':
     hexapod = Hexapod()
