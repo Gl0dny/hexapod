@@ -591,21 +591,6 @@ class Hexapod:
         logger.debug(f"Moving body to target positions: {target_positions}")
         self.move_all_legs(target_positions)
 
-    # def start_gait(self, gait_type: str) -> None:
-    #     """
-    #     Start a gait pattern.
-
-    #     Args:
-    #         gait_type (str): The type of gait to start.
-    #     """
-    #     self.gait_generator.start(gait_type)
-
-    # def stop_gait(self) -> None:
-    #     """
-    #     Stop the current gait pattern.
-    #     """
-    #     self.gait_generator.stop()
-
 if __name__ == '__main__':
     hexapod = Hexapod()
     # hexapod.calibrate_all_servos()
