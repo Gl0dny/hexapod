@@ -47,7 +47,7 @@ The hardware is designed to accommodate the circular microphone array, ensuring 
    - 50Hz servo update rate for fluid movement
 
 4. **Hardware Integration**
-   - High-performance Raspberry Pi 4 (8GB) for real-time processing
+   - High-performance Raspberry Pi 4 (2GB) for real-time processing
    - Professional-grade MG996R servos for reliable movement
    - Pololu Maestro controller for precise servo management
    - ReSpeaker 6-Mic array for spatial audio capture
@@ -189,21 +189,31 @@ The hexapod's movement system implements a state-based gait generator and invers
    Target Position
       ↓
    IK Solver
-      - 3-DOF per leg
-      - Analytical solution
-      - Joint limit constraints
+      - 3-DOF per leg (coxa, femur, tibia)
+      - Analytical solution using geometric approach
+      - Joint limit validation
+      - End effector offset compensation
       ↓
    Joint Angles
-      - Hip (yaw)
-      - Thigh (pitch)
-      - Knee (pitch)
+      - Coxa: Yaw rotation (horizontal plane)
+      - Femur: Pitch rotation (vertical plane)
+      - Tibia: Pitch rotation (vertical plane)
       ↓
    Motion Planning
-      - Trajectory generation
-      - Collision avoidance
-      - Smooth interpolation
+      - Joint angle validation
+      - Custom angle limits support
+      - Angle inversion handling
+      - Servo target mapping
    ```
 
+   The inverse kinematics system implements:
+   - Geometric approach using triangle relationships
+   - End effector offset compensation
+   - Maximum reach validation
+   - Joint limit enforcement
+   - Support for inverted joints
+   - Custom angle limits per joint
+   - Precise servo target mapping
 3. **Gait Patterns**
    - **Tripod Gait**
      - Three legs in stance, three in swing
@@ -232,13 +242,6 @@ The hexapod's movement system implements a state-based gait generator and invers
    - Terrain adaptation
    - Fault tolerance
 
-5. **Performance Metrics**
-   - Gait transition time: <100ms
-   - IK solution time: <1ms
-   - Position accuracy: ±2mm
-   - Maximum speed: 0.3m/s
-   - Turning radius: 0.5m
-   - Step height: 30mm
 
 ### Project Structure
 The project is organized into several key directories, each serving a specific purpose:
