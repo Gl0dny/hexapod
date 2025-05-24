@@ -1,4 +1,3 @@
-# v2
 ## Thesis : "Hexapod autonomous control system based on auditory scene analysis: real-time sound source localization and keyword spotting for voice command recognition"
 --- In progress
 
@@ -14,121 +13,173 @@ The hardware is designed to accommodate the circular microphone array, ensuring 
 
 ![](./assets/hexapod_alum.jpg)
 
-# v1
-## Thesis : "Hexapod walking robot design and implementation of real-time gait generating algorithm"
+## Implementation Details
 
-Diploma project completed at AGH University of Krakow as a part of Bachelor of Engineering - Automatic Control and Robotics.
- 
-## Table of Contents
+### Hardware Configuration
+- Raspberry Pi 4 (8GB) running Raspberry Pi OS
+- 6x MG996R servo motors
+- Pololu Maestro 24-Channel USB Servo Controller
+- ReSpeaker 6-Mic Circular Array
+- ICM-20948 IMU
+- WS2812B LED strip (30 LEDs)
+- 5V 10A power supply
 
-1. [Introduction](#introduction)
-2. [Key Functionalities](#key-functionalities)
-3. [Hexapod Robot Walking | Bachelor Project Showcase](#hexapod-robot-walking--bachelor-project-showcase)
-4. [Brief Description](#brief-description)
-5. [Mechanical Design](#mechanical-design)
-6. [Electronics and Control Systems](#electronics-and-control-systems)
-7. [Software](#software)
-    - [Control Layer](#control-layer)
-    - [Gait Generator](#gait-generator)
-    - [Decision Layer - User Interface](#decision-layer---user-interface)
-8. [Summary - Future Development](#summary---future-development)
+### Software Stack
+- Python 3.8+
+- ODAS v1.0.0 for audio processing
+- Picovoice Porcupine v2.1.3 for wake word detection
+- Picovoice Rhino v2.1.1 for command recognition
+- RPi.GPIO v0.7.1 for hardware control
+- NumPy v2.1.2 for numerical computations
 
-### Introduction
-The main objective of this project was to design and develop a six-legged walking robot as well as enabling the machine to realize real-time gait by developing and implementing a control system that includes a gait generator - an abstract module on software level, which task would be to synchronize actuators.
+### Core Systems
 
-### Key functionalities:
-- Walking on a flat surface
-- Configurable movement parameters - type of gait, direction, speed
-- Unsophistacted assembly and disassembly of the machine
-- Modularity of the system
-- Remote control 
+#### Audio Processing Pipeline
+```
+Microphone Array (6 channels)
+    ↓
+ODAS Processing
+    ↓
+DOA Estimation (16 directions)
+    ↓
+Beamforming
+    ↓
+Command Processing
+```
 
-### Hexapod Robot Walking | Bachelor Project Showcase
-[![Hexapod Robot Walking | Bachelor Project Showcase](./assets/thumbnail.png)](https://www.youtube.com/watch?v=OVMIdYS9ga8)
+- Sample rate: 16kHz
+- Buffer size: 512 samples
+- Processing latency: ~32ms
+- DOA resolution: 22.5°
 
-### Brief description
+#### Voice Control System
+- Wake word: "Hey Hexapod"
+- Command vocabulary: 15 custom commands
+- Context file: `src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn`
+- Wake word model: `src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn`
+- Intent configuration: `src/kws/intent.yml`
+  ```yaml
+  intents:
+    move:
+      patterns:
+        - "move {direction} {speed}"
+        - "go {direction} {speed}"
+      parameters:
+        direction: [forward, backward, left, right]
+        speed: [slow, normal, fast]
+    
+    rotate:
+      patterns:
+        - "turn {direction} {angle}"
+        - "rotate {direction} {angle}"
+      parameters:
+        direction: [left, right]
+        angle: [45, 90, 180]
+    
+    stop:
+      patterns:
+        - "stop"
+        - "halt"
+        - "freeze"
+    
+    home:
+      patterns:
+        - "go home"
+        - "return to home"
+        - "home position"
+  ```
 
-The thesis contained a description of theoretical issues concerning the broad research area of mobile walking robots. Issues included in the document cover in-depth specification of a system which is the walking machine created during the implementation of the project. 
+#### Movement Control
+- Servo update rate: 50Hz
+- Gait patterns:
+  - Tripod (default)
+  - Wave
+  - Custom
+- Leg configuration:
+  - 3 DOF per leg
+  - 18 servos total
+  - Maestro controller channels: 0-17
 
-Particular components of the robot were made using 3D printing technology. Detachable, threaded connections of components were used due to strength and simplicity of assembly/disassembly. Increasing the coefficient of friction of legs’ ends was achieved with rubber caps.
+#### Sensor Integration
+- IMU sampling rate: 100Hz
+- Sensor fusion: Madgwick algorithm
+- Orientation output: Quaternion
+- Calibration: Auto-calibration on startup
 
-The constructed walking robot carries out an electrically driven, statically stable gait, which is remotely controlled by the user from a host computer.  The motion can be executed along the axis of the crab - it is possible to change the direction vector of the of movement at any time. 
+### Project Structure
+```
+src/
+├── robot/           # Core movement control
+│   ├── gait.py     # Gait pattern generation
+│   ├── leg.py      # Leg control and IK
+│   └── servo.py    # Servo interface
+├── kws/            # Voice recognition
+│   ├── porcupine/  # Wake word models
+│   └── rhino/      # Command models
+├── odas/           # Audio processing
+│   ├── config/     # ODAS configuration
+│   └── processing/ # Audio pipeline
+├── control/        # High-level control
+├── imu/            # IMU interface
+└── lights/         # LED control
+```
 
-Implemented control system allows elimination of interference arising in response to the environment, resulting in the preservation of permissible deviations of the actual trajectory. The implementation of gait generator is based on geometric relationships present in the machine's design and the module performs inverse kinematics calculations. The motion algorithm is designed to the extent to which the machine can efficiently move on a flat surface. 
+### Key Dependencies
+```python
+# Core dependencies
+numpy==2.1.2
+picovoice==2.1.1
+pvporcupine==2.1.3
+pvrhino==2.1.1
+RPi.GPIO==0.7.1
+icm20948==1.0.0
 
-Below - hexapod with the diploma :D
+# Audio processing
+PyAudio==0.2.14
+webrtc-audio-processing==0.1.3
+webrtcvad==2.0.10
 
-![Hexapod](./assets/hexapod.jpg)
+# Hardware control
+gpiozero==2.0.1
+lgpio==0.2.2.0
+```
 
-## Mechanical Design
+### Development Environment
+- IDE: VSCode with Python extension
+- Version control: Git
+- Testing: pytest
+- Documentation: MkDocs
+- Code style: PEP 8
+- Type checking: mypy
 
-- The robot's components were manufactured using additive technology, i.e., based on a digital model – 3D printing.
-- One of the design assumptions is the dual bearing arrangement of the drives.
-- etachable threaded connections were used for the components due to their strength and the simplicity of assembly/disassembly.
-- The friction coefficient of the leg tips was increased using rubber covers.
-- A key factor determining the design of the walking robot is the number of legs. The robot is equipped with six legs. This number represents a compromise between the cost of constructing the robot and the complexity of the control system that ensures static stability.
+### Build and Run
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-![](./assets/leg.png)
-Figure 1: The robot's walking leg described in Euclidean space.
+# Run with ODAS
+python main.py --access-key "YOUR_PICOVOICE_KEY" --use-odas
 
-![](./assets/solid.png)
-Figure 3: 3D model of the six-legged walking robot in SOLIDWORKS 2021.
+# Run without ODAS (direct mic input)
+python main.py --access-key "YOUR_PICOVOICE_KEY"
+```
 
-![](./assets/prusa.png)
-Figure 4: 3D model of the legs in PrusaSlicer 2.5.0 prepared for 3D printing.
+### Testing
+```bash
+# Run all tests
+pytest tests/
 
-![](./assets/hexapod.png)
-Figure 5: Constructed six-legged walking robot.
+# Run specific test suite
+pytest tests/test_robot.py
+pytest tests/test_audio.py
+pytest tests/test_imu.py
+```
 
-## Electronics and Control Systems
-
-- The movement of the platform is driven by 18 standard feedback servomechanisms.
-- The chosen control unit for this project is an embedded platform based on ARM architecture Raspberry Pi 4B.
-- A secondary control unit will be a 24-channel servo driver (hardware PWM signal generation)..
-
-
-## Software
-
-- The entire higher-level control software will be implemented in Python, a multi-paradigm programming language, primarily due to its simplicity, object-orientation, and scripting nature.
-- An algorithm has been developed to generate control signals for the servomechanisms according to a specified point in the leg tip's space – inverse kinematics.
-- Additionally, a main control algorithm will be developed to determine the position of the robot's central point based on the positions of all six legs and calculate the gait parameters accordingly – inverse kinematics.
-- One of the main assumptions is the use of hierarchical software architecture, separating layers of abstraction:
-
-#### Control layer
-
-- Position control of the servomechanism horn
-- Setting the rotation speed of the servomechanism
-- Reading data from analog and digital inputs
-- Setting logical values on I/O outputs
-- Sending feedback to the main control unit
-
-#### Gait generator
-
-- Inverse kinematics calculations
-- Calculations to determine the central point of the walking robot
-- Maintaining static stability based on the current position of the central body point – PID regulator
-- Calculations related to the Kalman filter
-- Gait generation based on user configuration and sensor data
-- Sending execution commands to the auxiliary control unit
-- Data acquisition
-- Remote feedback transmission to the host computer
-
-#### Decision layer - User interface
-
-- Configuration of the walking robot (gait type, speed, direction)
-- Remote transmission of control commands and receiving data from the onboard unit
-- Displaying received feedback in the command line
-
-
-### Summary - Future Development
-
-The developed prototype has a wide scope of possible improvements in the future due to its high modularity:
-- Inertial navigation system - maintaining spatial orientation, determining position and velocity by measuring accelerations and angular - Adaptation and maneuverability in varied (uneven) terrain
-- Autonomy of overcoming obstacles
-- Voice control of the walking robot
-- Data acquisition in a time-series database
-- Graphical user interface
-- Software implementation using the Robot Operating System framework
+### Logging
+- Log directory: `logs/`
+- Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+- Log format: JSON with timestamps
+- Rotation: Daily with 7-day retention
 
 ## License
 
