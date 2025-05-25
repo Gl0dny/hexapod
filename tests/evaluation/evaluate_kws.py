@@ -259,7 +259,7 @@ def main():
     evaluator = KWSEvaluator(
         keyword_path=Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn'),
         context_path=Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn'),
-        access_key='YOUR_ACCESS_KEY'  # Replace with actual access key
+        access_key='2DF2OdgHUpED3jZw001aag1DT43ORS74dtI9mYQeN91R4lGZ3Zy6Rw=='  # Replace with actual access key
     )
     
     # Wake word evaluation

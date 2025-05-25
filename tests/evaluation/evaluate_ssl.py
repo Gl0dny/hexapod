@@ -12,9 +12,9 @@ from typing import List, Dict, Tuple, Optional
 import json
 from datetime import datetime
 
-from src.odas.odas_server import ODASServer
-from src.robot import Hexapod
-from src.control import ControlInterface
+from odas.odas_server import ODASServer
+from robot import Hexapod
+from control import ControlInterface
 
 class SSLEvaluator:
     """Evaluates the performance of the Sound Source Localization system."""

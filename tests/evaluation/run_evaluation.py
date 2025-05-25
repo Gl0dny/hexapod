@@ -2,9 +2,16 @@
 Main evaluation script that runs all tests and generates a comprehensive report.
 """
 
+import os
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root))
+
 import pandas as pd
 import numpy as np
-from pathlib import Path
 import logging
 import json
 from datetime import datetime
@@ -12,8 +19,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Dict, List
 
-from evaluate_ssl import SSLEvaluator
-from evaluate_kws import KWSEvaluator
+from tests.evaluation.evaluate_ssl import SSLEvaluator
+from tests.evaluation.evaluate_kws import KWSEvaluator
 
 class EvaluationRunner:
     """Runs the complete evaluation and generates reports."""
