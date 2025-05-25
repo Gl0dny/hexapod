@@ -125,7 +125,7 @@ def main() -> None:
         odas_dir=args.odas_dir
     )
     
-    # Print context and exit if requested
+    # Print context
     if args.print_context:
         logger.debug("Print context flag detected, printing context")
         voice_control.print_context()

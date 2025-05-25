@@ -33,6 +33,8 @@ class VoiceControl(threading.Thread):
             access_key: str,
             control_interface: ControlInterface,
             device_index: int,
+            porcupine_sensitivity: float = 0.75,
+            rhino_sensitivity: float = 0.25,
             use_odas: bool = False,
             odas_dir: Optional[Path] = None,
             odas_channel: int = 0,
@@ -49,6 +51,8 @@ class VoiceControl(threading.Thread):
             access_key (str): Access key for Picovoice services.
             control_interface (ControlInterface): Control interface instance.
             device_index (int): Index of the audio input device for PvRecorder.
+            porcupine_sensitivity (float, optional): Sensitivity for wake word detection.
+            rhino_sensitivity (float, optional): Sensitivity for intent recognition.
             use_odas (bool, optional): Whether to use ODAS for audio input.
             odas_dir (Optional[Path]): Directory where ODAS creates raw files.
             odas_channel (int): Which channel to use from the ODAS array.
@@ -60,11 +64,11 @@ class VoiceControl(threading.Thread):
         super().__init__(daemon=True)
         rename_thread(self, "VoiceControl")
 
-        print(f"[DEBUG] Initializing VoiceControl with device_index={device_index}, use_odas={use_odas}")
+        logger.debug(f"Initializing VoiceControl with device_index={device_index}, use_odas={use_odas}")
 
         # Picovoice API callback
         def inference_callback(inference: Any) -> None:
-            print("[DEBUG] Picovoice inference callback triggered")
+            logger.debug("Picovoice inference callback triggered")
             return self._inference_callback(inference)
 
         self.picovoice = Picovoice(
@@ -73,8 +77,8 @@ class VoiceControl(threading.Thread):
             wake_word_callback=self._wake_word_callback,
             context_path=str(context_path),
             inference_callback=inference_callback,
-            porcupine_sensitivity=0.75,
-            rhino_sensitivity=0.25)
+            porcupine_sensitivity=porcupine_sensitivity,
+            rhino_sensitivity=rhino_sensitivity,)
 
         self.context = self.picovoice.context_info
         self.device_index = device_index
@@ -89,7 +93,7 @@ class VoiceControl(threading.Thread):
             if not odas_dir:
                 raise ValueError("When using ODAS, odas_dir must be provided")
             
-            print(f"[DEBUG] Using ODAS for audio input from {odas_dir}")
+            logger.debug(f"Using ODAS for audio input from {odas_dir}")
             # Initialize ODAS voice input with Picovoice-compatible settings
             self.odas_input = ODASVoiceInput(
                 odas_dir=odas_dir,
@@ -98,7 +102,7 @@ class VoiceControl(threading.Thread):
             # Set up audio callback
             self.odas_input.set_audio_callback(self._process_audio)
         else:
-            print(f"[DEBUG] Using PvRecorder for audio input with device_index={device_index}")
+            logger.debug(f"Using PvRecorder for audio input with device_index={device_index}")
             # Initialize PvRecorder
             self.recorder = PvRecorder(device_index=device_index, frame_length=self.picovoice.frame_length)
         
@@ -119,7 +123,7 @@ class VoiceControl(threading.Thread):
         if print_context:
             self.print_context()
         
-        print("[DEBUG] VoiceControl thread initialized successfully")
+        logger.debug("VoiceControl thread initialized successfully")
 
     def print_context(self) -> None:
         """
@@ -171,17 +175,17 @@ class VoiceControl(threading.Thread):
         """
         Runs the voice control thread, initializing audio input and handling audio processing.
         """
-        print("[DEBUG] VoiceControl thread running")
+        logger.debug("VoiceControl thread running")
         try:
             self.control_interface.voice_control_context_info = self.context
 
             if self.use_odas:
                 # Start ODAS audio input
-                print("[DEBUG] Starting ODAS audio input")
+                logger.debug("Starting ODAS audio input")
                 self.odas_input.start()
             else:
                 # Start PvRecorder
-                print("[DEBUG] Starting PvRecorder")
+                logger.debug("Starting PvRecorder")
                 self.recorder.start()
                 # rename_thread(self.recorder._thread, "PvRecorder")
             
@@ -211,16 +215,16 @@ class VoiceControl(threading.Thread):
         
         finally:
             if self.use_odas:
-                print("[DEBUG] Stopping ODAS audio input")
+                logger.debug("Stopping ODAS audio input")
                 self.odas_input.stop()
             else:
                 if self.recorder and self.recorder.is_recording:
-                    print("[DEBUG] Stopping PvRecorder")
+                    logger.debug("Stopping PvRecorder")
                     self.recorder.stop()
                 if self.recorder is not None:
                     self.recorder.delete()
             self.picovoice.delete()
-            print("[DEBUG] VoiceControl thread finished")
+            logger.debug("VoiceControl thread finished")
 
     def _process_audio(self, audio_data: np.ndarray) -> None:
         """
@@ -230,7 +234,7 @@ class VoiceControl(threading.Thread):
             audio_data (np.ndarray): Audio data from ODAS
         """
         if self.pause_event.is_set():
-            print(f"[DEBUG] Processing audio frame of length {len(audio_data)}")
+            logger.debug(f"Processing audio frame of length {len(audio_data)}")
             self.picovoice.process(audio_data)
 
     def pause(self) -> None:
