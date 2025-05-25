@@ -29,6 +29,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional, List, TextIO, Any, Dict, Tuple
 import argparse
+import re
 
 logger = logging.getLogger("odas")
 # logging.basicConfig(level=logging.INFO)
@@ -51,7 +52,7 @@ class ODASServer:
         odas_process (subprocess.Popen): ODAS process handle when running in local mode
     """
 
-    def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001) -> None:
+    def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001, forward_to_gui: bool = False) -> None:
         """
         Initialize the ODAS server with configuration parameters.
 
@@ -60,10 +61,11 @@ class ODASServer:
             host (str): IP address to bind the server to (default: '192.168.0.171')
             tracked_port (int): Port for tracked sources (default: 9000)
             potential_port (int): Port for potential sources (default: 9001)
+            forward_to_gui (bool): Whether to forward data to GUI (default: False)
         """
         self.mode: str = mode.lower()
         if self.mode == 'local':
-            self.host: str = '127.0.0.1'
+            self.host: str = '127.0.0.1'  # Always listen on localhost
         else:
             self.host: str = host
         self.tracked_port: int = tracked_port
@@ -76,6 +78,14 @@ class ODASServer:
         self.threads: List[threading.Thread] = []
         self.log_files: List[TextIO] = []
         self.odas_process: Optional[subprocess.Popen] = None
+        
+        # Add remote GUI connection
+        self.forward_to_gui: bool = forward_to_gui
+        self.gui_tracked_socket: Optional[socket.socket] = None
+        self.gui_potential_socket: Optional[socket.socket] = None
+        self.gui_host: str = "192.168.0.102"  # GUI station IP
+        self.gui_tracked_port: int = 9000
+        self.gui_potential_port: int = 9001
 
         # Create base logs directory in hexapod root
         workspace_root: Path = Path(__file__).parent.parent.parent
@@ -173,6 +183,40 @@ class ODASServer:
         self.log(f"Server listening on {self.host}:{port}", print_to_console=True)
         return server_socket
 
+    def connect_to_gui(self) -> None:
+        """
+        Connect to the remote GUI station.
+        """
+        try:
+            # Connect to tracked sources port
+            self.gui_tracked_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.gui_tracked_socket.connect((self.gui_host, self.gui_tracked_port))
+            print(f"Connected to GUI tracked port at {self.gui_host}:{self.gui_tracked_port}")
+
+            # Connect to potential sources port
+            self.gui_potential_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.gui_potential_socket.connect((self.gui_host, self.gui_potential_port))
+            print(f"Connected to GUI potential port at {self.gui_host}:{self.gui_potential_port}")
+        except Exception as e:
+            print(f"Error connecting to GUI: {str(e)}")
+            self.running = False
+
+    def forward_data_to_gui(self, data: bytes, client_type: str) -> None:
+        """
+        Forward data to the GUI station.
+
+        Args:
+            data (bytes): Data to forward
+            client_type (str): Type of client ("tracked" or "potential")
+        """
+        try:
+            if client_type == "tracked" and self.gui_tracked_socket:
+                self.gui_tracked_socket.send(data)
+            elif client_type == "potential" and self.gui_potential_socket:
+                self.gui_potential_socket.send(data)
+        except Exception as e:
+            print(f"Error forwarding to GUI: {str(e)}")
+
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """
         Handle data from a connected client.
@@ -206,6 +250,10 @@ class ODASServer:
                 data: bytes = client_socket.recv(size)
                 if not data:
                     break
+
+                # Forward the data to GUI if enabled
+                if self.forward_to_gui:
+                    self.forward_data_to_gui(size_bytes + data, client_type)
 
                 try:
                     # Clean the JSON data
@@ -327,12 +375,12 @@ class ODASServer:
             return
 
         try:
-            # Get the path to the config file
+            # Always use the local config file in local mode
             config_path = Path(__file__).parent / "config" / "local_odas.cfg"
             if not config_path.exists():
                 raise FileNotFoundError(f"ODAS config file not found at {config_path}")
 
-            # Start the ODAS process
+            # Start the ODAS process with the local config
             self.odas_process = subprocess.Popen(
                 ["odaslive", "-c", str(config_path)],
                 stdout=subprocess.PIPE,
@@ -383,6 +431,12 @@ class ODASServer:
                 if not self.running:
                     return
 
+            # Connect to GUI if forwarding is enabled
+            if self.forward_to_gui:
+                self.connect_to_gui()
+                if not self.running:
+                    return
+
             # Start both servers first
             self.tracked_server = self.start_server(self.tracked_port)
             self.potential_server = self.start_server(self.potential_port)
@@ -393,6 +447,8 @@ class ODASServer:
             self.log("Note: Only active tracked sources (non-zero IDs) will be logged in tracked.log", print_to_console=True)
             self.log("Potential sources: New or untracked sound sources being detected", print_to_console=True)
             self.log("All potential sources will be logged in potential.log", print_to_console=True)
+            if self.forward_to_gui:
+                self.log(f"Data will be forwarded to GUI at {self.gui_host}", print_to_console=True)
             self.log("Check microphone configuration and tracking parameters if no sources are detected", print_to_console=True)
 
             # Accept connections in separate threads
@@ -497,6 +553,14 @@ class ODASServer:
             except:
                 pass
 
+        # Close GUI connections
+        for socket in [self.gui_tracked_socket, self.gui_potential_socket]:
+            if socket:
+                try:
+                    socket.close()
+                except:
+                    pass
+
         print("Server shutdown complete")
 
 def main() -> None:
@@ -514,6 +578,8 @@ def main() -> None:
                       help='Port for tracked sources (default: 9000)')
     parser.add_argument('--potential-port', type=int, default=9001,
                       help='Port for potential sources (default: 9001)')
+    parser.add_argument('--forward-to-gui', action='store_true',
+                      help='Forward data to GUI station (default: False)')
     
     args = parser.parse_args()
     
@@ -522,7 +588,8 @@ def main() -> None:
         mode=args.mode,
         host=args.host,
         tracked_port=args.tracked_port,
-        potential_port=args.potential_port
+        potential_port=args.potential_port,
+        forward_to_gui=args.forward_to_gui
     )
 
     try:
