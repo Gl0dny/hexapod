@@ -11,7 +11,7 @@ The project includes designing and building the robot's platform, encompassing b
 
 The hardware is designed to accommodate the circular microphone array, ensuring precise sound capture, while the software facilitates seamless communication between auditory processing modules, the control system, and actuators. This comprehensive approach ensures the robot can perform complex tasks, such as navigating dynamic environments and responding accurately to auditory cues.
 
-![](./assets/hexapod_alum.jpg)
+![](./assets/hexapod.jpg)
 
 ## Table of Contents
 - [Key Features](#key-features)
