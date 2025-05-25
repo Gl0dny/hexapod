@@ -1,7 +1,8 @@
 """
-Main evaluation script that runs all tests and generates a comprehensive report.
+Main script for running the evaluation.
 """
 
+<<<<<<< HEAD
 import os
 import sys
 from pathlib import Path
@@ -12,226 +13,121 @@ sys.path.append(str(project_root))
 
 import pandas as pd
 import numpy as np
+=======
+import argparse
+from pathlib import Path
+>>>>>>> a849efe6a0a14b327470acba46b0c20b05120d10
 import logging
 import json
 from datetime import datetime
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import Dict, List
 
+<<<<<<< HEAD
 from tests.evaluation.evaluate_ssl import SSLEvaluator
 from tests.evaluation.evaluate_kws import KWSEvaluator
+=======
+from .evaluator import (
+    StaticEvaluator,
+    DynamicEvaluator,
+    EnvironmentalEvaluator
+)
+>>>>>>> a849efe6a0a14b327470acba46b0c20b05120d10
 
-class EvaluationRunner:
-    """Runs the complete evaluation and generates reports."""
+def setup_logging(output_dir: Path):
+    """Set up logging configuration."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(output_dir / 'evaluation.log'),
+            logging.StreamHandler()
+        ]
+    )
+
+def run_static_evaluation(output_dir: Path):
+    """Run static evaluation tests."""
+    evaluator = StaticEvaluator(output_dir / 'static')
     
-    def __init__(self,
-                 log_dir: Path = Path("logs/evaluation"),
-                 picovoice_access_key: str = "YOUR_ACCESS_KEY"):
-        """
-        Initialize the evaluation runner.
-        
-        Args:
-            log_dir: Base directory for evaluation logs
-            picovoice_access_key: Picovoice access key for KWS evaluation
-        """
-        self.log_dir = log_dir
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Initialize logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(self.log_dir / "evaluation.log"),
-                logging.StreamHandler()
-            ]
-        )
-        self.logger = logging.getLogger("evaluation_runner")
-        
-        # Initialize evaluators
-        self.ssl_evaluator = SSLEvaluator(log_dir=self.log_dir / "ssl")
-        self.kws_evaluator = KWSEvaluator(
-            keyword_path=Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn'),
-            context_path=Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn'),
-            access_key=picovoice_access_key,
-            log_dir=self.log_dir / "kws"
-        )
-        
-    def run_ssl_evaluation(self) -> Dict:
-        """Run SSL evaluation tests."""
-        self.logger.info("Starting SSL evaluation...")
-        
-        # Static DOA evaluation
-        true_angles = [0, 45, 90, 135, 180, 225, 270, 315]
-        static_results = self.ssl_evaluator.evaluate_static_doa(true_angles)
-        static_summary = self.ssl_evaluator.analyze_results(static_results)
-        
-        # Dynamic DOA evaluation
-        dynamic_results = self.ssl_evaluator.evaluate_dynamic_doa('walk', 90.0)
-        
-        # Multiple sources evaluation
-        source_angles = [45, 135, 225, 315]
-        multiple_results = self.ssl_evaluator.evaluate_multiple_sources(source_angles)
-        
-        return {
-            'static': static_summary,
-            'dynamic': dynamic_results,
-            'multiple': multiple_results
-        }
+    # Test DOA estimation
+    true_angles = list(range(0, 360, 45))  # Test every 45 degrees
+    distances = [1.0, 2.0, 3.0]  # Test different distances
+    evaluator.evaluate_doa(true_angles, distances)
     
-    def run_kws_evaluation(self) -> Dict:
-        """Run KWS evaluation tests."""
-        self.logger.info("Starting KWS evaluation...")
-        
-        # Wake word evaluation
-        wake_word_results = self.kws_evaluator.evaluate_wake_word(num_tests=10)
-        wake_word_summary = self.kws_evaluator.analyze_results(wake_word_results, 'wake_word')
-        
-        # Command recognition evaluation
-        commands = ['walk forward', 'turn left', 'turn right', 'stop']
-        command_results = self.kws_evaluator.evaluate_command_recognition(commands)
-        command_summary = self.kws_evaluator.analyze_results(command_results, 'command_recognition')
-        
-        # Resource usage measurement
-        resource_results = self.kws_evaluator.measure_resource_usage()
-        
-        return {
-            'wake_word': wake_word_summary,
-            'command_recognition': command_summary,
-            'resource_usage': resource_results
-        }
+    # Test KWS
+    commands = [
+        "move forward",
+        "turn left",
+        "turn right",
+        "stop",
+        "stand up",
+        "sit down"
+    ]
+    evaluator.evaluate_kws(commands)
     
-    def generate_plots(self, results: Dict) -> None:
-        """
-        Generate plots from evaluation results.
-        
-        Args:
-            results: Dictionary containing evaluation results
-        """
-        # Set style
-        plt.style.use('seaborn')
-        
-        # SSL plots
-        ssl_dir = self.log_dir / "ssl" / "plots"
-        ssl_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Static DOA error plot
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(data=results['ssl']['static'], x='true_angle', y='mae')
-        plt.title('DOA Error by Angle')
-        plt.xlabel('True Angle (degrees)')
-        plt.ylabel('Mean Absolute Error (degrees)')
-        plt.savefig(ssl_dir / "static_doa_error.png")
-        plt.close()
-        
-        # Dynamic DOA error plot
-        plt.figure(figsize=(10, 6))
-        plt.plot(results['ssl']['dynamic']['timestamp'], 
-                results['ssl']['dynamic']['measured_angle'],
-                label='Measured')
-        plt.axhline(y=results['ssl']['dynamic']['true_angle'], 
-                   color='r', linestyle='--', label='True')
-        plt.title('Dynamic DOA Tracking')
-        plt.xlabel('Time (s)')
-        plt.ylabel('Angle (degrees)')
-        plt.legend()
-        plt.savefig(ssl_dir / "dynamic_doa_tracking.png")
-        plt.close()
-        
-        # KWS plots
-        kws_dir = self.log_dir / "kws" / "plots"
-        kws_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Wake word detection rate plot
-        plt.figure(figsize=(10, 6))
-        sns.barplot(data=results['kws']['wake_word'], 
-                   x='noise_level', y='detection_rate')
-        plt.title('Wake Word Detection Rate vs. Noise')
-        plt.xlabel('Noise Level')
-        plt.ylabel('Detection Rate')
-        plt.savefig(kws_dir / "wake_word_detection.png")
-        plt.close()
-        
-        # Command recognition accuracy plot
-        plt.figure(figsize=(10, 6))
-        command_acc = pd.DataFrame.from_dict(
-            results['kws']['command_recognition']['per_command_accuracy'],
-            orient='index',
-            columns=['accuracy']
-        )
-        sns.barplot(data=command_acc, x=command_acc.index, y='accuracy')
-        plt.title('Command Recognition Accuracy')
-        plt.xlabel('Command')
-        plt.ylabel('Accuracy')
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.savefig(kws_dir / "command_accuracy.png")
-        plt.close()
-        
-        # Resource usage plot
-        plt.figure(figsize=(10, 6))
-        plt.plot(results['kws']['resource_usage']['timestamp'],
-                results['kws']['resource_usage']['cpu_percent'],
-                label='CPU Usage')
-        plt.title('System Resource Usage')
-        plt.xlabel('Time (s)')
-        plt.ylabel('CPU Usage (%)')
-        plt.legend()
-        plt.savefig(kws_dir / "resource_usage.png")
-        plt.close()
+    # Save results
+    evaluator.save_results('static_results.json')
+
+def run_dynamic_evaluation(output_dir: Path):
+    """Run dynamic evaluation tests."""
+    evaluator = DynamicEvaluator(output_dir / 'dynamic')
     
-    def generate_report(self, results: Dict) -> None:
-        """
-        Generate a comprehensive evaluation report.
-        
-        Args:
-            results: Dictionary containing evaluation results
-        """
-        report = {
-            'timestamp': datetime.now().isoformat(),
-            'system_info': {
-                'platform': 'Raspberry Pi',
-                'python_version': '3.9.0',
-                'odas_version': '1.0.0',
-                'picovoice_version': '2.0.0'
-            },
-            'results': results
-        }
-        
-        # Save report
-        report_path = self.log_dir / f"evaluation_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(report_path, 'w') as f:
-            json.dump(report, f, indent=4)
-        
-        # Generate plots
-        self.generate_plots(results)
-        
-        self.logger.info(f"Evaluation report generated: {report_path}")
+    # Test different gaits
+    gait_types = [
+        "tripod",
+        "wave",
+        "ripple"
+    ]
+    evaluator.evaluate_motion_compensation(gait_types)
     
-    def run(self) -> None:
-        """Run the complete evaluation."""
-        self.logger.info("Starting complete evaluation...")
-        
-        # Run evaluations
-        ssl_results = self.run_ssl_evaluation()
-        kws_results = self.run_kws_evaluation()
-        
-        # Combine results
-        results = {
-            'ssl': ssl_results,
-            'kws': kws_results
-        }
-        
-        # Generate report
-        self.generate_report(results)
-        
-        self.logger.info("Evaluation completed successfully")
+    # Save results
+    evaluator.save_results('dynamic_results.json')
+
+def run_environmental_evaluation(output_dir: Path):
+    """Run environmental evaluation tests."""
+    evaluator = EnvironmentalEvaluator(output_dir / 'environmental')
+    
+    # Test different environments
+    room_sizes = ["small", "medium", "large"]
+    surface_types = ["hard", "soft", "mixed"]
+    evaluator.evaluate_environmental_robustness(room_sizes, surface_types)
+    
+    # Save results
+    evaluator.save_results('environmental_results.json')
 
 def main():
-    """Main evaluation script."""
-    runner = EvaluationRunner()
-    runner.run()
+    parser = argparse.ArgumentParser(description='Run hexapod system evaluation')
+    parser.add_argument('--output-dir', type=Path, default=Path('evaluation_results'),
+                      help='Directory to store evaluation results')
+    parser.add_argument('--evaluation-type', type=str, choices=['static', 'dynamic', 'environmental', 'all'],
+                      default='all', help='Type of evaluation to run')
+    args = parser.parse_args()
+    
+    # Create output directory
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_dir = args.output_dir / timestamp
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Set up logging
+    setup_logging(output_dir)
+    logger = logging.getLogger(__name__)
+    
+    try:
+        if args.evaluation_type in ['static', 'all']:
+            logger.info("Running static evaluation...")
+            run_static_evaluation(output_dir)
+        
+        if args.evaluation_type in ['dynamic', 'all']:
+            logger.info("Running dynamic evaluation...")
+            run_dynamic_evaluation(output_dir)
+        
+        if args.evaluation_type in ['environmental', 'all']:
+            logger.info("Running environmental evaluation...")
+            run_environmental_evaluation(output_dir)
+        
+        logger.info("Evaluation completed successfully")
+        
+    except Exception as e:
+        logger.error(f"Evaluation failed: {str(e)}", exc_info=True)
+        raise
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main() 
