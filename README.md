@@ -13,6 +13,8 @@ The hardware is designed to accommodate the circular microphone array, ensuring 
 
 ![](./assets/hexapod.jpg)
 
+![](./assets/hexapod2.jpg)
+
 ## Table of Contents
 - [Key Features](#key-features)
 - [Implementation Details](#implementation-details)
