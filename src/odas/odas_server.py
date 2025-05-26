@@ -31,6 +31,7 @@ from typing import Optional, List, TextIO, Any, Dict, Tuple
 import argparse
 import re
 import sys
+import math
 
 # Add src directory to Python path
 current_file = Path(__file__)
@@ -62,7 +63,7 @@ class ODASServer:
         odas_process (subprocess.Popen): ODAS process handle when running in local mode
     """
 
-    def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001, forward_to_gui: bool = False) -> None:
+    def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001, forward_to_gui: bool = False, debug_mode: bool = False) -> None:
         """
         Initialize the ODAS server with configuration parameters.
 
@@ -72,6 +73,7 @@ class ODASServer:
             tracked_port (int): Port for tracked sources (default: 9000)
             potential_port (int): Port for potential sources (default: 9001)
             forward_to_gui (bool): Whether to forward data to GUI (default: False)
+            debug_mode (bool): Whether to enable debug output (default: False)
         """
         self.mode: str = mode.lower()
         if self.mode == 'local':
@@ -121,6 +123,7 @@ class ODASServer:
         self.sound_source_animation = SoundSourceAnimation(self.lights)
         self.tracked_sources: Dict[int, Dict] = {}
         self.potential_sources: Dict[int, Dict] = {}
+        self.sources_lock: threading.Lock = threading.Lock()  # Add lock for sources dictionaries
 
         # Status tracking variables
         self.last_active_source_time: float = time.time()
@@ -128,6 +131,9 @@ class ODASServer:
         self.last_inactive_time: Optional[float] = None  # Track when we last became inactive
         self.last_status_message_time: Optional[float] = None  # Track when we last sent a status message
         self.status_lock: threading.Lock = threading.Lock()
+
+        # Debug mode
+        self.debug_mode: bool = debug_mode
 
     def _open_log_file(self, path: Path) -> TextIO:
         """
@@ -240,6 +246,49 @@ class ODASServer:
         except Exception as e:
             print(f"Error forwarding to GUI: {str(e)}")
 
+    def _get_direction(self, x: float, y: float, z: float) -> str:
+        """
+        Calculate the estimated direction based on x, y, z coordinates.
+        Returns one of 8 directions: N, NE, E, SE, S, SW, W, NW
+
+        Args:
+            x (float): X coordinate (-1.0 to 1.0)
+            y (float): Y coordinate (-1.0 to 1.0)
+            z (float): Z coordinate (-1.0 to 1.0)
+
+        Returns:
+            str: Direction label (N, NE, E, SE, S, SW, W, NW)
+        """
+        # Calculate azimuth angle in degrees
+        azimuth = math.degrees(math.atan2(y, x))
+        # Normalize to 0-360
+        azimuth = (azimuth + 360) % 360
+        
+        # Map to 8 directions
+        directions = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE']
+        index = round(azimuth / 45) % 8
+        return directions[index]
+
+    def _print_debug_info(self, source_data: Dict[str, Any]) -> None:
+        """
+        Print debug information about a sound source in a clean format.
+
+        Args:
+            source_data (Dict[str, Any]): Source data dictionary
+        """
+        if not self.debug_mode:
+            return
+
+        x = source_data.get('x', 0)
+        y = source_data.get('y', 0)
+        z = source_data.get('z', 0)
+        activity = source_data.get('activity', 0)
+        source_id = source_data.get('id', 0)
+
+        if source_id > 0:  # Only print active sources
+            direction = self._get_direction(x, y, z)
+            print(f"\033[2K\rSource {source_id}: ({x:.2f}, {y:.2f}, {z:.2f}) | Direction: {direction} | Activity: {activity:.2f}", end='', flush=True)
+
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """
         Handle data from a connected client.
@@ -312,7 +361,8 @@ class ODASServer:
                             if client_type == "tracked":
                                 source_id = source_data.get('id', 0)
                                 if source_id > 0:  # Only track active sources
-                                    self.tracked_sources[source_id] = source_data
+                                    with self.sources_lock:  # Use lock when modifying tracked_sources
+                                        self.tracked_sources[source_id] = source_data
                                     active_source_ids.add(source_id)
                                     current_active_sources += 1
                                     with self.status_lock:
@@ -322,9 +372,11 @@ class ODASServer:
                                         self.last_status_message_time = None  # Reset status message time
                                     self.log(f"\nActive tracked source:", log_file)
                                     self.log(json.dumps(source_data, indent=2), log_file)
+                                    self._print_debug_info(source_data)  # Add debug output
                             else:  # potential sources
                                 source_id = len(self.potential_sources)
-                                self.potential_sources[source_id] = source_data
+                                with self.sources_lock:  # Use lock when modifying potential_sources
+                                    self.potential_sources[source_id] = source_data
                                 self.log(f"\nPotential source detection:", log_file)
                                 self.log(json.dumps(source_data, indent=2), log_file)
                             
@@ -335,9 +387,10 @@ class ODASServer:
                     
                     # Remove sources that are no longer active
                     if client_type == "tracked":
-                        inactive_sources = set(self.tracked_sources.keys()) - active_source_ids
-                        for source_id in inactive_sources:
-                            del self.tracked_sources[source_id]
+                        with self.sources_lock:  # Use lock when modifying tracked_sources
+                            inactive_sources = set(self.tracked_sources.keys()) - active_source_ids
+                            for source_id in inactive_sources:
+                                del self.tracked_sources[source_id]
                         with self.status_lock:
                             if current_active_sources == 0 and self.current_active_sources > 0:
                                 # We just became inactive
@@ -345,8 +398,11 @@ class ODASServer:
                                 self.last_status_message_time = None  # Reset status message time
                             self.current_active_sources = current_active_sources
                     
-                    # Update LED visualization
-                    self.sound_source_animation.update_sources(self.tracked_sources, self.potential_sources)
+                    # Update LED visualization with a copy of the sources
+                    with self.sources_lock:  # Use lock when reading sources
+                        tracked_sources_copy = dict(self.tracked_sources)
+                        potential_sources_copy = dict(self.potential_sources)
+                    self.sound_source_animation.update_sources(tracked_sources_copy, potential_sources_copy)
                     
                     # Update active sources count and log status
                     if client_type == "tracked" and current_active_sources != active_sources_count:
@@ -610,6 +666,8 @@ def main() -> None:
                       help='Port for potential sources (default: 9001)')
     parser.add_argument('--forward-to-gui', action='store_true',
                       help='Forward data to GUI station (default: False)')
+    parser.add_argument('--debug', action='store_true',
+                      help='Enable debug mode with real-time source tracking display (default: False)')
     
     args = parser.parse_args()
     
@@ -619,7 +677,8 @@ def main() -> None:
         host=args.host,
         tracked_port=args.tracked_port,
         potential_port=args.potential_port,
-        forward_to_gui=args.forward_to_gui
+        forward_to_gui=args.forward_to_gui,
+        debug_mode=args.debug
     )
 
     try:
