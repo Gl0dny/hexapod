@@ -30,6 +30,16 @@ from pathlib import Path
 from typing import Optional, List, TextIO, Any, Dict, Tuple
 import argparse
 import re
+import sys
+
+# Add src directory to Python path
+current_file = Path(__file__)
+src_dir = str(current_file.parent.parent)  # Go up one level from odas to src
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+from lights import Lights
+from lights.animations.sound_source_animation import SoundSourceAnimation
 
 logger = logging.getLogger("odas")
 # logging.basicConfig(level=logging.INFO)
@@ -105,6 +115,12 @@ class ODASServer:
         # Set up signal handler
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
+
+        # Initialize LED visualization
+        self.lights = Lights()
+        self.sound_source_animation = SoundSourceAnimation(self.lights)
+        self.tracked_sources: Dict[int, Dict] = {}
+        self.potential_sources: Dict[int, Dict] = {}
 
     def _open_log_file(self, path: Path) -> TextIO:
         """
@@ -288,24 +304,40 @@ class ODASServer:
                     
                     # Process each JSON object
                     current_active_sources: int = 0
+                    active_source_ids: set[int] = set()  # Keep track of currently active source IDs
+                    
                     for json_obj in json_objects:
                         try:
-                            json_data: Dict[str, Any] = json.loads(json_obj)
+                            source_data = json.loads(json_obj)
                             
+                            # Update source tracking
                             if client_type == "tracked":
-                                # For tracked sources, only log if it's an active source (non-zero ID)
-                                if 'id' in json_data and json_data['id'] != 0:
+                                source_id = source_data.get('id', 0)
+                                if source_id > 0:  # Only track active sources
+                                    self.tracked_sources[source_id] = source_data
+                                    active_source_ids.add(source_id)
                                     current_active_sources += 1
                                     self.log(f"\nActive tracked source:", log_file)
-                                    self.log(json.dumps(json_data, indent=2), log_file)
-                            else:
-                                # For potential sources, log all entries as they represent new detections
+                                    self.log(json.dumps(source_data, indent=2), log_file)
+                            else:  # potential sources
+                                source_id = len(self.potential_sources)
+                                self.potential_sources[source_id] = source_data
                                 self.log(f"\nPotential source detection:", log_file)
-                                self.log(json.dumps(json_data, indent=2), log_file)
+                                self.log(json.dumps(source_data, indent=2), log_file)
                             
                         except json.JSONDecodeError as e:
                             self.log(f"\nJSON Parse Error in object: {str(e)}", log_file)
                             self.log(f"Problematic object: {json_obj}", log_file)
+                            continue
+                    
+                    # Remove sources that are no longer active
+                    if client_type == "tracked":
+                        inactive_sources = set(self.tracked_sources.keys()) - active_source_ids
+                        for source_id in inactive_sources:
+                            del self.tracked_sources[source_id]
+                    
+                    # Update LED visualization
+                    self.sound_source_animation.update_sources(self.tracked_sources, self.potential_sources)
                     
                     # Update active sources count and log status periodically
                     if client_type == "tracked" and current_active_sources != active_sources_count:
@@ -329,6 +361,7 @@ class ODASServer:
                 except Exception as e:
                     self.log(f"\nError processing data: {str(e)}", log_file)
                     self.log(f"Raw data: {data.decode('utf-8', errors='replace')}", log_file)
+                    continue
                     
             except socket.timeout:
                 # Timeout is expected, just continue the loop
@@ -441,6 +474,9 @@ class ODASServer:
             self.tracked_server = self.start_server(self.tracked_port)
             self.potential_server = self.start_server(self.potential_port)
 
+            # Start LED visualization
+            self.sound_source_animation.start()
+
             # Log startup information
             self.log("ODAS Server started", print_to_console=True)
             self.log("Tracked sources: Currently active and tracked sound sources", print_to_console=True)
@@ -460,20 +496,18 @@ class ODASServer:
                 target=self.accept_and_handle,
                 args=(self.potential_server, "potential")
             )
-
-            # Store threads for later cleanup
-            self.threads = [tracked_thread, potential_thread]
-
-            # Start threads
-            for thread in self.threads:
-                thread.start()
-
-            # Wait for both threads to complete
+            
+            tracked_thread.start()
+            potential_thread.start()
+            
+            self.threads.extend([tracked_thread, potential_thread])
+            
+            # Wait for threads to complete
             for thread in self.threads:
                 thread.join()
-
+                
         except Exception as e:
-            print(f"Error in server: {str(e)}")
+            self.log(f"Error starting server: {e}", print_to_console=True)
             self.running = False
 
     def accept_and_handle(self, server_socket: socket.socket, client_type: str) -> None:
@@ -497,71 +531,42 @@ class ODASServer:
 
     def close(self) -> None:
         """
-        Close all connections and log files.
-
-        Performs graceful shutdown by:
-        1. Closing client connections
-        2. Closing server sockets
-        3. Waiting for threads to finish
-        4. Closing log files
-        5. Terminating ODAS process if running in local mode
+        Close the ODAS server and clean up resources.
         """
-        print("\nShutting down server...")
         self.running = False
-
+        
+        # Stop LED visualization
+        if hasattr(self, 'sound_source_animation'):
+            self.sound_source_animation.stop_animation()
+        
+        # Close all sockets
+        for socket_obj in [self.tracked_server, self.potential_server,
+                         self.tracked_client, self.potential_client,
+                         self.gui_tracked_socket, self.gui_potential_socket]:
+            if socket_obj:
+                try:
+                    socket_obj.close()
+                except:
+                    pass
+        
+        # Close all log files
+        for log_file in self.log_files:
+            try:
+                log_file.close()
+            except:
+                pass
+        
         # Terminate ODAS process if running
         if self.odas_process:
             try:
                 self.odas_process.terminate()
                 self.odas_process.wait(timeout=5)
             except:
-                try:
-                    self.odas_process.kill()
-                except:
-                    pass
-            finally:
-                self.odas_process = None
-
-        # Close client sockets
-        for client in [self.tracked_client, self.potential_client]:
-            if client:
-                try:
-                    client.shutdown(socket.SHUT_RDWR)
-                    client.close()
-                except:
-                    pass
-
-        # Close server sockets
-        for server in [self.tracked_server, self.potential_server]:
-            if server:
-                try:
-                    server.close()
-                except:
-                    pass
-
-        # Wait for threads to finish
-        for thread in self.threads:
-            try:
-                thread.join(timeout=1.0)
-            except:
-                pass
+                self.odas_process.kill()
         
-        # Close log files
-        for log_file in self.log_files:
-            try:
-                log_file.close()
-            except:
-                pass
-
-        # Close GUI connections
-        for socket in [self.gui_tracked_socket, self.gui_potential_socket]:
-            if socket:
-                try:
-                    socket.close()
-                except:
-                    pass
-
-        print("Server shutdown complete")
+        # Clean up LED resources
+        if hasattr(self, 'lights'):
+            self.lights.clear()
 
 def main() -> None:
     """
