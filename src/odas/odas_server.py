@@ -122,6 +122,13 @@ class ODASServer:
         self.tracked_sources: Dict[int, Dict] = {}
         self.potential_sources: Dict[int, Dict] = {}
 
+        # Status tracking variables
+        self.last_active_source_time: float = time.time()
+        self.current_active_sources: int = 0
+        self.last_inactive_time: Optional[float] = None  # Track when we last became inactive
+        self.last_status_message_time: Optional[float] = None  # Track when we last sent a status message
+        self.status_lock: threading.Lock = threading.Lock()
+
     def _open_log_file(self, path: Path) -> TextIO:
         """
         Open a log file and add it to the list of managed log files.
@@ -246,7 +253,6 @@ class ODASServer:
         """
         log_file: TextIO = self.tracked_log if client_type == "tracked" else self.potential_log
         active_sources_count: int = 0
-        last_status_time: float = time.time()
         
         while self.running:
             try:
@@ -271,32 +277,24 @@ class ODASServer:
                 if self.forward_to_gui:
                     self.forward_data_to_gui(size_bytes + data, client_type)
 
+                # Process the received data
                 try:
-                    # Clean the JSON data
-                    json_str: str = data.decode('utf-8').strip()
+                    json_str = data.decode('utf-8')
+                    json_objects = []
+                    start = 0
                     
-                    # Split the string into individual JSON objects
-                    json_objects: List[str] = []
-                    start: int = 0
+                    # Split multiple JSON objects if present
                     while True:
-                        # Find the next '{' and '}' pair
-                        start_brace: int = json_str.find('{', start)
+                        start_brace = json_str.find('{', start)
                         if start_brace == -1:
                             break
-                        
-                        # Find matching closing brace
-                        brace_count: int = 1
-                        end_brace: int = start_brace + 1
-                        while brace_count > 0 and end_brace < len(json_str):
-                            if json_str[end_brace] == '{':
-                                brace_count += 1
-                            elif json_str[end_brace] == '}':
-                                brace_count -= 1
-                            end_brace += 1
-                        
-                        if brace_count == 0:
-                            # Extract the JSON object
-                            json_obj: str = json_str[start_brace:end_brace]
+                            
+                        end_brace = json_str.find('}', start_brace)
+                        if end_brace == -1:
+                            break
+                            
+                        json_obj = json_str[start_brace:end_brace+1]
+                        if json_obj:
                             json_objects.append(json_obj)
                             start = end_brace
                         else:
@@ -317,6 +315,11 @@ class ODASServer:
                                     self.tracked_sources[source_id] = source_data
                                     active_source_ids.add(source_id)
                                     current_active_sources += 1
+                                    with self.status_lock:
+                                        self.last_active_source_time = time.time()
+                                        self.current_active_sources = current_active_sources
+                                        self.last_inactive_time = None  # Reset inactive time when we have active sources
+                                        self.last_status_message_time = None  # Reset status message time
                                     self.log(f"\nActive tracked source:", log_file)
                                     self.log(json.dumps(source_data, indent=2), log_file)
                             else:  # potential sources
@@ -335,24 +338,20 @@ class ODASServer:
                         inactive_sources = set(self.tracked_sources.keys()) - active_source_ids
                         for source_id in inactive_sources:
                             del self.tracked_sources[source_id]
+                        with self.status_lock:
+                            if current_active_sources == 0 and self.current_active_sources > 0:
+                                # We just became inactive
+                                self.last_inactive_time = time.time()
+                                self.last_status_message_time = None  # Reset status message time
+                            self.current_active_sources = current_active_sources
                     
                     # Update LED visualization
                     self.sound_source_animation.update_sources(self.tracked_sources, self.potential_sources)
                     
-                    # Update active sources count and log status periodically
+                    # Update active sources count and log status
                     if client_type == "tracked" and current_active_sources != active_sources_count:
                         active_sources_count = current_active_sources
                         self.log(f"\nCurrently tracking {active_sources_count} active sources", log_file, print_to_console=True)
-                    
-                    # Log status every 15 seconds
-                    current_time: float = time.time()
-                    if current_time - last_status_time >= 15:
-                        last_status_time = current_time
-                        if client_type == "tracked":
-                            if active_sources_count == 0:
-                                self.log(f"\nNo active sources detected in the last 15 seconds", log_file, print_to_console=True)
-                            else:
-                                self.log(f"\nMonitoring for new potential sources", log_file, print_to_console=True)
                     
                     if not json_objects:
                         self.log(f"\nNo valid JSON objects found", log_file)
@@ -373,6 +372,26 @@ class ODASServer:
                 if self.running:  # Only log errors if we're still running
                     self.log(f"Error in {client_type} handler: {str(e)}", log_file, print_to_console=True)
                 break
+
+    def _status_check_thread(self) -> None:
+        """
+        Thread that periodically checks and logs the status of tracked sources.
+        """
+        while self.running:
+            try:
+                current_time = time.time()
+                with self.status_lock:
+                    if self.current_active_sources == 0 and self.last_inactive_time is not None:
+                        inactive_duration = current_time - self.last_inactive_time
+                        if inactive_duration >= 15 and (self.last_status_message_time is None or 
+                                                      current_time - self.last_status_message_time >= 15):
+                            self.log(f"\nNo active sources detected in the last 15 seconds", self.tracked_log, print_to_console=True)
+                            self.last_status_message_time = current_time
+                time.sleep(1)  # Check more frequently to ensure accurate timing
+            except Exception as e:
+                if self.running:
+                    self.log(f"Error in status check thread: {str(e)}", self.tracked_log, print_to_console=True)
+                time.sleep(1)  # Wait before retrying
 
     def accept_connection(self, server_socket: socket.socket, client_type: str) -> Optional[socket.socket]:
         """
@@ -486,6 +505,12 @@ class ODASServer:
             if self.forward_to_gui:
                 self.log(f"Data will be forwarded to GUI at {self.gui_host}", print_to_console=True)
             self.log("Check microphone configuration and tracking parameters if no sources are detected", print_to_console=True)
+
+            # Start status check thread
+            status_thread = threading.Thread(target=self._status_check_thread)
+            status_thread.daemon = True
+            status_thread.start()
+            self.threads.append(status_thread)
 
             # Accept connections in separate threads
             tracked_thread: threading.Thread = threading.Thread(
