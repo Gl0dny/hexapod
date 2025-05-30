@@ -271,25 +271,31 @@ class ODASServer:
 
     def _print_debug_info(self, source_data: Dict[str, Any], active_sources: Dict[int, Dict]) -> None:
         """
-        Print debug information about a sound source in a clean format.
+        Print debug information about active sound sources in a clean format.
+        Prints all active sources on a single line that updates in place.
 
         Args:
-            source_data (Dict[str, Any]): Source data dictionary
+            source_data (Dict[str, Any]): Current source data dictionary
             active_sources (Dict[int, Dict]): Dictionary of currently active sources
         """
         if not self.debug_mode:
             return
 
-        x = source_data.get('x', 0)
-        y = source_data.get('y', 0)
-        z = source_data.get('z', 0)
-        activity = source_data.get('activity', 0)
-        source_id = source_data.get('id', 0)
-
-        # Only print if this source is in the active_sources dictionary
-        if source_id > 0 and source_id in active_sources:
+        # Clear the current line
+        print("\033[2K\r", end='', flush=True)
+        
+        # Print each active source's coordinates
+        sources_info = []
+        for sid, src in active_sources.items():
+            x = src.get('x', 0)
+            y = src.get('y', 0)
+            z = src.get('z', 0)
+            activity = src.get('activity', 0)
             direction = self._get_direction(x, y, z)
-            print(f"\033[2K\rSource {source_id}: ({x:.2f}, {y:.2f}, {z:.2f}) | Direction: {direction} | Activity: {activity:.2f}", end='', flush=True)
+            sources_info.append(f"Source {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}")
+        
+        # Print all sources on one line
+        print(" | ".join(sources_info), end='', flush=True)
 
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """
