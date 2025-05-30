@@ -204,12 +204,8 @@ class ODASServer:
             print("\033[KNo sources tracked", flush=True)
             self.last_num_lines = 1
         else:
-            # Print each active source on its own line
-            sorted_sources = sorted(active_sources.items(), 
-                                  key=lambda x: x[1].get('activity', 0), 
-                                  reverse=True)
             
-            for sid, src in sorted_sources:
+            for sid, src in active_sources.items():
                 x = src.get('x', 0)
                 y = src.get('y', 0)
                 z = src.get('z', 0)
