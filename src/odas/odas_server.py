@@ -2,14 +2,6 @@
 
 """
 ODAS (Open embeddeD Audition System) Server Implementation
-
-This module implements a server that receives and processes sound source data from ODAS.
-It handles two separate data streams:
-1. Tracked sources: Currently active and tracked sound sources
-2. Potential sources: New or untracked sound sources being detected
-
-The server creates and manages log files for both types of sources, providing real-time
-monitoring and status updates.
 """
 
 import warnings
@@ -199,31 +191,32 @@ class ODASServer:
         if self.last_num_lines > 0:
             print(f"\033[{self.last_num_lines}A", end='', flush=True)
 
-        # Print each active source on its own line
-        sorted_sources = sorted(active_sources.items(), 
-                              key=lambda x: x[1].get('activity', 0), 
-                              reverse=True)
-        
-        for sid, src in sorted_sources:
-            x = src.get('x', 0)
-            y = src.get('y', 0)
-            z = src.get('z', 0)
-            activity = src.get('activity', 0)
-            direction = self._get_direction(x, y, z)
-            print(f"\033[KSource {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}", flush=True)
-        
-        # Clear any extra lines from previous update
-        for _ in range(self.last_num_lines - current_lines):
-            print("\033[K", flush=True)
-        
-        self.last_num_lines = current_lines
-
-        # If no sources, clear all previous lines
-        if current_lines == 0 and self.last_num_lines > 0:
+        # Clear all previous lines in the block
+        for _ in range(self.last_num_lines):
+            print("\033[K", flush=True)  # Clear the line and move down
+            
+        # Move back to the top of the block
+        if self.last_num_lines > 0:
             print(f"\033[{self.last_num_lines}A", end='', flush=True)
-            for _ in range(self.last_num_lines):
-                print("\033[K", flush=True)
-            self.last_num_lines = 0
+        
+        if current_lines == 0:
+            # Print "no sources" message
+            print("\033[KNo sources tracked", flush=True)
+            self.last_num_lines = 1
+        else:
+            # Print each active source on its own line
+            sorted_sources = sorted(active_sources.items(), 
+                                  key=lambda x: x[1].get('activity', 0), 
+                                  reverse=True)
+            
+            for sid, src in sorted_sources:
+                x = src.get('x', 0)
+                y = src.get('y', 0)
+                z = src.get('z', 0)
+                activity = src.get('activity', 0)
+                direction = self._get_direction(x, y, z)
+                print(f"\033[KSource {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}", flush=True)
+            self.last_num_lines = current_lines
 
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """Handle data from a connected client."""
@@ -303,7 +296,7 @@ class ODASServer:
                             self.last_inactive_time = None
                             self.last_status_message_time = None
                         
-                        if current_active_sources > 0:
+                        if self.debug_mode:
                             self._print_debug_info(active_sources)
                     
                     with self.sources_lock:
