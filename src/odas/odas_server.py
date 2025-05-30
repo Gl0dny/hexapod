@@ -281,10 +281,9 @@ class ODASServer:
         if not self.debug_mode:
             return
 
-        # Clear both possible lines
+        # Clear both possible lines and move to start
         print("\033[2K\r", end='', flush=True)  # Clear current line
         print("\033[1A\033[2K\r", end='', flush=True)  # Move up and clear previous line
-        print("\033[1B", end='', flush=True)  # Move back down
         
         # Sort sources by activity for consistent ordering
         sorted_sources = sorted(active_sources.items(), 
@@ -327,6 +326,9 @@ class ODASServer:
                 direction = self._get_direction(x, y, z)
                 sources_info.append(f"Source {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}")
             print(" | ".join(sources_info), end='', flush=True)
+            # Clear the second line if we're only using one line
+            print("\033[1B\033[2K\r", end='', flush=True)  # Move down and clear second line
+            print("\033[1A", end='', flush=True)  # Move back up
 
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """
