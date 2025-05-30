@@ -288,6 +288,12 @@ class ODASServer:
         print("\033[2K\r", end='', flush=True)  # Clear current line
         print("\033[1A\033[2K\r", end='', flush=True)  # Move up and clear previous line
         
+        # If no active sources, just clear the lines and return
+        if not active_sources:
+            print("\033[2K\r", end='', flush=True)  # Clear current line
+            print("\033[1A\033[2K\r", end='', flush=True)  # Move up and clear previous line
+            return
+        
         # Sort sources by activity for consistent ordering
         sorted_sources = sorted(active_sources.items(), 
                               key=lambda x: x[1].get('activity', 0), 
