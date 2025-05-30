@@ -16,10 +16,12 @@ class SoundSourceAnimation(Animation):
     """
     Animation that visualizes tracked sound source directions using LEDs.
     The LEDs light up based on the direction of detected sound sources.
+    Each source (up to 4) gets a different color.
 
     Attributes:
-        base_color (ColorRGB): The color for active sound sources.
+        base_color (ColorRGB): The default color for active sound sources.
         refresh_delay (float): The interval between updates.
+        source_colors (list[ColorRGB]): List of distinct colors for different sources.
     """
 
     def __init__(
@@ -33,7 +35,7 @@ class SoundSourceAnimation(Animation):
 
         Args:
             lights (Lights): The Lights object to control the LEDs.
-            base_color (ColorRGB): The color for active sound sources.
+            base_color (ColorRGB): The default color for active sound sources.
             refresh_delay (float): The interval between updates.
         """
         super().__init__(lights)
@@ -41,6 +43,13 @@ class SoundSourceAnimation(Animation):
         self.refresh_delay: float = refresh_delay
         self.tracked_sources: Dict[int, Dict] = {}
         self.active_leds: set[int] = set()  # Keep track of currently lit LEDs
+        # Define distinct colors for different sources
+        self.source_colors: list[ColorRGB] = [
+            ColorRGB.PINK,     # First source
+            ColorRGB.ORANGE,   # Second source
+            ColorRGB.BLUE,     # Third source
+            ColorRGB.YELLOW    # Fourth source
+        ]
 
     def update_sources(self, tracked_sources: Dict[int, Dict], potential_sources: Dict[int, Dict]) -> None:
         """
@@ -96,11 +105,13 @@ class SoundSourceAnimation(Animation):
             current_active_leds: set[int] = set()
 
             # Light up LEDs for tracked sources
-            for source_id, source in self.tracked_sources.items():
+            for i, (source_id, source) in enumerate(self.tracked_sources.items()):
                 if source.get('id', 0) > 0:  # Only process active sources
+                    # Get color for this source (cycle through colors if more than 4 sources)
+                    color = self.source_colors[i % len(self.source_colors)]
                     led_indices = self._get_led_indices_from_angle(source.get('x', 0), source.get('y', 0))
                     for led_index in led_indices:
-                        self.lights.set_color(self.base_color, led_index=led_index)
+                        self.lights.set_color(color, led_index=led_index)
                         current_active_leds.add(led_index)
 
             # Update the set of active LEDs
