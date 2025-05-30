@@ -16,6 +16,9 @@ Example:
     >>> server.start()
 """
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="gpiozero.devices")
+
 import socket
 import struct
 import json
