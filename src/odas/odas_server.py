@@ -408,11 +408,8 @@ class ODASServer:
                         
                         # Log only the filtered sources
                         if current_active_sources > 0:
-                            self.log(f"\nCurrently tracking {current_active_sources} active sources", log_file, print_to_console=True)
-                            for source_id, source_data in active_sources.items():
-                                self.log(f"\nActive tracked source:", log_file)
-                                self.log(json.dumps(source_data, indent=2), log_file)
-                                self._print_debug_info(source_data, active_sources)
+                            # Print debug info for all active sources at once
+                            self._print_debug_info(None, active_sources)
                     
                     # Update LED visualization with a copy of the sources
                     with self.sources_lock:  # Use lock when reading sources
