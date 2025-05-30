@@ -352,6 +352,7 @@ class ODASServer:
                     # Process each JSON object
                     current_active_sources: int = 0
                     active_source_ids: set[int] = set()  # Keep track of currently active source IDs
+                    active_sources: Dict[int, Dict] = {}  # Store active sources temporarily
                     
                     for json_obj in json_objects:
                         try:
@@ -361,8 +362,7 @@ class ODASServer:
                             if client_type == "tracked":
                                 source_id = source_data.get('id', 0)
                                 if source_id > 0:  # Only track active sources
-                                    with self.sources_lock:  # Use lock when modifying tracked_sources
-                                        self.tracked_sources[source_id] = source_data
+                                    active_sources[source_id] = source_data
                                     active_source_ids.add(source_id)
                                     current_active_sources += 1
                                     with self.status_lock:
@@ -385,18 +385,22 @@ class ODASServer:
                             self.log(f"Problematic object: {json_obj}", log_file)
                             continue
                     
-                    # Remove sources that are no longer active
+                    # If we have more than 4 active sources, keep only the 4 with highest activity
+                    if client_type == "tracked" and len(active_sources) > 4:
+                        # Sort sources by activity and keep top 4
+                        sorted_sources = sorted(active_sources.items(), 
+                                             key=lambda x: x[1].get('activity', 0), 
+                                             reverse=True)[:4]
+                        active_sources = dict(sorted_sources)
+                        active_source_ids = set(active_sources.keys())
+                        current_active_sources = len(active_sources)
+                        with self.status_lock:
+                            self.current_active_sources = current_active_sources
+                    
+                    # Update tracked sources with filtered results
                     if client_type == "tracked":
                         with self.sources_lock:  # Use lock when modifying tracked_sources
-                            inactive_sources = set(self.tracked_sources.keys()) - active_source_ids
-                            for source_id in inactive_sources:
-                                del self.tracked_sources[source_id]
-                        with self.status_lock:
-                            if current_active_sources == 0 and self.current_active_sources > 0:
-                                # We just became inactive
-                                self.last_inactive_time = time.time()
-                                self.last_status_message_time = None  # Reset status message time
-                            self.current_active_sources = current_active_sources
+                            self.tracked_sources = active_sources
                     
                     # Update LED visualization with a copy of the sources
                     with self.sources_lock:  # Use lock when reading sources
