@@ -45,10 +45,10 @@ class SoundSourceAnimation(Animation):
         self.active_leds: set[int] = set()  # Keep track of currently lit LEDs
         # Define distinct colors for different sources
         self.source_colors: list[ColorRGB] = [
-            ColorRGB.PURPLE,   # First source
+            ColorRGB.INDIGO,   # First source
             ColorRGB.ORANGE,   # Second source
-            ColorRGB.BLUE,     # Third source
-            ColorRGB.YELLOW    # Fourth source
+            ColorRGB.TEAL,     # Third source
+            ColorRGB.LIME    # Fourth source
         ]
 
     def update_sources(self, tracked_sources: Dict[int, Dict], potential_sources: Dict[int, Dict]) -> None:

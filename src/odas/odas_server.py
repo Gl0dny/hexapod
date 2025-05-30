@@ -269,12 +269,13 @@ class ODASServer:
         index = round(azimuth / 45) % 8
         return directions[index]
 
-    def _print_debug_info(self, source_data: Dict[str, Any]) -> None:
+    def _print_debug_info(self, source_data: Dict[str, Any], active_sources: Dict[int, Dict]) -> None:
         """
         Print debug information about a sound source in a clean format.
 
         Args:
             source_data (Dict[str, Any]): Source data dictionary
+            active_sources (Dict[int, Dict]): Dictionary of currently active sources
         """
         if not self.debug_mode:
             return
@@ -285,7 +286,8 @@ class ODASServer:
         activity = source_data.get('activity', 0)
         source_id = source_data.get('id', 0)
 
-        if source_id > 0:  # Only print active sources
+        # Only print if this source is in the active_sources dictionary
+        if source_id > 0 and source_id in active_sources:
             direction = self._get_direction(x, y, z)
             print(f"\033[2K\rSource {source_id}: ({x:.2f}, {y:.2f}, {z:.2f}) | Direction: {direction} | Activity: {activity:.2f}", end='', flush=True)
 
@@ -372,7 +374,7 @@ class ODASServer:
                                         self.last_status_message_time = None  # Reset status message time
                                     self.log(f"\nActive tracked source:", log_file)
                                     self.log(json.dumps(source_data, indent=2), log_file)
-                                    self._print_debug_info(source_data)  # Add debug output
+                                    self._print_debug_info(source_data, active_sources)  # Pass active_sources to debug info
                             else:  # potential sources
                                 source_id = len(self.potential_sources)
                                 with self.sources_lock:  # Use lock when modifying potential_sources
