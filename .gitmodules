@@ -18,9 +18,6 @@
 	path = _archive/raestro
 	url = git@github.com:Gl0dny/raestro.git
 	branch = maestro24
-[submodule "snowboy_old"]
-	path = _archive/respeaker6/kws/snowboy_old
-	url = https://github.com/Kitt-AI/snowboy.git
 [submodule "ec"]
 	path = _archive/respeaker6/ec
 	url = git@github.com:Gl0dny/ec.git
