@@ -57,8 +57,8 @@ class SoundSourceAnimation(Animation):
         Convert sound source coordinates to a set of LED indices, including adjacent LEDs.
 
         Args:
-            x (float): X coordinate (-1.0 to 1.0).
-            y (float): Y coordinate (-1.0 to 1.0).
+            x (float): X coordinate (-1.0 to 1.0), where 1.0 is right.
+            y (float): Y coordinate (-1.0 to 1.0), where 1.0 is front.
 
         Returns:
             set[int]: Set of LED indices to light up (main direction and adjacent LEDs).
@@ -67,15 +67,15 @@ class SoundSourceAnimation(Animation):
         angle = math.atan2(y, x)
         
         # Adjust angle to match hexapod orientation:
-        # - Front of hexapod is at 0 degrees (positive x-axis)
-        # - Angles increase counterclockwise
-        # - LED 0 is at the front (0 degrees)
-        # - LEDs are arranged clockwise around the hexapod
-        angle = -angle  # Invert angle to match clockwise LED arrangement
+        # - Front of hexapod is at π/2 (positive y-axis)
+        # - Right of hexapod is at 0 (positive x-axis)
+        # - LED 12 is at the front (π/2)
+        # - LED 3 is at the right (0)
+        angle = (math.pi/2 - angle) % (2 * math.pi)  # Rotate and normalize angle
         
         # Convert angle to main LED index
-        # Map -π to π to 0 to num_led-1
-        main_index = int(((angle + math.pi) / (2 * math.pi)) * self.lights.num_led)
+        # Map 0 to 2π to 0 to num_led-1
+        main_index = int((angle / (2 * math.pi)) * self.lights.num_led)
         
         # Get adjacent LED indices
         left_index = (main_index - 1) % self.lights.num_led
