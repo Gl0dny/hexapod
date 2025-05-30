@@ -272,7 +272,7 @@ class ODASServer:
     def _print_debug_info(self, source_data: Dict[str, Any], active_sources: Dict[int, Dict]) -> None:
         """
         Print debug information about active sound sources in a clean format.
-        Prints all active sources on a single line that updates in place.
+        Prints all active sources on one or two lines that update in place.
 
         Args:
             source_data (Dict[str, Any]): Current source data dictionary
@@ -281,21 +281,52 @@ class ODASServer:
         if not self.debug_mode:
             return
 
-        # Clear the current line
-        print("\033[2K\r", end='', flush=True)
+        # Clear both possible lines
+        print("\033[2K\r", end='', flush=True)  # Clear current line
+        print("\033[1A\033[2K\r", end='', flush=True)  # Move up and clear previous line
+        print("\033[1B", end='', flush=True)  # Move back down
         
-        # Print each active source's coordinates
-        sources_info = []
-        for sid, src in active_sources.items():
-            x = src.get('x', 0)
-            y = src.get('y', 0)
-            z = src.get('z', 0)
-            activity = src.get('activity', 0)
-            direction = self._get_direction(x, y, z)
-            sources_info.append(f"Source {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}")
+        # Sort sources by activity for consistent ordering
+        sorted_sources = sorted(active_sources.items(), 
+                              key=lambda x: x[1].get('activity', 0), 
+                              reverse=True)
         
-        # Print all sources on one line
-        print(" | ".join(sources_info), end='', flush=True)
+        # Print sources
+        if len(sorted_sources) > 2:
+            # Print first two sources on first line
+            sources_info1 = []
+            for sid, src in sorted_sources[:2]:
+                x = src.get('x', 0)
+                y = src.get('y', 0)
+                z = src.get('z', 0)
+                activity = src.get('activity', 0)
+                direction = self._get_direction(x, y, z)
+                sources_info1.append(f"Source {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}")
+            print(" | ".join(sources_info1), end='', flush=True)
+            
+            # Print remaining sources on second line
+            if len(sorted_sources) > 2:
+                print()  # Move to next line
+                sources_info2 = []
+                for sid, src in sorted_sources[2:]:
+                    x = src.get('x', 0)
+                    y = src.get('y', 0)
+                    z = src.get('z', 0)
+                    activity = src.get('activity', 0)
+                    direction = self._get_direction(x, y, z)
+                    sources_info2.append(f"Source {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}")
+                print(" | ".join(sources_info2), end='', flush=True)
+        else:
+            # Print all sources on one line
+            sources_info = []
+            for sid, src in sorted_sources:
+                x = src.get('x', 0)
+                y = src.get('y', 0)
+                z = src.get('z', 0)
+                activity = src.get('activity', 0)
+                direction = self._get_direction(x, y, z)
+                sources_info.append(f"Source {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}")
+            print(" | ".join(sources_info), end='', flush=True)
 
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """
