@@ -352,10 +352,9 @@ class ODASServer:
                             break
                     
                     # Process each JSON object
-                    current_active_sources: int = 0
-                    active_source_ids: set[int] = set()  # Keep track of currently active source IDs
-                    active_sources: Dict[int, Dict] = {}  # Store active sources temporarily
+                    all_sources: Dict[int, Dict] = {}  # Store all sources temporarily
                     
+                    # First pass: collect all sources
                     for json_obj in json_objects:
                         try:
                             source_data = json.loads(json_obj)
@@ -364,9 +363,7 @@ class ODASServer:
                             if client_type == "tracked":
                                 source_id = source_data.get('id', 0)
                                 if source_id > 0:  # Only track active sources
-                                    active_sources[source_id] = source_data
-                                    active_source_ids.add(source_id)
-                                    current_active_sources += 1
+                                    all_sources[source_id] = source_data
                             else:  # potential sources
                                 source_id = len(self.potential_sources)
                                 with self.sources_lock:  # Use lock when modifying potential_sources
@@ -379,25 +376,29 @@ class ODASServer:
                             self.log(f"Problematic object: {json_obj}", log_file)
                             continue
                     
-                    # If we have more than 4 active sources, keep only the 4 with highest activity
-                    if client_type == "tracked" and len(active_sources) > 4:
-                        # Sort sources by activity and keep top 4
-                        sorted_sources = sorted(active_sources.items(), 
-                                             key=lambda x: x[1].get('activity', 0), 
-                                             reverse=True)[:4]
-                        active_sources = dict(sorted_sources)
-                        active_source_ids = set(active_sources.keys())
-                        current_active_sources = len(active_sources)
-                    
-                    # Update tracked sources and log only the filtered sources
+                    # Filter to keep only top 4 sources by activity
                     if client_type == "tracked":
-                        with self.sources_lock:  # Use lock when modifying tracked_sources
+                        if len(all_sources) > 4:
+                            # Sort sources by activity and keep top 4
+                            sorted_sources = sorted(all_sources.items(), 
+                                                 key=lambda x: x[1].get('activity', 0), 
+                                                 reverse=True)[:4]
+                            active_sources = dict(sorted_sources)
+                        else:
+                            active_sources = all_sources
+                        
+                        current_active_sources = len(active_sources)
+                        
+                        # Update tracked sources
+                        with self.sources_lock:
                             self.tracked_sources = active_sources
+                        
+                        # Update status
                         with self.status_lock:
                             self.last_active_source_time = time.time()
                             self.current_active_sources = current_active_sources
-                            self.last_inactive_time = None  # Reset inactive time when we have active sources
-                            self.last_status_message_time = None  # Reset status message time
+                            self.last_inactive_time = None
+                            self.last_status_message_time = None
                         
                         # Log only the filtered sources
                         if current_active_sources > 0:
