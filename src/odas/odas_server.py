@@ -281,12 +281,12 @@ class ODASServer:
         if not self.debug_mode:
             return
 
-        # Clear the current line and move to start
+        # Clear the current line
         print("\033[2K\r", end='', flush=True)
         
         # Print each active source's coordinates
         sources_info = []
-        for sid, src in sorted(active_sources.items()):  # Sort by source ID for consistent order
+        for sid, src in active_sources.items():
             x = src.get('x', 0)
             y = src.get('y', 0)
             z = src.get('z', 0)
@@ -294,8 +294,8 @@ class ODASServer:
             direction = self._get_direction(x, y, z)
             sources_info.append(f"Source {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}")
         
-        # Print all sources on one line and ensure we end with a newline
-        print(" | ".join(sources_info), end='\r', flush=True)
+        # Print all sources on one line
+        print(" | ".join(sources_info), end='', flush=True)
 
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """
@@ -410,8 +410,6 @@ class ODASServer:
                         if current_active_sources > 0:
                             # Print debug info for all active sources at once
                             self._print_debug_info(None, active_sources)
-                            # Add a newline after printing to ensure clean output
-                            print()
                     
                     # Update LED visualization with a copy of the sources
                     with self.sources_lock:  # Use lock when reading sources
