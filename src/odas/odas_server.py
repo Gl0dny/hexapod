@@ -367,14 +367,6 @@ class ODASServer:
                                     active_sources[source_id] = source_data
                                     active_source_ids.add(source_id)
                                     current_active_sources += 1
-                                    with self.status_lock:
-                                        self.last_active_source_time = time.time()
-                                        self.current_active_sources = current_active_sources
-                                        self.last_inactive_time = None  # Reset inactive time when we have active sources
-                                        self.last_status_message_time = None  # Reset status message time
-                                    self.log(f"\nActive tracked source:", log_file)
-                                    self.log(json.dumps(source_data, indent=2), log_file)
-                                    self._print_debug_info(source_data, active_sources)  # Pass active_sources to debug info
                             else:  # potential sources
                                 source_id = len(self.potential_sources)
                                 with self.sources_lock:  # Use lock when modifying potential_sources
@@ -396,13 +388,24 @@ class ODASServer:
                         active_sources = dict(sorted_sources)
                         active_source_ids = set(active_sources.keys())
                         current_active_sources = len(active_sources)
-                        with self.status_lock:
-                            self.current_active_sources = current_active_sources
                     
-                    # Update tracked sources with filtered results
+                    # Update tracked sources and log only the filtered sources
                     if client_type == "tracked":
                         with self.sources_lock:  # Use lock when modifying tracked_sources
                             self.tracked_sources = active_sources
+                        with self.status_lock:
+                            self.last_active_source_time = time.time()
+                            self.current_active_sources = current_active_sources
+                            self.last_inactive_time = None  # Reset inactive time when we have active sources
+                            self.last_status_message_time = None  # Reset status message time
+                        
+                        # Log only the filtered sources
+                        if current_active_sources > 0:
+                            self.log(f"\nCurrently tracking {current_active_sources} active sources", log_file, print_to_console=True)
+                            for source_id, source_data in active_sources.items():
+                                self.log(f"\nActive tracked source:", log_file)
+                                self.log(json.dumps(source_data, indent=2), log_file)
+                                self._print_debug_info(source_data, active_sources)
                     
                     # Update LED visualization with a copy of the sources
                     with self.sources_lock:  # Use lock when reading sources
