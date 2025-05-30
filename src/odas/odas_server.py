@@ -17,7 +17,7 @@ Example:
 """
 
 import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module="gpiozero.devices")
+warnings.filterwarnings("ignore", message=".*Falling back from lgpio.*")
 
 import socket
 import struct
