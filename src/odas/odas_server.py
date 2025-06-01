@@ -353,7 +353,7 @@ class ODASServer:
                 raise FileNotFoundError(f"Config file not found: {config_path}")
 
             self.odas_process = subprocess.Popen(
-                ["odaslive", "-c", str(config_path)],
+                ["odas", "-c", str(config_path)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True
