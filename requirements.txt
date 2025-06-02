@@ -1,10 +1,12 @@
 colorzero==2.0
 gpiozero==2.0.1
 icm20948==1.0.0
+lgpio==0.2.2.0
 llvmlite==0.44.0
 numba==0.61.2
 numpy==2.2.6
 picovoice==3.0.4
+pigpio==1.78
 pvporcupine==3.0.3
 pvrecorder==1.2.7
 pvrhino==3.0.3
@@ -12,6 +14,7 @@ pyaml==25.5.0
 pyserial==3.5
 PyYAML==6.0.2
 resampy==0.4.3
+RPi.GPIO==0.7.1
 setuptools==80.9.0
 smbus2==0.5.0
 spidev==3.7
