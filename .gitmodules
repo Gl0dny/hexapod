@@ -14,15 +14,3 @@
 	path = lib/odas_web
 	url = git@github.com:Gl0dny/odas_web.git
 	branch = hexapod
-[submodule "raestro"]
-	path = _archive/raestro
-	url = git@github.com:Gl0dny/raestro.git
-	branch = maestro24
-[submodule "ec"]
-	path = _archive/respeaker6/ec
-	url = git@github.com:Gl0dny/ec.git
-	branch = hexapod
-[submodule "voice-engine"]
-	path = _archive/respeaker6/voice-engine
-	url = git@github.com:Gl0dny/voice-engine.git
-	branch = hexapod

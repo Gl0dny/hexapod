@@ -1,7 +1,7 @@
 ## Thesis : "Hexapod autonomous control system based on auditory scene analysis: real-time sound source localization and keyword spotting for voice command recognition"
 --- In progress
 
-Diploma project completed at Warsaw University of Science and Technology as a part of Master of Science - Computer Science.
+Diploma project completed at Warsaw University of Science and Technology as a part of Master of Science in Engineering - Computer Science.
 
 This project aims to develop an autonomous control system for a hexapod walking robot, using auditory scene analysis as the primary modality for navigation and environmental interaction. The system integrates sound source localization (Direction of Arrival estimation - DOA) and beamforming techniques via the ODAS framework, employing a circular microphone array for enhanced spatial precision. This enables the robot to accurately detect and characterize sound sources, allowing real-time responses to acoustic stimuli for dynamic, context-aware behavior.
 
