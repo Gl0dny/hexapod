@@ -1,6 +1,6 @@
 # Usage : 
 # cd src
-# python -m scripts.plot_leg_workspace  
+# python -m utils.visualization.plot_leg_workspace  
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,8 +33,8 @@ def main():
         with patch('robot.hexapod.MaestroUART'), \
              patch('robot.hexapod.Imu'):
             hexapod = Hexapod(
-                config_path=Path("/Users/gl0dny/workspace/hexapod/src/robot/config/hexapod_config.yaml"),
-                calibration_data_path=Path("/Users/gl0dny/workspace/hexapod/src/robot/config/calibration.json")
+                config_path=Path("src/robot/config/hexapod_config.yaml"),
+                calibration_data_path=Path("src/robot/config/calibration.json")
             )
     except Exception as e:
         print(f"Error initializing Hexapod: {e}")

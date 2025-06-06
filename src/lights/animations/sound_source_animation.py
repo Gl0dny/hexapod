@@ -16,10 +16,12 @@ class SoundSourceAnimation(Animation):
     """
     Animation that visualizes tracked sound source directions using LEDs.
     The LEDs light up based on the direction of detected sound sources.
+    Each source (up to 4) gets a different color.
 
     Attributes:
-        base_color (ColorRGB): The color for active sound sources.
+        base_color (ColorRGB): The default color for active sound sources.
         refresh_delay (float): The interval between updates.
+        source_colors (list[ColorRGB]): List of distinct colors for different sources.
     """
 
     def __init__(
@@ -33,7 +35,7 @@ class SoundSourceAnimation(Animation):
 
         Args:
             lights (Lights): The Lights object to control the LEDs.
-            base_color (ColorRGB): The color for active sound sources.
+            base_color (ColorRGB): The default color for active sound sources.
             refresh_delay (float): The interval between updates.
         """
         super().__init__(lights)
@@ -41,6 +43,13 @@ class SoundSourceAnimation(Animation):
         self.refresh_delay: float = refresh_delay
         self.tracked_sources: Dict[int, Dict] = {}
         self.active_leds: set[int] = set()  # Keep track of currently lit LEDs
+        # Define distinct colors for different sources
+        self.source_colors: list[ColorRGB] = [
+            ColorRGB.TEAL,   # First source
+            ColorRGB.INDIGO,   # Second source
+            ColorRGB.YELLOW,     # Third source
+            ColorRGB.LIME    # Fourth source
+        ]
 
     def update_sources(self, tracked_sources: Dict[int, Dict], potential_sources: Dict[int, Dict]) -> None:
         """
@@ -57,8 +66,8 @@ class SoundSourceAnimation(Animation):
         Convert sound source coordinates to a set of LED indices, including adjacent LEDs.
 
         Args:
-            x (float): X coordinate (-1.0 to 1.0).
-            y (float): Y coordinate (-1.0 to 1.0).
+            x (float): X coordinate (-1.0 to 1.0), where 1.0 is right.
+            y (float): Y coordinate (-1.0 to 1.0), where 1.0 is front.
 
         Returns:
             set[int]: Set of LED indices to light up (main direction and adjacent LEDs).
@@ -67,15 +76,15 @@ class SoundSourceAnimation(Animation):
         angle = math.atan2(y, x)
         
         # Adjust angle to match hexapod orientation:
-        # - Front of hexapod is at 0 degrees (positive x-axis)
-        # - Angles increase counterclockwise
-        # - LED 0 is at the front (0 degrees)
-        # - LEDs are arranged clockwise around the hexapod
-        angle = -angle  # Invert angle to match clockwise LED arrangement
+        # - Front of hexapod is at π/2 (positive y-axis)
+        # - Right of hexapod is at 0 (positive x-axis)
+        # - LED 12 is at the front (π/2)
+        # - LED 3 is at the right (0)
+        angle = (math.pi/2 - angle) % (2 * math.pi)  # Rotate and normalize angle
         
         # Convert angle to main LED index
-        # Map -π to π to 0 to num_led-1
-        main_index = int(((angle + math.pi) / (2 * math.pi)) * self.lights.num_led)
+        # Map 0 to 2π to 0 to num_led-1
+        main_index = int((angle / (2 * math.pi)) * self.lights.num_led)
         
         # Get adjacent LED indices
         left_index = (main_index - 1) % self.lights.num_led
@@ -96,11 +105,13 @@ class SoundSourceAnimation(Animation):
             current_active_leds: set[int] = set()
 
             # Light up LEDs for tracked sources
-            for source_id, source in self.tracked_sources.items():
+            for i, (source_id, source) in enumerate(self.tracked_sources.items()):
                 if source.get('id', 0) > 0:  # Only process active sources
+                    # Get color for this source (cycle through colors if more than 4 sources)
+                    color = self.source_colors[i % len(self.source_colors)]
                     led_indices = self._get_led_indices_from_angle(source.get('x', 0), source.get('y', 0))
                     for led_index in led_indices:
-                        self.lights.set_color(self.base_color, led_index=led_index)
+                        self.lights.set_color(color, led_index=led_index)
                         current_active_leds.add(led_index)
 
             # Update the set of active LEDs
