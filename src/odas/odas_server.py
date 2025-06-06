@@ -30,6 +30,17 @@ from pathlib import Path
 from typing import Optional, List, TextIO, Any, Dict, Tuple
 import argparse
 import re
+import sys
+import math
+
+# Add src directory to Python path
+current_file = Path(__file__)
+src_dir = str(current_file.parent.parent)  # Go up one level from odas to src
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+from lights import Lights
+from lights.animations.sound_source_animation import SoundSourceAnimation
 
 logger = logging.getLogger("odas")
 # logging.basicConfig(level=logging.INFO)
@@ -52,7 +63,7 @@ class ODASServer:
         odas_process (subprocess.Popen): ODAS process handle when running in local mode
     """
 
-    def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001, forward_to_gui: bool = False) -> None:
+    def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001, forward_to_gui: bool = False, debug_mode: bool = False) -> None:
         """
         Initialize the ODAS server with configuration parameters.
 
@@ -62,6 +73,7 @@ class ODASServer:
             tracked_port (int): Port for tracked sources (default: 9000)
             potential_port (int): Port for potential sources (default: 9001)
             forward_to_gui (bool): Whether to forward data to GUI (default: False)
+            debug_mode (bool): Whether to enable debug output (default: False)
         """
         self.mode: str = mode.lower()
         if self.mode == 'local':
@@ -105,6 +117,23 @@ class ODASServer:
         # Set up signal handler
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
+
+        # Initialize LED visualization
+        self.lights = Lights()
+        self.sound_source_animation = SoundSourceAnimation(self.lights)
+        self.tracked_sources: Dict[int, Dict] = {}
+        self.potential_sources: Dict[int, Dict] = {}
+        self.sources_lock: threading.Lock = threading.Lock()  # Add lock for sources dictionaries
+
+        # Status tracking variables
+        self.last_active_source_time: float = time.time()
+        self.current_active_sources: int = 0
+        self.last_inactive_time: Optional[float] = None  # Track when we last became inactive
+        self.last_status_message_time: Optional[float] = None  # Track when we last sent a status message
+        self.status_lock: threading.Lock = threading.Lock()
+
+        # Debug mode
+        self.debug_mode: bool = debug_mode
 
     def _open_log_file(self, path: Path) -> TextIO:
         """
@@ -217,6 +246,49 @@ class ODASServer:
         except Exception as e:
             print(f"Error forwarding to GUI: {str(e)}")
 
+    def _get_direction(self, x: float, y: float, z: float) -> str:
+        """
+        Calculate the estimated direction based on x, y, z coordinates.
+        Returns one of 8 directions: N, NE, E, SE, S, SW, W, NW
+
+        Args:
+            x (float): X coordinate (-1.0 to 1.0)
+            y (float): Y coordinate (-1.0 to 1.0)
+            z (float): Z coordinate (-1.0 to 1.0)
+
+        Returns:
+            str: Direction label (N, NE, E, SE, S, SW, W, NW)
+        """
+        # Calculate azimuth angle in degrees
+        azimuth = math.degrees(math.atan2(y, x))
+        # Normalize to 0-360
+        azimuth = (azimuth + 360) % 360
+        
+        # Map to 8 directions
+        directions = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE']
+        index = round(azimuth / 45) % 8
+        return directions[index]
+
+    def _print_debug_info(self, source_data: Dict[str, Any]) -> None:
+        """
+        Print debug information about a sound source in a clean format.
+
+        Args:
+            source_data (Dict[str, Any]): Source data dictionary
+        """
+        if not self.debug_mode:
+            return
+
+        x = source_data.get('x', 0)
+        y = source_data.get('y', 0)
+        z = source_data.get('z', 0)
+        activity = source_data.get('activity', 0)
+        source_id = source_data.get('id', 0)
+
+        if source_id > 0:  # Only print active sources
+            direction = self._get_direction(x, y, z)
+            print(f"\033[2K\rSource {source_id}: ({x:.2f}, {y:.2f}, {z:.2f}) | Direction: {direction} | Activity: {activity:.2f}", end='', flush=True)
+
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """
         Handle data from a connected client.
@@ -230,7 +302,6 @@ class ODASServer:
         """
         log_file: TextIO = self.tracked_log if client_type == "tracked" else self.potential_log
         active_sources_count: int = 0
-        last_status_time: float = time.time()
         
         while self.running:
             try:
@@ -255,32 +326,24 @@ class ODASServer:
                 if self.forward_to_gui:
                     self.forward_data_to_gui(size_bytes + data, client_type)
 
+                # Process the received data
                 try:
-                    # Clean the JSON data
-                    json_str: str = data.decode('utf-8').strip()
+                    json_str = data.decode('utf-8')
+                    json_objects = []
+                    start = 0
                     
-                    # Split the string into individual JSON objects
-                    json_objects: List[str] = []
-                    start: int = 0
+                    # Split multiple JSON objects if present
                     while True:
-                        # Find the next '{' and '}' pair
-                        start_brace: int = json_str.find('{', start)
+                        start_brace = json_str.find('{', start)
                         if start_brace == -1:
                             break
-                        
-                        # Find matching closing brace
-                        brace_count: int = 1
-                        end_brace: int = start_brace + 1
-                        while brace_count > 0 and end_brace < len(json_str):
-                            if json_str[end_brace] == '{':
-                                brace_count += 1
-                            elif json_str[end_brace] == '}':
-                                brace_count -= 1
-                            end_brace += 1
-                        
-                        if brace_count == 0:
-                            # Extract the JSON object
-                            json_obj: str = json_str[start_brace:end_brace]
+                            
+                        end_brace = json_str.find('}', start_brace)
+                        if end_brace == -1:
+                            break
+                            
+                        json_obj = json_str[start_brace:end_brace+1]
+                        if json_obj:
                             json_objects.append(json_obj)
                             start = end_brace
                         else:
@@ -288,39 +351,63 @@ class ODASServer:
                     
                     # Process each JSON object
                     current_active_sources: int = 0
+                    active_source_ids: set[int] = set()  # Keep track of currently active source IDs
+                    
                     for json_obj in json_objects:
                         try:
-                            json_data: Dict[str, Any] = json.loads(json_obj)
+                            source_data = json.loads(json_obj)
                             
+                            # Update source tracking
                             if client_type == "tracked":
-                                # For tracked sources, only log if it's an active source (non-zero ID)
-                                if 'id' in json_data and json_data['id'] != 0:
+                                source_id = source_data.get('id', 0)
+                                if source_id > 0:  # Only track active sources
+                                    with self.sources_lock:  # Use lock when modifying tracked_sources
+                                        self.tracked_sources[source_id] = source_data
+                                    active_source_ids.add(source_id)
                                     current_active_sources += 1
+                                    with self.status_lock:
+                                        self.last_active_source_time = time.time()
+                                        self.current_active_sources = current_active_sources
+                                        self.last_inactive_time = None  # Reset inactive time when we have active sources
+                                        self.last_status_message_time = None  # Reset status message time
                                     self.log(f"\nActive tracked source:", log_file)
-                                    self.log(json.dumps(json_data, indent=2), log_file)
-                            else:
-                                # For potential sources, log all entries as they represent new detections
+                                    self.log(json.dumps(source_data, indent=2), log_file)
+                                    self._print_debug_info(source_data)  # Add debug output
+                            else:  # potential sources
+                                source_id = len(self.potential_sources)
+                                with self.sources_lock:  # Use lock when modifying potential_sources
+                                    self.potential_sources[source_id] = source_data
                                 self.log(f"\nPotential source detection:", log_file)
-                                self.log(json.dumps(json_data, indent=2), log_file)
+                                self.log(json.dumps(source_data, indent=2), log_file)
                             
                         except json.JSONDecodeError as e:
                             self.log(f"\nJSON Parse Error in object: {str(e)}", log_file)
                             self.log(f"Problematic object: {json_obj}", log_file)
+                            continue
                     
-                    # Update active sources count and log status periodically
+                    # Remove sources that are no longer active
+                    if client_type == "tracked":
+                        with self.sources_lock:  # Use lock when modifying tracked_sources
+                            inactive_sources = set(self.tracked_sources.keys()) - active_source_ids
+                            for source_id in inactive_sources:
+                                del self.tracked_sources[source_id]
+                        with self.status_lock:
+                            if current_active_sources == 0 and self.current_active_sources > 0:
+                                # We just became inactive
+                                self.last_inactive_time = time.time()
+                                self.last_status_message_time = None  # Reset status message time
+                            self.current_active_sources = current_active_sources
+                    
+                    # Update LED visualization with a copy of the sources
+                    with self.sources_lock:  # Use lock when reading sources
+                        tracked_sources_copy = dict(self.tracked_sources)
+                        potential_sources_copy = dict(self.potential_sources)
+                    self.sound_source_animation.update_sources(tracked_sources_copy, potential_sources_copy)
+                    
+                    # Update active sources count and log status
                     if client_type == "tracked" and current_active_sources != active_sources_count:
                         active_sources_count = current_active_sources
                         self.log(f"\nCurrently tracking {active_sources_count} active sources", log_file, print_to_console=True)
-                    
-                    # Log status every 15 seconds
-                    current_time: float = time.time()
-                    if current_time - last_status_time >= 15:
-                        last_status_time = current_time
-                        if client_type == "tracked":
-                            if active_sources_count == 0:
-                                self.log(f"\nNo active sources detected in the last 15 seconds", log_file, print_to_console=True)
-                            else:
-                                self.log(f"\nMonitoring for new potential sources", log_file, print_to_console=True)
                     
                     if not json_objects:
                         self.log(f"\nNo valid JSON objects found", log_file)
@@ -329,6 +416,7 @@ class ODASServer:
                 except Exception as e:
                     self.log(f"\nError processing data: {str(e)}", log_file)
                     self.log(f"Raw data: {data.decode('utf-8', errors='replace')}", log_file)
+                    continue
                     
             except socket.timeout:
                 # Timeout is expected, just continue the loop
@@ -340,6 +428,26 @@ class ODASServer:
                 if self.running:  # Only log errors if we're still running
                     self.log(f"Error in {client_type} handler: {str(e)}", log_file, print_to_console=True)
                 break
+
+    def _status_check_thread(self) -> None:
+        """
+        Thread that periodically checks and logs the status of tracked sources.
+        """
+        while self.running:
+            try:
+                current_time = time.time()
+                with self.status_lock:
+                    if self.current_active_sources == 0 and self.last_inactive_time is not None:
+                        inactive_duration = current_time - self.last_inactive_time
+                        if inactive_duration >= 15 and (self.last_status_message_time is None or 
+                                                      current_time - self.last_status_message_time >= 15):
+                            self.log(f"\nNo active sources detected in the last 15 seconds", self.tracked_log, print_to_console=True)
+                            self.last_status_message_time = current_time
+                time.sleep(1)  # Check more frequently to ensure accurate timing
+            except Exception as e:
+                if self.running:
+                    self.log(f"Error in status check thread: {str(e)}", self.tracked_log, print_to_console=True)
+                time.sleep(1)  # Wait before retrying
 
     def accept_connection(self, server_socket: socket.socket, client_type: str) -> Optional[socket.socket]:
         """
@@ -441,6 +549,9 @@ class ODASServer:
             self.tracked_server = self.start_server(self.tracked_port)
             self.potential_server = self.start_server(self.potential_port)
 
+            # Start LED visualization
+            self.sound_source_animation.start()
+
             # Log startup information
             self.log("ODAS Server started", print_to_console=True)
             self.log("Tracked sources: Currently active and tracked sound sources", print_to_console=True)
@@ -451,6 +562,12 @@ class ODASServer:
                 self.log(f"Data will be forwarded to GUI at {self.gui_host}", print_to_console=True)
             self.log("Check microphone configuration and tracking parameters if no sources are detected", print_to_console=True)
 
+            # Start status check thread
+            status_thread = threading.Thread(target=self._status_check_thread)
+            status_thread.daemon = True
+            status_thread.start()
+            self.threads.append(status_thread)
+
             # Accept connections in separate threads
             tracked_thread: threading.Thread = threading.Thread(
                 target=self.accept_and_handle,
@@ -460,20 +577,18 @@ class ODASServer:
                 target=self.accept_and_handle,
                 args=(self.potential_server, "potential")
             )
-
-            # Store threads for later cleanup
-            self.threads = [tracked_thread, potential_thread]
-
-            # Start threads
-            for thread in self.threads:
-                thread.start()
-
-            # Wait for both threads to complete
+            
+            tracked_thread.start()
+            potential_thread.start()
+            
+            self.threads.extend([tracked_thread, potential_thread])
+            
+            # Wait for threads to complete
             for thread in self.threads:
                 thread.join()
-
+                
         except Exception as e:
-            print(f"Error in server: {str(e)}")
+            self.log(f"Error starting server: {e}", print_to_console=True)
             self.running = False
 
     def accept_and_handle(self, server_socket: socket.socket, client_type: str) -> None:
@@ -497,71 +612,42 @@ class ODASServer:
 
     def close(self) -> None:
         """
-        Close all connections and log files.
-
-        Performs graceful shutdown by:
-        1. Closing client connections
-        2. Closing server sockets
-        3. Waiting for threads to finish
-        4. Closing log files
-        5. Terminating ODAS process if running in local mode
+        Close the ODAS server and clean up resources.
         """
-        print("\nShutting down server...")
         self.running = False
-
+        
+        # Stop LED visualization
+        if hasattr(self, 'sound_source_animation'):
+            self.sound_source_animation.stop_animation()
+        
+        # Close all sockets
+        for socket_obj in [self.tracked_server, self.potential_server,
+                         self.tracked_client, self.potential_client,
+                         self.gui_tracked_socket, self.gui_potential_socket]:
+            if socket_obj:
+                try:
+                    socket_obj.close()
+                except:
+                    pass
+        
+        # Close all log files
+        for log_file in self.log_files:
+            try:
+                log_file.close()
+            except:
+                pass
+        
         # Terminate ODAS process if running
         if self.odas_process:
             try:
                 self.odas_process.terminate()
                 self.odas_process.wait(timeout=5)
             except:
-                try:
-                    self.odas_process.kill()
-                except:
-                    pass
-            finally:
-                self.odas_process = None
-
-        # Close client sockets
-        for client in [self.tracked_client, self.potential_client]:
-            if client:
-                try:
-                    client.shutdown(socket.SHUT_RDWR)
-                    client.close()
-                except:
-                    pass
-
-        # Close server sockets
-        for server in [self.tracked_server, self.potential_server]:
-            if server:
-                try:
-                    server.close()
-                except:
-                    pass
-
-        # Wait for threads to finish
-        for thread in self.threads:
-            try:
-                thread.join(timeout=1.0)
-            except:
-                pass
+                self.odas_process.kill()
         
-        # Close log files
-        for log_file in self.log_files:
-            try:
-                log_file.close()
-            except:
-                pass
-
-        # Close GUI connections
-        for socket in [self.gui_tracked_socket, self.gui_potential_socket]:
-            if socket:
-                try:
-                    socket.close()
-                except:
-                    pass
-
-        print("Server shutdown complete")
+        # Clean up LED resources
+        if hasattr(self, 'lights'):
+            self.lights.clear()
 
 def main() -> None:
     """
@@ -580,6 +666,8 @@ def main() -> None:
                       help='Port for potential sources (default: 9001)')
     parser.add_argument('--forward-to-gui', action='store_true',
                       help='Forward data to GUI station (default: False)')
+    parser.add_argument('--debug', action='store_true',
+                      help='Enable debug mode with real-time source tracking display (default: False)')
     
     args = parser.parse_args()
     
@@ -589,7 +677,8 @@ def main() -> None:
         host=args.host,
         tracked_port=args.tracked_port,
         potential_port=args.potential_port,
-        forward_to_gui=args.forward_to_gui
+        forward_to_gui=args.forward_to_gui,
+        debug_mode=args.debug
     )
 
     try:
