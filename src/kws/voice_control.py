@@ -7,7 +7,7 @@ import numpy as np
 
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
-from odas import ODASVoiceInput
+# from odas import ODASVoiceInput
 
 from kws import IntentDispatcher
 from control import ControlInterface
@@ -95,12 +95,12 @@ class VoiceControl(threading.Thread):
             
             logger.debug(f"Using ODAS for audio input from {odas_dir}")
             # Initialize ODAS voice input with Picovoice-compatible settings
-            self.odas_input = ODASVoiceInput(
-                odas_dir=odas_dir,
-                selected_channel=odas_channel,
-                frame_length=self.picovoice.frame_length)
-            # Set up audio callback
-            self.odas_input.set_audio_callback(self._process_audio)
+            # self.odas_input = ODASVoiceInput(
+            #     odas_dir=odas_dir,
+            #     selected_channel=odas_channel,
+            #     frame_length=self.picovoice.frame_length)
+            # # Set up audio callback
+            # self.odas_input.set_audio_callback(self._process_audio)
         else:
             logger.debug(f"Using PvRecorder for audio input with device_index={device_index}")
             # Initialize PvRecorder
