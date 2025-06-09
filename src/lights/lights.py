@@ -3,6 +3,14 @@ from typing import TYPE_CHECKING
 import logging
 from enum import Enum
 
+# Import gpiozero to configure the GPIO backend
+import gpiozero
+# Force GPIOZero to use RPi.GPIO backend instead of lgpio
+# This is necessary because lgpio requires GLIBC 2.33+ which isn't available on the hexapod's system
+# RPi.GPIO is more stable and compatible with older systems
+from gpiozero.pins.rpigpio import RPiGPIOFactory
+gpiozero.Device.pin_factory = RPiGPIOFactory()
+
 from gpiozero import LED
 
 from lights.apa102 import APA102
