@@ -13,39 +13,69 @@ ODAS creates two continuous raw audio streams:
 The script continuously monitors these streams, transfers new audio data, and plays it in real-time.
 """
 
-import os
+from __future__ import annotations
+
+import sys
 import time
-import subprocess
-import threading
-from pathlib import Path
-import logging
-import argparse
-from datetime import datetime
-import paramiko
 import tempfile
 import platform
-from typing import Optional
+import subprocess
+import threading
+import logging
+import logging.config
+import argparse
+from pathlib import Path
+from typing import Optional, List
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger("odas_remote_audio")
+import paramiko
 
-# Default values from SSH config
+script_path = Path(__file__).resolve()
+project_root = script_path.parent.parent.parent
+src_path = project_root / "src"
+
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+if str(src_path) not in sys.path:
+    sys.path.append(str(src_path))
+
+from utils.logging import setup_logging, clean_logs
+
 DEFAULT_HOST = "hexapod"
 DEFAULT_HOSTNAME = "192.168.0.122"
 DEFAULT_USER = "hexapod"
-DEFAULT_SSH_KEY = str(Path.home() / ".ssh" / "id_ed25519")
-DEFAULT_REMOTE_DIR = "/home/hexapod/hexapod/src/odas"
+DEFAULT_SSH_KEY = Path.home() / ".ssh" / "id_ed25519"
+DEFAULT_REMOTE_DIR = "/home/hexapod/hexapod/data/audio/odas"
+DEFAULT_SAMPLE_RATE = 44100
+DEFAULT_CHANNELS = 4
+DEFAULT_BUFFER_SIZE = 1024
+DEFAULT_CHECK_INTERVAL = 0.5
 
-class RemoteODASAudioPlayer:
-    def __init__(self, remote_host: str = DEFAULT_HOSTNAME, remote_user: str = DEFAULT_USER, 
-                 remote_dir: str = DEFAULT_REMOTE_DIR, local_dir: str = "logs/odas/audio", 
-                 sample_rate: int = 44100, channels: int = 4, 
-                 ssh_key_path: str = DEFAULT_SSH_KEY, buffer_size: int = 1024,
-                 check_interval: float = 0.5):
+# Type aliases
+AudioFileType = str  # 'postfiltered' or 'separated'
+ProcessList = List[subprocess.Popen]
+
+logger = logging.getLogger("odas_logger")
+
+class StreamingODASAudioPlayer:
+    """
+    A class to handle remote ODAS audio streaming and playback.
+    
+    This class manages the connection to a remote machine running ODAS,
+    transfers audio data, and plays it locally in real-time.
+    """
+    
+    def __init__(
+        self,
+        remote_host: str = DEFAULT_HOSTNAME,
+        remote_user: str = DEFAULT_USER,
+        remote_dir: str = DEFAULT_REMOTE_DIR,
+        local_dir: str = "data/audio/odas/streaming",
+        sample_rate: int = DEFAULT_SAMPLE_RATE,
+        channels: int = DEFAULT_CHANNELS,
+        ssh_key_path: str = str(DEFAULT_SSH_KEY),
+        buffer_size: int = DEFAULT_BUFFER_SIZE,
+        check_interval: float = DEFAULT_CHECK_INTERVAL
+    ) -> None:
         """
         Initialize the remote ODAS audio player.
 
@@ -69,7 +99,7 @@ class RemoteODASAudioPlayer:
         self.buffer_size = buffer_size
         self.check_interval = check_interval
         self.running = True
-        self.processes = []
+        self.processes: ProcessList = []
         self.ssh_key_path = ssh_key_path
         
         # Create local directory if it doesn't exist
@@ -80,25 +110,10 @@ class RemoteODASAudioPlayer:
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         
         # Log directory information
-        logger.info(f"Monitoring ODAS audio streams on {self.remote_host}")
-        logger.info(f"Saving WAV files locally to: {self.local_dir}")
-        
-        # Set up signal handler
-        self.setup_signal_handler()
+        logger.user_info(f"Monitoring ODAS audio streams on {self.remote_host}")
+        logger.user_info(f"Saving WAV files locally to: {self.local_dir}")
 
-    def setup_signal_handler(self):
-        """Set up signal handler for graceful shutdown."""
-        import signal
-        signal.signal(signal.SIGINT, self.signal_handler)
-        signal.signal(signal.SIGTERM, self.signal_handler)
-
-    def signal_handler(self, signum, frame):
-        """Handle shutdown signals."""
-        logger.info(f"Received signal {signum}, shutting down...")
-        self.running = False
-        self.cleanup()
-
-    def connect_ssh(self):
+    def connect_ssh(self) -> None:
         """Establish SSH connection to remote host."""
         try:
             if self.ssh_key_path:
@@ -112,35 +127,35 @@ class RemoteODASAudioPlayer:
                     self.remote_host,
                     username=self.remote_user
                 )
-            logger.info(f"Connected to {self.remote_host}")
+            logger.user_info(f"Connected to {self.remote_host}")
         except Exception as e:
-            logger.error(f"Failed to connect to {self.remote_host}: {str(e)}")
+            logger.critical(f"Failed to connect to {self.remote_host}: {str(e)}")
             raise
 
-    def transfer_file(self, remote_file: str, local_file: Path):
+    def transfer_file(self, remote_file: str, local_file: Path) -> None:
         """
         Transfer a file from remote to local machine using SFTP.
 
         Args:
-            remote_file (str): Path to file on remote machine
-            local_file (Path): Path to save file locally
+            remote_file: Path to file on remote machine
+            local_file: Path to save file locally
         """
         try:
             sftp = self.ssh.open_sftp()
             sftp.get(remote_file, str(local_file))
             sftp.close()
-            logger.info(f"Transferred {remote_file} to {local_file}")
+            logger.debug(f"Transferred {remote_file} to {local_file}")
         except Exception as e:
-            logger.error(f"Error transferring {remote_file}: {str(e)}")
+            logger.warning(f"Error transferring {remote_file}: {str(e)}")
             raise
 
-    def convert_to_wav(self, input_file: Path, output_file: Path):
+    def convert_to_wav(self, input_file: Path, output_file: Path) -> None:
         """
         Convert a raw audio file to WAV format using sox.
 
         Args:
-            input_file (Path): Path to the input raw file
-            output_file (Path): Path to the output WAV file
+            input_file: Path to the input raw file
+            output_file: Path to the output WAV file
         """
         try:
             cmd = [
@@ -152,41 +167,37 @@ class RemoteODASAudioPlayer:
                 str(input_file),
                 str(output_file)
             ]
-            logger.info(f"Converting {input_file} to {output_file}")
+            logger.debug(f"Converting {input_file} to {output_file}")
             subprocess.run(cmd, check=True)
-            logger.info(f"Successfully converted {input_file} to {output_file}")
+            logger.debug(f"Successfully converted {input_file} to {output_file}")
         except subprocess.CalledProcessError as e:
-            logger.error(f"Error converting {input_file}: {str(e)}")
+            logger.warning(f"Error converting {input_file}: {str(e)}")
         except Exception as e:
-            logger.error(f"Unexpected error converting {input_file}: {str(e)}")
+            logger.warning(f"Unexpected error converting {input_file}: {str(e)}")
 
-    def play_audio(self, wav_file: Path):
+    def play_audio(self, wav_file: Path) -> None:
         """
         Play a WAV file using a suitable audio player.
 
         Args:
-            wav_file (Path): Path to the WAV file to play
+            wav_file: Path to the WAV file to play
         """
         try:
             # Use afplay on macOS, aplay on Linux
-            if platform.system() == 'Darwin':  # macOS
-                player = "afplay"
-            else:  # Linux
-                player = "aplay"
-                
+            player = "afplay" if platform.system() == 'Darwin' else "aplay"
             cmd = [player, str(wav_file)]
             process = subprocess.Popen(cmd)
             self.processes.append(process)
-            logger.info(f"Playing {wav_file} using {player}")
+            logger.debug(f"Playing {wav_file} using {player}")
         except Exception as e:
-            logger.error(f"Error playing {wav_file}: {str(e)}")
+            logger.warning(f"Error playing {wav_file}: {str(e)}")
 
-    def stream_audio(self, file_type: str):
+    def stream_audio(self, file_type: AudioFileType) -> None:
         """
         Stream audio from remote machine and play it in real-time.
 
         Args:
-            file_type (str): Type of audio stream ('separated' or 'postfiltered')
+            file_type: Type of audio stream ('separated' or 'postfiltered')
         """
         remote_file = str(self.remote_dir / f"{file_type}.raw")
         temp_file = Path(tempfile.mktemp(suffix='.raw'))
@@ -205,7 +216,7 @@ class RemoteODASAudioPlayer:
                     time.sleep(1)
                     continue
                 
-                logger.info(f"Starting to stream {file_type} audio")
+                logger.user_info(f"Starting to stream {file_type} audio")
                 
                 while self.running:
                     try:
@@ -249,15 +260,20 @@ class RemoteODASAudioPlayer:
                 except:
                     pass
 
-    def monitor_files(self, file_type: str = 'postfiltered'):
-        """Monitor and stream audio from ODAS based on the specified file type."""
-        logger.info(f"Starting to monitor ODAS audio streams (type: {file_type})")
+    def monitor_files(self, file_type: AudioFileType = 'postfiltered') -> None:
+        """
+        Monitor and stream audio from ODAS based on the specified file type.
+        
+        Args:
+            file_type: Type of audio file to monitor ('postfiltered', 'separated', or 'both')
+        """
+        logger.user_info(f"Starting to monitor ODAS audio streams (type: {file_type})")
         
         # Establish SSH connection first
         try:
             self.connect_ssh()
         except Exception as e:
-            logger.error(f"Failed to establish SSH connection: {str(e)}")
+            logger.critical(f"Failed to establish SSH connection: {str(e)}")
             return
         
         threads = []
@@ -284,9 +300,9 @@ class RemoteODASAudioPlayer:
         for thread in threads:
             thread.join()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up resources and terminate running processes."""
-        logger.info("Cleaning up...")
+        logger.debug("Cleaning up...")
         
         # Terminate all running processes
         for process in self.processes:
@@ -312,7 +328,7 @@ class RemoteODASAudioPlayer:
         Get the latest audio data from ODAS.
 
         Returns:
-            Optional[bytes]: The latest audio data if available, None otherwise.
+            The latest audio data if available, None otherwise.
         """
         try:
             sftp = self.ssh.open_sftp()
@@ -346,7 +362,7 @@ class RemoteODASAudioPlayer:
             except:
                 pass
 
-def main():
+def main() -> None:
     """Main entry point for the remote ODAS audio player."""
     parser = argparse.ArgumentParser(description='Remote ODAS Audio Player')
     parser.add_argument('--host', type=str, default=DEFAULT_HOSTNAME,
@@ -355,24 +371,40 @@ def main():
                         help=f'Remote username (default: {DEFAULT_USER})')
     parser.add_argument('--remote-dir', type=str, default=DEFAULT_REMOTE_DIR,
                         help=f'Remote directory containing ODAS audio files (default: {DEFAULT_REMOTE_DIR})')
-    parser.add_argument('--local-dir', type=str, default='logs/odas/audio_output',
-                        help='Local directory to store audio files (default: logs/odas/audio)')
-    parser.add_argument('--sample-rate', type=int, default=44100,
-                        help='Audio sample rate (default: 44100)')
-    parser.add_argument('--channels', type=int, default=4,
-                        help='Number of audio channels (default: 4)')
-    parser.add_argument('--ssh-key', type=str, default=DEFAULT_SSH_KEY,
+    parser.add_argument('--local-dir', type=str, default='data/audio/odas/streaming',
+                        help='Local directory to store audio files (default: data/audio/odas/streaming)')
+    parser.add_argument('--sample-rate', type=int, default=DEFAULT_SAMPLE_RATE,
+                        help=f'Audio sample rate (default: {DEFAULT_SAMPLE_RATE})')
+    parser.add_argument('--channels', type=int, default=DEFAULT_CHANNELS,
+                        help=f'Number of audio channels (default: {DEFAULT_CHANNELS})')
+    parser.add_argument('--ssh-key', type=str, default=str(DEFAULT_SSH_KEY),
                         help=f'Path to SSH private key (default: {DEFAULT_SSH_KEY})')
-    parser.add_argument('--buffer-size', type=int, default=1024,
-                        help='Buffer size for audio processing (default: 1024)')
-    parser.add_argument('--check-interval', type=float, default=0.5,
-                        help='Interval in seconds to check for new audio data (default: 0.5)')
+    parser.add_argument('--buffer-size', type=int, default=DEFAULT_BUFFER_SIZE,
+                        help=f'Buffer size for audio processing (default: {DEFAULT_BUFFER_SIZE})')
+    parser.add_argument('--check-interval', type=float, default=DEFAULT_CHECK_INTERVAL,
+                        help=f'Interval in seconds to check for new audio data (default: {DEFAULT_CHECK_INTERVAL})')
     parser.add_argument('--file-type', type=str, choices=['postfiltered', 'separated', 'both'], default='postfiltered',
                         help='Type of audio file to play: postfiltered (default), separated, or both')
+    parser.add_argument('--log-dir', type=Path, default=Path('logs'),
+                        help='Directory to store logs')
+    parser.add_argument('--log-config-file', type=Path, 
+                        default=Path(__file__).parent.parent / "utils" / "logging" / "config" / "config.yaml",
+                        help='Path to log configuration file')
+    parser.add_argument('--clean', '-c', action='store_true',
+                        help='Clean all logs in the logs directory.')
 
     args = parser.parse_args()
 
-    player = RemoteODASAudioPlayer(
+    # Clean logs if requested
+    if args.clean:
+        clean_logs(args.log_dir)
+
+    # Set up logging first
+    setup_logging(log_dir=args.log_dir, config_file=args.log_config_file)
+    
+    logger.user_info("Starting ODAS Remote Audio Player")
+
+    player = StreamingODASAudioPlayer(
         remote_host=args.host,
         remote_user=args.user,
         remote_dir=args.remote_dir,
@@ -387,7 +419,9 @@ def main():
     try:
         player.monitor_files(file_type=args.file_type)
     except KeyboardInterrupt:
-        logger.info("Received keyboard interrupt. Cleaning up...")
+        logger.critical("KeyboardInterrupt detected, initiating shutdown")
+        sys.stdout.write('\b' * 2)
+        logger.critical('Stopping audio streaming and cleaning up due to keyboard interrupt...')
     finally:
         player.cleanup()
 
