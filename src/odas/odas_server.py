@@ -4,29 +4,23 @@
 ODAS (Open embeddeD Audition System) Server Implementation
 """
 
-import warnings
-warnings.filterwarnings("ignore", message=".*Falling back from lgpio.*")
-
 import socket
 import struct
 import json
 import time
 import threading
 from datetime import datetime
-import os
 import signal
 import logging
 import subprocess
 from pathlib import Path
 from typing import Optional, List, TextIO, Any, Dict, Tuple
 import argparse
-import re
 import sys
 import math
 
-# Add src directory to Python path
 current_file = Path(__file__)
-src_dir = str(current_file.parent.parent)  # Go up one level from odas to src
+src_dir = str(current_file.parent.parent)
 if src_dir not in sys.path:
     sys.path.append(src_dir)
 

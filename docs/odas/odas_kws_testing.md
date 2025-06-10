@@ -38,34 +38,45 @@ The ODAS output files can be tested with various Keyword Wake-up System (KWS) te
 
 ### Basic Audio Playback
 ```bash
-python src/odas/play_raw_audio.py data/audio/odas/postfiltered.raw
+# Play raw audio files
+python src/odas/play_raw_audio.py data/audio/odas/separated.raw
+
+# Play WAV files
+python src/odas/play_wav_audio.py data/audio/odas/your_audio.wav
 ```
 
 ### Testing with Picovoice
 ```bash
-python src/odas/test_picovoice_raw_file.py \
+# Test with raw audio file
+python tests/test_kws/functional/test_picovoice_raw_file.py \
     --audio-file data/audio/odas/postfiltered.raw \
     --access-key YOUR_PICOVOICE_ACCESS_KEY \
     --sample-rate 44100 \
     --channels 6
+
+# Test with WAV file
+python tests/test_kws/functional/test_picovoice_file.py \
+    data/audio/odas/your_audio.wav \
+    --access-key YOUR_PICOVOICE_ACCESS_KEY
 ```
 
 ### Testing Wake Word Detection (Porcupine)
 ```bash
-python src/odas/test_porcupine_file.py \
-    --audio-file data/audio/odas/postfiltered.raw \
+python tests/test_kws/functional/test_porcupine_file.py \
+    --audio-file data/audio/odas/postfiltered.wav \
     --access-key YOUR_PICOVOICE_ACCESS_KEY
 ```
 
 ### Testing Intent Recognition (Rhino)
 ```bash
-python src/odas/test_rhino_file.py \
-    --audio-file data/audio/odas/postfiltered.raw \
+python tests/test_kws/functional/test_rhino_file.py \
+    --audio-file data/audio/odas/postfiltered.wav \
     --access-key YOUR_PICOVOICE_ACCESS_KEY
 ```
 
 Note: When testing with Picovoice-based systems:
-- The audio will be automatically resampled to 16 kHz (required by Picovoice)
+- Raw audio files will be automatically resampled to 16 kHz (required by Picovoice)
+- WAV files must be 16 kHz, mono, 16-bit PCM
 - Only the first channel will be used for processing
 - Make sure to use your Picovoice access key
 - The test scripts will automatically handle the raw PCM format
