@@ -20,9 +20,10 @@ import time
 logger = logging.getLogger("odas_voice")
 logger.setLevel(logging.DEBUG)  # Set to DEBUG level
 
-class ODASVoiceInput:
+class ODASAudioProcessor:
     """
-    Handles local ODAS audio file reading and feeds it into the voice control pipeline.
+    Class to read audio from ODAS raw output files and convert it to a format
+    suitable for voice control systems.
     """
     
     def __init__(
@@ -38,7 +39,7 @@ class ODASVoiceInput:
         frame_length: int = 512  # Picovoice's frame length
     ):
         """
-        Initialize the ODAS voice input handler.
+        Initialize the ODAS audio processor.
 
         Args:
             odas_dir (Path): Directory where ODAS creates raw files
@@ -51,10 +52,10 @@ class ODASVoiceInput:
             selected_channel (int): Which channel to use from the array (default: 0)
             frame_length (int): Number of samples per frame (default: 512)
         """
-        print(f"[DEBUG] Initializing ODASVoiceInput with directory: {odas_dir}")
+        print(f"Initializing ODASAudioProcessor with directory: {odas_dir}")
         self.odas_dir = odas_dir
         self.audio_file = self.odas_dir / "postfiltered.raw"
-        print(f"[DEBUG] Audio file path: {self.audio_file}")
+        print(f"Audio file path: {self.audio_file}")
         
         self.audio_callback: Optional[Callable[[np.ndarray], None]] = None
         self.running = False
@@ -77,7 +78,7 @@ class ODASVoiceInput:
         self._last_file_size = 0
         self._buffer = bytearray()
         
-        print(f"[DEBUG] Initialized with sample_rate={sample_rate}, channels={channels}, "
+        print(f"Initialized with sample_rate={sample_rate}, channels={channels}, "
               f"frame_length={frame_length}, target_sample_rate={target_sample_rate}")
         
     def set_audio_callback(self, callback: Callable[[np.ndarray], None]) -> None:
@@ -176,8 +177,8 @@ class ODASVoiceInput:
         Internal method to read audio from ODAS and feed it to the callback.
         """
         try:
-            print(f"[DEBUG] Starting to read audio from {self.audio_file}")
-            print(f"[DEBUG] Initial file size: {self.audio_file.stat().st_size if self.audio_file.exists() else 'File does not exist'}")
+            print(f"Starting to read audio from {self.audio_file}")
+            print(f"Initial file size: {self.audio_file.stat().st_size if self.audio_file.exists() else 'File does not exist'}")
             
             while self.running:
                 try:

@@ -5,7 +5,8 @@ import wave
 import numpy as np
 import time
 from pathlib import Path
-from odas_voice_input import ODASVoiceInput
+from odas.odas_audio_processor import ODASAudioProcessor
+import tempfile
 
 def convert_odas_to_wav(input_file: Path, output_file: Path, sample_rate: int = 44100, channels: int = 4, selected_channel: int = 0):
     """
@@ -18,14 +19,14 @@ def convert_odas_to_wav(input_file: Path, output_file: Path, sample_rate: int = 
         channels (int): Number of input channels (default: 4)
         selected_channel (int): Channel to extract (default: 0)
     """
-    # Create a temporary directory for ODASVoiceInput
-    temp_dir = input_file.parent
-    odas_input = ODASVoiceInput(
-        odas_dir=temp_dir,
-        sample_rate=sample_rate,
-        channels=channels,
-        selected_channel=selected_channel
-    )
+    # Create a temporary directory for ODASAudioProcessor
+    with tempfile.TemporaryDirectory() as temp_dir:
+        odas_input = ODASAudioProcessor(
+            odas_dir=temp_dir,
+            sample_rate=sample_rate,
+            channels=channels,
+            selected_channel=selected_channel
+        )
     
     # Open output WAV file
     wav_file = wave.open(str(output_file), 'wb')
@@ -72,7 +73,7 @@ def convert_odas_to_wav(input_file: Path, output_file: Path, sample_rate: int = 
         
         time.sleep(0.1)  # Small delay to prevent CPU hogging
     
-    # Stop the ODASVoiceInput
+    # Stop the ODASAudioProcessor
     odas_input.stop()
     
     # Write all converted audio to the WAV file

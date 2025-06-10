@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 """
-ODAS (Open embeddeD Audition System) Server Implementation
+ODAS (Open embeddeD Audition System) DoA/SSL Processor Implementation
+Handles Direction of Arrival (DoA) and Sound Source Localization (SSL) data processing and visualization.
 """
 
 import socket
@@ -407,7 +408,7 @@ class ODASDoASSLProcessor:
             print(f"ODAS monitor error: {str(e)}")
 
     def start(self) -> None:
-        """Start the ODAS server."""
+        """Start the ODAS DoA/SSL processor."""
         try:
             if self.mode == 'local':
                 self.start_odas_process()
@@ -422,7 +423,7 @@ class ODASDoASSLProcessor:
 
             self.doa_animation.start()
 
-            print(f"ODAS Server started: mode={self.mode}, tracked={self.tracked_port}, "
+            print(f"ODAS DoA/SSL Processor started: mode={self.mode}, tracked={self.tracked_port}, "
                   f"potential={self.potential_port}, GUI forwarding={'on' if self.forward_to_gui else 'off'}, "
                   f"debug={'on' if self.debug_mode else 'off'}")
 
@@ -498,8 +499,8 @@ class ODASDoASSLProcessor:
             self.lights.clear()
 
 def main() -> None:
-    """Main entry point for the ODAS server."""
-    parser = argparse.ArgumentParser(description='ODAS Server for sound source tracking')
+    """Main entry point for the ODAS DoA/SSL processor."""
+    parser = argparse.ArgumentParser(description='ODAS DoA/SSL Processor for sound source tracking')
     parser.add_argument('--mode', choices=['local', 'remote'], default='local',
                       help='Operation mode: local (127.0.0.1) or remote (default: local)')
     parser.add_argument('--host', default='192.168.0.171',
