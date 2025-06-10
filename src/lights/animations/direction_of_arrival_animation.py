@@ -7,16 +7,16 @@ from lights.animations import Animation
 from lights import ColorRGB
 
 if TYPE_CHECKING:
-    from typing import Dict, Optional, Tuple
+    from typing import Dict
     from lights import Lights
 
 logger = logging.getLogger("lights_logger")
 
-class SoundSourceAnimation(Animation):
+class DirectionOfArrivalAnimation(Animation):
     """
-    Animation that visualizes tracked sound source directions using LEDs.
-    The LEDs light up based on the direction of detected sound sources.
-    Each source (up to 4) gets a different color.
+    Animation that visualizes Direction of Arrival (DoA) data using LEDs.
+    The LEDs light up based on the calculated direction of sound sources.
+    Each source (up to 4) gets a different color to distinguish between multiple sources.
 
     Attributes:
         base_color (ColorRGB): The default color for active sound sources.
@@ -31,7 +31,7 @@ class SoundSourceAnimation(Animation):
         refresh_delay: float = 0.1
     ) -> None:
         """
-        Initialize the SoundSourceAnimation object.
+        Initialize the DirectionOfArrivalAnimation object.
 
         Args:
             lights (Lights): The Lights object to control the LEDs.
@@ -43,7 +43,6 @@ class SoundSourceAnimation(Animation):
         self.refresh_delay: float = refresh_delay
         self.tracked_sources: Dict[int, Dict] = {}
         self.active_leds: set[int] = set()  # Keep track of currently lit LEDs
-        # Define distinct colors for different sources
         self.source_colors: list[ColorRGB] = [
             ColorRGB.TEAL,   # First source
             ColorRGB.INDIGO,   # Second source
@@ -51,13 +50,12 @@ class SoundSourceAnimation(Animation):
             ColorRGB.LIME    # Fourth source
         ]
 
-    def update_sources(self, tracked_sources: Dict[int, Dict], potential_sources: Dict[int, Dict]) -> None:
+    def update_sources(self, tracked_sources: Dict[int, Dict]) -> None:
         """
-        Update the current sound sources.
+        Update the current sound sources with their direction of arrival.
 
         Args:
-            tracked_sources (Dict[int, Dict]): Dictionary of tracked sound sources.
-            potential_sources (Dict[int, Dict]): Dictionary of potential sound sources (ignored).
+            tracked_sources (Dict[int, Dict]): Dictionary of tracked sound sources with their DoA data.
         """
         self.tracked_sources = tracked_sources
 
