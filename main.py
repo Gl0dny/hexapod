@@ -40,7 +40,7 @@ def parse_arguments() -> argparse.Namespace:
                         help='Index of the audio input device (default: autoselect)')
     parser.add_argument('--log-dir', type=Path, default=Path('logs'),
                         help='Directory to store logs')
-    parser.add_argument('--log-config-file', type=Path, default=Path('logs/config.yaml'),
+    parser.add_argument('--log-config-file', type=Path, default=Path('src/utils/logging/config/config.yaml'),
                         help='Path to log configuration file')
     parser.add_argument('--clean', '-c', action='store_true',
                         help='Clean all logs in the logs directory.')
