@@ -28,6 +28,10 @@ from pathlib import Path
 from typing import Optional, List
 
 import paramiko
+import sounddevice as sd
+import wave
+import numpy as np
+import queue
 
 script_path = Path(__file__).resolve()
 project_root = script_path.parent.parent.parent
@@ -113,6 +117,11 @@ class StreamingODASAudioPlayer:
         logger.user_info(f"Monitoring ODAS audio streams on {self.remote_host}")
         logger.user_info(f"Saving WAV files locally to: {self.local_dir}")
 
+        self.audio_queue = queue.Queue()
+        self.stream = None
+        self.stream_thread = None
+        self.is_playing = False
+
     def connect_ssh(self) -> None:
         """Establish SSH connection to remote host."""
         try:
@@ -175,33 +184,90 @@ class StreamingODASAudioPlayer:
         except Exception as e:
             logger.warning(f"Unexpected error converting {input_file}: {str(e)}")
 
+    def audio_callback(self, outdata, frames, time, status):
+        """Callback for sounddevice streaming."""
+        if status:
+            logger.warning(f"Audio callback status: {status}")
+        try:
+            data = self.audio_queue.get_nowait()
+            outdata[:] = data.reshape(-1, 1)
+        except queue.Empty:
+            outdata.fill(0)
+            if not self.is_playing:
+                raise sd.CallbackStop()
+
+    def start_audio_stream(self):
+        """Start the audio streaming thread."""
+        self.stream = sd.OutputStream(
+            samplerate=self.sample_rate,
+            channels=1,  # Mono output
+            callback=self.audio_callback,
+            blocksize=1024
+        )
+        self.stream.start()
+        self.is_playing = True
+
+    def stop_audio_stream(self):
+        """Stop the audio streaming thread."""
+        self.is_playing = False
+        if self.stream:
+            self.stream.stop()
+            self.stream.close()
+            self.stream = None
+
     def play_audio(self, wav_file: Path) -> None:
         """
-        Play a WAV file using a suitable audio player.
-
-        Args:
-            wav_file: Path to the WAV file to play
+        Process WAV file and add it to the audio queue for streaming playback.
+        Splits audio into chunks that match the output buffer size.
         """
         try:
-            # Use afplay on macOS, aplay on Linux
-            player = "afplay" if platform.system() == 'Darwin' else "aplay"
-            cmd = [player, str(wav_file)]
-            process = subprocess.Popen(cmd)
-            self.processes.append(process)
-            logger.debug(f"Playing {wav_file} using {player}")
+            # Read WAV file
+            with wave.open(str(wav_file), 'rb') as wav:
+                # Get WAV parameters
+                n_channels = wav.getnchannels()
+                sample_width = wav.getsampwidth()
+                frame_rate = wav.getframerate()
+                n_frames = wav.getnframes()
+                
+                # Read all frames
+                audio_data = wav.readframes(n_frames)
+                
+                # Convert to numpy array
+                dtype = np.int16 if sample_width == 2 else np.int32
+                audio_array = np.frombuffer(audio_data, dtype=dtype)
+                
+                # Reshape to channels
+                audio_array = audio_array.reshape(-1, n_channels)
+                
+                # Mix down all channels (average them)
+                audio_mono = np.mean(audio_array, axis=1)
+                
+                # Normalize audio for playback
+                max_value = float(2**(sample_width*8-1) - 1)
+                audio_float = audio_mono.astype(np.float32) / max_value
+                
+                # Split audio into chunks that match the output buffer size
+                chunk_size = 1024  # Must match blocksize in start_audio_stream
+                for i in range(0, len(audio_float), chunk_size):
+                    chunk = audio_float[i:i + chunk_size]
+                    # Pad the last chunk if necessary
+                    if len(chunk) < chunk_size:
+                        chunk = np.pad(chunk, (0, chunk_size - len(chunk)))
+                    self.audio_queue.put(chunk)
+                
         except Exception as e:
-            logger.warning(f"Error playing {wav_file}: {str(e)}")
+            logger.warning(f"Error processing {wav_file}: {str(e)}")
 
     def stream_audio(self, file_type: AudioFileType) -> None:
         """
         Stream audio from remote machine and play it in real-time.
-
-        Args:
-            file_type: Type of audio stream ('separated' or 'postfiltered')
         """
         remote_file = str(self.remote_dir / f"{file_type}.raw")
         temp_file = Path(tempfile.mktemp(suffix='.raw'))
         wav_file = self.local_dir / f"{file_type}.wav"
+        
+        # Start audio stream
+        self.start_audio_stream()
         
         while self.running:
             try:
@@ -304,16 +370,8 @@ class StreamingODASAudioPlayer:
         """Clean up resources and terminate running processes."""
         logger.debug("Cleaning up...")
         
-        # Terminate all running processes
-        for process in self.processes:
-            try:
-                process.terminate()
-                process.wait(timeout=1)
-            except:
-                try:
-                    process.kill()
-                except:
-                    pass
+        # Stop audio stream
+        self.stop_audio_stream()
         
         # Close SSH connection
         try:
