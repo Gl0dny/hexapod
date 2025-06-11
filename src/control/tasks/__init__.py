@@ -1,7 +1,6 @@
 from .control_task import ControlTask
 from .composite_calibration_task import CompositeCalibrationTask
 from .dance_task import DanceTask
-from .direction_of_arrival_task import DirectionOfArrivalTask
 from .emergency_stop_task import EmergencyStopTask
 from .follow_task import FollowTask
 from .helix_task import HelixTask

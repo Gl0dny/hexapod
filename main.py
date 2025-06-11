@@ -114,12 +114,14 @@ def main() -> None:
                 
                 if is_running:
                     logger.user_info("Starting system...")
+                    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
                     voice_control.unpause()
                 else:
                     logger.user_info("Stopping system...")
                     voice_control.pause()
                     control_interface.lights_handler.off()
                     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+                    time.sleep(0.5)
                     control_interface.hexapod.deactivate_all_servos()
                 
                 # Wait for button release to prevent multiple toggles
@@ -145,6 +147,7 @@ def main() -> None:
     finally:
         time.sleep(1)
         control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+        time.sleep(0.5)
         control_interface.hexapod.deactivate_all_servos()
         # control_interface.hexapod.controller.close() # TODO: Uncomment this if you think its needed
         button_handler.cleanup()
