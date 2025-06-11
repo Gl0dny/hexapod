@@ -26,8 +26,8 @@ def test_picovoice_on_file(input_file: Path, access_key: str):
     if wav_file.getframerate() != 16000:
         raise ValueError("WAV file must be 16000 Hz")
     
-    # Get the path to the hexapod keyword model
-    keyword_path = Path(__file__).parent.parent / "kws" / "porcupine" / "hexapod_en_raspberry-pi_v3_0_0.ppn"
+    # Get fixed path to model file
+    keyword_path = Path(__file__).parent.parent.parent.parent / "src" / "kws" / "porcupine" / "hexapod_en_raspberry-pi_v3_0_0.ppn"
     if not keyword_path.exists():
         raise FileNotFoundError(f"Keyword model file not found at {keyword_path}")
     

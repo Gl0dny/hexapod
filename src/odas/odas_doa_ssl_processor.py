@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
 """
-ODAS (Open embeddeD Audition System) Server Implementation
+ODAS (Open embeddeD Audition System) DoA/SSL Processor Implementation
+Handles Direction of Arrival (DoA) and Sound Source Localization (SSL) data processing and visualization.
 """
-
-import warnings
-warnings.filterwarnings("ignore", message=".*Falling back from lgpio.*")
 
 import socket
 import struct
@@ -13,31 +11,29 @@ import json
 import time
 import threading
 from datetime import datetime
-import os
 import signal
 import logging
 import subprocess
 from pathlib import Path
 from typing import Optional, List, TextIO, Any, Dict, Tuple
 import argparse
-import re
 import sys
 import math
 
-# Add src directory to Python path
 current_file = Path(__file__)
-src_dir = str(current_file.parent.parent)  # Go up one level from odas to src
+src_dir = str(current_file.parent.parent)
 if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 from lights import Lights
-from lights.animations.sound_source_animation import SoundSourceAnimation
+from lights.animations.direction_of_arrival_animation import DirectionOfArrivalAnimation
 
 logger = logging.getLogger("odas")
 
-class ODASServer:
+class ODASDoASSLProcessor:
     """
-    ODAS Server implementation that handles sound source tracking and logging.
+    ODAS DoA (Direction of Arrival) and SSL (Sound Source Localization) processor implementation.
+    Handles sound source tracking, processing, and visualization.
     """
 
     def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001, forward_to_gui: bool = False, debug_mode: bool = False) -> None:
@@ -85,7 +81,7 @@ class ODASServer:
 
         # Initialize LED visualization
         self.lights = Lights()
-        self.sound_source_animation = SoundSourceAnimation(self.lights)
+        self.doa_animation = DirectionOfArrivalAnimation(self.lights)
         self.tracked_sources: Dict[int, Dict] = {}
         self.potential_sources: Dict[int, Dict] = {}
         self.sources_lock: threading.Lock = threading.Lock()
@@ -160,7 +156,14 @@ class ODASServer:
             print(f"Connected to GUI at {self.gui_host}")
         except Exception as e:
             print(f"GUI connection error: {str(e)}")
-            self.running = False
+            print("Disabling GUI forwarding...")
+            self.forward_to_gui = False
+            if self.gui_tracked_socket:
+                self.gui_tracked_socket.close()
+                self.gui_tracked_socket = None
+            if self.gui_potential_socket:
+                self.gui_potential_socket.close()
+                self.gui_potential_socket = None
 
     def forward_data_to_gui(self, data: bytes, client_type: str) -> None:
         """Forward data to the GUI station."""
@@ -169,8 +172,29 @@ class ODASServer:
                 self.gui_tracked_socket.send(data)
             elif client_type == "potential" and self.gui_potential_socket:
                 self.gui_potential_socket.send(data)
+        except (BrokenPipeError, ConnectionResetError):
+            print("GUI connection lost. Attempting to reconnect...")
+            self._handle_gui_disconnection()
         except Exception as e:
             print(f"GUI forward error: {str(e)}")
+
+    def _handle_gui_disconnection(self) -> None:
+        """Handle GUI disconnection by attempting to reconnect or disabling forwarding."""
+        try:
+            # Close existing sockets
+            if self.gui_tracked_socket:
+                self.gui_tracked_socket.close()
+                self.gui_tracked_socket = None
+            if self.gui_potential_socket:
+                self.gui_potential_socket.close()
+                self.gui_potential_socket = None
+
+            # Attempt to reconnect
+            self.connect_to_gui()
+        except Exception as e:
+            print(f"Failed to reconnect to GUI: {str(e)}")
+            print("Disabling GUI forwarding...")
+            self.forward_to_gui = False
 
     def _get_direction(self, x: float, y: float, z: float) -> str:
         """Calculate the estimated direction based on x, y, z coordinates."""
@@ -298,7 +322,7 @@ class ODASServer:
                     with self.sources_lock:
                         tracked_sources_copy = dict(self.tracked_sources)
                         potential_sources_copy = dict(self.potential_sources)
-                    self.sound_source_animation.update_sources(tracked_sources_copy, potential_sources_copy)
+                    self.doa_animation.update_sources(tracked_sources_copy)
                     
                 except Exception as e:
                     continue
@@ -384,7 +408,7 @@ class ODASServer:
             print(f"ODAS monitor error: {str(e)}")
 
     def start(self) -> None:
-        """Start the ODAS server."""
+        """Start the ODAS DoA/SSL processor."""
         try:
             if self.mode == 'local':
                 self.start_odas_process()
@@ -393,15 +417,13 @@ class ODASServer:
 
             if self.forward_to_gui:
                 self.connect_to_gui()
-                if not self.running:
-                    return
 
             self.tracked_server = self.start_server(self.tracked_port)
             self.potential_server = self.start_server(self.potential_port)
 
-            self.sound_source_animation.start()
+            self.doa_animation.start()
 
-            print(f"ODAS Server started: mode={self.mode}, tracked={self.tracked_port}, "
+            print(f"ODAS DoA/SSL Processor started: mode={self.mode}, tracked={self.tracked_port}, "
                   f"potential={self.potential_port}, GUI forwarding={'on' if self.forward_to_gui else 'off'}, "
                   f"debug={'on' if self.debug_mode else 'off'}")
 
@@ -448,8 +470,8 @@ class ODASServer:
         """Close the ODAS server and clean up resources."""
         self.running = False
         
-        if hasattr(self, 'sound_source_animation'):
-            self.sound_source_animation.stop_animation()
+        if hasattr(self, 'doa_animation'):
+            self.doa_animation.stop_animation()
         
         for socket_obj in [self.tracked_server, self.potential_server,
                          self.tracked_client, self.potential_client,
@@ -477,8 +499,8 @@ class ODASServer:
             self.lights.clear()
 
 def main() -> None:
-    """Main entry point for the ODAS server."""
-    parser = argparse.ArgumentParser(description='ODAS Server for sound source tracking')
+    """Main entry point for the ODAS DoA/SSL processor."""
+    parser = argparse.ArgumentParser(description='ODAS DoA/SSL Processor for sound source tracking')
     parser.add_argument('--mode', choices=['local', 'remote'], default='local',
                       help='Operation mode: local (127.0.0.1) or remote (default: local)')
     parser.add_argument('--host', default='192.168.0.171',
@@ -494,7 +516,7 @@ def main() -> None:
     
     args = parser.parse_args()
     
-    server = ODASServer(
+    server = ODASDoASSLProcessor(
         mode=args.mode,
         host=args.host,
         tracked_port=args.tracked_port,

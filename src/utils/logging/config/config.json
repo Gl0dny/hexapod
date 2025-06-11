@@ -54,6 +54,10 @@
         "robot_filter": {
             "class": "logging.Filter",
             "name": "robot_logger"
+        },
+        "odas_filter": {
+            "class": "logging.Filter",
+            "name": "odas_logger"
         }
     },
     "handlers": {
@@ -73,7 +77,7 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "verbose",
-            "filename": "logs/main.log",
+            "filename": "main.log",
             "maxBytes": 10485760,
             "backupCount": 5,
             "filters": ["main_filter"]
@@ -82,7 +86,7 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "verbose",
-            "filename": "logs/control.log",
+            "filename": "control.log",
             "maxBytes": 10485760,
             "backupCount": 5,
             "filters": ["control_filter"]
@@ -91,7 +95,7 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "verbose",
-            "filename": "logs/imu.log",
+            "filename": "imu.log",
             "maxBytes": 10485760,
             "backupCount": 5,
             "filters": ["imu_filter"]
@@ -100,7 +104,7 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "verbose",
-            "filename": "logs/interface.log",
+            "filename": "interface.log",
             "maxBytes": 10485760,
             "backupCount": 5,
             "filters": ["interface_filter"]
@@ -109,7 +113,7 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "verbose",
-            "filename": "logs/kws.log",
+            "filename": "kws.log",
             "maxBytes": 10485760,
             "backupCount": 5,
             "filters": ["kws_filter"]
@@ -118,7 +122,7 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "verbose",
-            "filename": "logs/lights.log",
+            "filename": "lights.log",
             "maxBytes": 10485760,
             "backupCount": 5,
             "filters": ["lights_filter"]
@@ -127,7 +131,7 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "verbose",
-            "filename": "logs/maestro.log",
+            "filename": "maestro.log",
             "maxBytes": 10485760,
             "backupCount": 5,
             "filters": ["maestro_filter"]
@@ -136,10 +140,19 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "verbose",
-            "filename": "logs/robot.log",
+            "filename": "robot.log",
             "maxBytes": 10485760,
             "backupCount": 5,
             "filters": ["robot_filter"]
+        },
+        "odas_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "verbose",
+            "filename": "odas.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["odas_filter"]
         },
         "queue_handler": {
             "class": "logging.handlers.QueueHandler",
@@ -153,7 +166,8 @@
                 "kws_logger",
                 "lights_logger",
                 "maestro_logger",
-                "robot_logger"
+                "robot_logger",
+                "odas_logger"
             ],
             "respect_handler_level": true
         }
@@ -199,6 +213,11 @@
             "propagate": false
         },
         "robot_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "odas_logger": {
             "level": "DEBUG",
             "handlers": ["queue_handler"],
             "propagate": false

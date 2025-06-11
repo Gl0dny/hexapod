@@ -27,8 +27,8 @@ def test_picovoice_on_file(input_file: Path, access_key: str):
         raise ValueError("WAV file must be 16000 Hz")
     
     # Get the paths to the keyword and context files
-    keyword_path = Path(__file__).parent.parent / "kws" / "porcupine" / "hexapod_en_raspberry-pi_v3_0_0.ppn"
-    context_path = Path(__file__).parent.parent / "kws" / "rhino" / "hexapod_en_raspberry-pi_v3_0_0.rhn"
+    keyword_path = Path(__file__).parent.parent.parent.parent / "src" / "kws" / "porcupine" / "hexapod_en_raspberry-pi_v3_0_0.ppn"
+    context_path = Path(__file__).parent.parent.parent.parent / "src" / "kws" / "rhino" / "hexapod_en_raspberry-pi_v3_0_0.rhn"
     
     if not keyword_path.exists():
         raise FileNotFoundError(f"Keyword file not found at {keyword_path}")
