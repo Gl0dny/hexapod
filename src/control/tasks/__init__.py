@@ -13,7 +13,7 @@ from .say_hello_task import SayHelloTask
 from .show_off_task import ShowOffTask
 from .sit_up_task import SitUpTask
 from .sleep_task import SleepTask
-from .sound_source_analysis_localization import SoundSourceAnalysisTask
+from .sound_source_localization import SoundSourceLocalizationTask
 from .stop_task import StopTask
 from .upright_mode_task import UprightModeTask
 from .wake_up_task import WakeUpTask

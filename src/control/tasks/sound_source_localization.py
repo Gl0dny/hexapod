@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("control_logger")
 
-class SoundSourceAnalysisLocalizationTask(ControlTask):
+class SoundSourceLocalizationTask(ControlTask):
     """
     Task to analyze sound sources and manage related lights.
 

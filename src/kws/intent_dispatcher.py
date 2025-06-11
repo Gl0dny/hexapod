@@ -62,7 +62,7 @@ class IntentDispatcher:
             'stop': self.handle_stop,
             'rotate': self.handle_rotate,
             'follow': self.handle_follow,
-            'sound_source_analysis': self.handle_sound_source_analysis,
+            'sound_source_analysis': self.handle_sound_source_localization,
             'police': self.handle_police,
             'rainbow': self.handle_rainbow,
             'sit_up': self.handle_sit_up,
@@ -341,7 +341,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.sound_source_analysis()
+        self.control_interface.sound_source_localization()
 
     @handler
     def handle_police(self, slots: Dict[str, Any]) -> None:
