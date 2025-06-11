@@ -26,6 +26,7 @@ wheels/
 *.log.jsonl
 *.coverage
 tests/reports/
+*.csv
 
 # Mac OS
 *.DS_Store

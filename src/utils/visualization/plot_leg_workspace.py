@@ -1,31 +1,39 @@
-# Usage : 
-# cd src
-# python -m utils.visualization.plot_leg_workspace  
-
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-from mpl_toolkits.mplot3d import Axes3D
-import os
-import sys
-from unittest.mock import patch
-import contextlib
-import io
-import csv
 import argparse
-from robot import Hexapod
+import contextlib
+import csv
+import io
+import sys
 from pathlib import Path
+from unittest.mock import patch
+
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Add src directory to Python path
+project_root = Path(__file__).parent.parent.parent.parent
+src_path = str(project_root / "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+from robot import Hexapod
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--clean", action="store_true", help="Clean workspace CSV file before calculations.")
     args = parser.parse_args()
 
-    if args.clean and os.path.exists('leg_workspace.csv'):
+    # Get the project root directory (parent of src)
+    project_root = Path(__file__).parent.parent.parent.parent
+    data_dir = project_root / "data" / "visualization"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = data_dir / "leg_workspace.csv"
+
+    if args.clean and csv_path.exists():
         try:
-            os.remove('leg_workspace.csv')
+            csv_path.unlink()
         except OSError as e:
-            print(f"Error removing 'leg_workspace.csv': {e}")
+            print(f"Error removing '{csv_path}': {e}")
             sys.exit(1)
 
     try:
@@ -33,8 +41,8 @@ def main():
         with patch('robot.hexapod.MaestroUART'), \
              patch('robot.hexapod.Imu'):
             hexapod = Hexapod(
-                config_path=Path("src/robot/config/hexapod_config.yaml"),
-                calibration_data_path=Path("src/robot/config/calibration.json")
+                config_path=project_root / "src" / "robot" / "config" / "hexapod_config.yaml",
+                calibration_data_path=project_root / "src" / "robot" / "config" / "calibration.json"
             )
     except Exception as e:
         print(f"Error initializing Hexapod: {e}")
@@ -58,9 +66,9 @@ def main():
     leg_workspace = []
 
     # Check if 'leg_workspace.csv' exists
-    if os.path.exists('leg_workspace.csv'):
+    if csv_path.exists():
         try:
-            with open('leg_workspace.csv', 'r') as csvfile:
+            with open(csv_path, 'r') as csvfile:
                 reader = csv.reader(csvfile)
                 header = next(reader)  # Skip header
                 for row in reader:
@@ -75,7 +83,7 @@ def main():
                     except ValueError:
                         pass
         except Exception as e:
-            print(f"Error reading 'leg_workspace.csv': {e}")
+            print(f"Error reading '{csv_path}': {e}")
             sys.exit(1)
     else:
         try:
@@ -97,12 +105,12 @@ def main():
             sys.exit(1)
 
         try:
-            with open('leg_workspace.csv', 'w', newline='') as csvfile:
+            with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(['coxa_deg', 'femur_deg', 'tibia_deg', 'x', 'y', 'z'])
                 writer.writerows(leg_workspace)
         except Exception as e:
-            print(f"Error writing 'leg_workspace.csv': {e}")
+            print(f"Error writing '{csv_path}': {e}")
             sys.exit(1)
 
     # Convert to numpy array if loaded from CSV
@@ -129,6 +137,7 @@ def main():
         ax1.set_ylabel("Y-axis [mm]")
         ax1.set_zlabel("Z-axis [mm]")
         ax1.set_title("Isometric View")
+        
         # Highlight origin (0,0,0) in 3D
         ax1.scatter([0], [0], [0], c='red', s=50, marker='o')
         ax1.invert_xaxis()
