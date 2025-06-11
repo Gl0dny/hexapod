@@ -1,15 +1,11 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging.config
-import os
 import sys
 import argparse
 import time
-import atexit
 import threading
 from pathlib import Path
-
-import yaml
 
 # Add src directory to Python path
 src_path = Path(__file__).resolve().parent / "src"
@@ -21,6 +17,7 @@ from control import ControlInterface
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
 from utils import setup_logging, clean_logs
+from utils import ButtonHandler
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -71,7 +68,9 @@ def main() -> None:
     # Initialize control interface
     control_interface = ControlInterface()
     
-    control_interface.lights_handler.set_single_color(ColorRGB.RED)
+    # Initialize button handler
+    button_handler = ButtonHandler()
+    
     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
     
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
@@ -92,12 +91,13 @@ def main() -> None:
     if args.print_context:
         logger.debug("Print context flag detected, printing context")
         voice_control.print_context()
-        
+    
     # Start voice control
     voice_control.start()
     
     try:
-        logger.debug("Entering main loop to monitor controller errors")
+        # logger.debug("Entering main loop to monitor controller errors")
+        logger.debug("Waiting for button press to start the system")
         while True:
             # controller_error_code = control_interface.hexapod.controller.get_error()
             # if controller_error_code != 0:
@@ -107,7 +107,27 @@ def main() -> None:
             #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
             #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             #     break
-            time.sleep(1)
+            # time.sleep(1)
+            if button_handler.get_state():
+                # Button is pressed, toggle the system state
+                is_running = button_handler.toggle_state()
+                
+                if is_running:
+                    logger.user_info("Starting system...")
+                    voice_control.unpause()
+                else:
+                    logger.user_info("Stopping system...")
+                    voice_control.pause()
+                    control_interface.lights_handler.off()
+                    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+                    control_interface.hexapod.deactivate_all_servos()
+                
+                # Wait for button release to prevent multiple toggles
+                while button_handler.get_state():
+                    time.sleep(0.1)
+            
+            time.sleep(0.1)  # Small delay to prevent CPU overuse
+            
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt detected, initiating shutdown")
         sys.stdout.write('\b' * 2)
@@ -126,7 +146,8 @@ def main() -> None:
         time.sleep(1)
         control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
         control_interface.hexapod.deactivate_all_servos()
-        # control_interface.hexapod.controller.close()
+        # control_interface.hexapod.controller.close() # TODO: Uncomment this if you think its needed
+        button_handler.cleanup()
         logger.user_info('Exiting...')
 
 if __name__ == '__main__':
