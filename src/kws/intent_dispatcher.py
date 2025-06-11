@@ -334,9 +334,9 @@ class IntentDispatcher:
         self.control_interface.follow()
 
     @handler
-    def handle_sound_source_analysis(self, slots: Dict[str, Any]) -> None:
+    def handle_sound_source_localization(self, slots: Dict[str, Any]) -> None:
         """
-        Handle the 'sound_source_analysis' intent.
+        Handle the 'sound_source_localization' intent.
         
         Args:
             slots (Dict[str, Any]): Additional data for the intent.

@@ -12,6 +12,7 @@ from robot import Hexapod
 import control.tasks
 from interface import InputHandler
 from utils import rename_thread
+from odas import ODASDoASSLProcessor
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional
@@ -30,6 +31,11 @@ class ControlInterface:
         """
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
+        self.odas_processor = ODASDoASSLProcessor(
+            lights_handler=self.lights_handler,
+            mode='local',
+            debug_mode=True
+        )
         self.control_task: ControlTask = None
         self.voice_control_context_info = None
         self._last_command = None
@@ -67,6 +73,21 @@ class ControlInterface:
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             return func(self, self.lights_handler, *args, **kwargs)
+        return wrapper
+
+    def inject_odas(func: Callable[..., Any]) -> Callable[..., Any]:
+        """
+        Decorator to inject the ODASDoASSLProcessor into the decorated method.
+
+        Args:
+            func (Callable): The function to decorate.
+
+        Returns:
+            Callable: The decorated function with the ODAS processor injected.
+        """
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            return func(self, self.odas_processor, *args, **kwargs)
         return wrapper
 
     def stop_control_task(self) -> None:
@@ -660,25 +681,28 @@ class ControlInterface:
     @control_task
     @inject_lights_handler
     @inject_hexapod
-    def sound_source_analysis(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    @inject_odas
+    def sound_source_localization(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor) -> None:
         """
-        Initiate sound source analysis.
+        Initiate sound source localization.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
+            odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
         """
         try:
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = control.tasks.SoundSourceAnalysisTask(
+            self.control_task = control.tasks.SoundSourceLocalizationTask(
                 hexapod, 
-                lights_handler, 
+                lights_handler,
+                odas_processor,
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            logger.user_info("Sound source analysis started.")
+            logger.user_info("Sound source localization started.")
         except Exception as e:
-            logger.exception(f"Sound source analysis task failed: {e}")
+            logger.exception(f"Sound source localization task failed: {e}")
 
     @voice_command
     @inject_lights_handler
@@ -832,17 +856,3 @@ class ControlInterface:
             )
         except Exception as e:
             logger.exception(f"Say hello task failed: {e}")
-
-    # @voice_command
-    # def pause_voice_control(self) -> None:
-    #     """
-    #     Pause the voice control functionality.
-    #     """
-    #     self.voice_control.pause()
-
-    # @voice_command
-    # def unpause_voice_control(self) -> None:
-    #     """
-    #     Unpause the voice control functionality.
-    #     """
-    #     self.voice_control.unpause()

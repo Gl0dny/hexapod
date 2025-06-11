@@ -25,7 +25,7 @@ src_dir = str(current_file.parent.parent)
 if src_dir not in sys.path:
     sys.path.append(src_dir)
 
-from lights import Lights
+from lights import LightsInteractionHandler
 from lights.animations.direction_of_arrival_animation import DirectionOfArrivalAnimation
 
 logger = logging.getLogger("odas")
@@ -36,9 +36,27 @@ class ODASDoASSLProcessor:
     Handles sound source tracking, processing, and visualization.
     """
 
-    def __init__(self, mode: str = 'local', host: str = '192.168.0.171', tracked_port: int = 9000, potential_port: int = 9001, forward_to_gui: bool = False, debug_mode: bool = False) -> None:
+    def __init__(
+        self,
+        lights_handler: LightsInteractionHandler,
+        mode: str = 'local',
+        host: str = '192.168.0.171',
+        tracked_port: int = 9000,
+        potential_port: int = 9001,
+        forward_to_gui: bool = False,
+        debug_mode: bool = False
+    ) -> None:
         """
         Initialize the ODAS server with configuration parameters.
+
+        Args:
+            lights_handler (LightsInteractionHandler): The lights handler to use for visualization.
+            mode (str): Operation mode ('local' or 'remote').
+            host (str): Host IP address for remote mode.
+            tracked_port (int): Port for tracked sources.
+            potential_port (int): Port for potential sources.
+            forward_to_gui (bool): Whether to forward data to GUI.
+            debug_mode (bool): Whether to enable debug mode.
         """
         self.mode: str = mode.lower()
         if self.mode == 'local':
@@ -79,9 +97,9 @@ class ODASDoASSLProcessor:
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
 
-        # Initialize LED visualization
-        self.lights = Lights()
-        self.doa_animation = DirectionOfArrivalAnimation(self.lights)
+        # Initialize LED visualization using the provided lights handler
+        self.lights_handler = lights_handler
+        self.doa_animation = DirectionOfArrivalAnimation(self.lights_handler.lights)
         self.tracked_sources: Dict[int, Dict] = {}
         self.potential_sources: Dict[int, Dict] = {}
         self.sources_lock: threading.Lock = threading.Lock()
@@ -495,8 +513,8 @@ class ODASDoASSLProcessor:
             except:
                 self.odas_process.kill()
         
-        if hasattr(self, 'lights'):
-            self.lights.clear()
+        # Clear lights using the lights handler
+        self.lights_handler.off()
 
 def main() -> None:
     """Main entry point for the ODAS DoA/SSL processor."""
@@ -516,7 +534,12 @@ def main() -> None:
     
     args = parser.parse_args()
     
+    # Create a temporary lights handler for standalone mode
+    from lights import LightsInteractionHandler
+    lights_handler = LightsInteractionHandler({})  # Empty leg_to_led mapping for standalone mode
+    
     server = ODASDoASSLProcessor(
+        lights_handler=lights_handler,
         mode=args.mode,
         host=args.host,
         tracked_port=args.tracked_port,
