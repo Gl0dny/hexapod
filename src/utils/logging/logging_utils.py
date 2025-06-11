@@ -1,10 +1,14 @@
 from __future__ import annotations
-from typing import Optional
-from pathlib import Path
+from typing import TYPE_CHECKING
+import atexit
 import logging
 import logging.config
+from pathlib import Path
+
 import yaml
-import atexit
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 from ..utils import rename_thread
 
