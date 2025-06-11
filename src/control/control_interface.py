@@ -681,30 +681,6 @@ class ControlInterface:
             logger.exception(f"Sound source analysis task failed: {e}")
 
     @voice_command
-    @control_task
-    @inject_lights_handler
-    @inject_hexapod
-    def direction_of_arrival(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
-        """
-        Calculate the direction of arrival of a sound.
-
-        Args:
-            hexapod (Hexapod): The hexapod instance.
-            lights_handler (LightsInteractionHandler): Handles lights activity.
-        """
-        try:
-            logger.user_info("Calculating direction of arrival.")
-            if self.control_task:
-                self.control_task.stop_task()
-            self.control_task = control.tasks.DirectionOfArrivalTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.control_task)
-            )
-        except Exception as e:
-            logger.exception(f"Direction of arrival task failed: {e}")
-            
-    @voice_command
     @inject_lights_handler
     def police(self, lights_handler: LightsInteractionHandler) -> None:
         """

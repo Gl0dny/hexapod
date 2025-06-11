@@ -63,7 +63,6 @@ class IntentDispatcher:
             'rotate': self.handle_rotate,
             'follow': self.handle_follow,
             'sound_source_analysis': self.handle_sound_source_analysis,
-            'direction_of_arrival': self.handle_direction_of_arrival,
             'police': self.handle_police,
             'rainbow': self.handle_rainbow,
             'sit_up': self.handle_sit_up,
@@ -343,16 +342,6 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         self.control_interface.sound_source_analysis()
-
-    @handler
-    def handle_direction_of_arrival(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'direction_of_arrival' intent.
-        
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        self.control_interface.direction_of_arrival()
 
     @handler
     def handle_police(self, slots: Dict[str, Any]) -> None:
