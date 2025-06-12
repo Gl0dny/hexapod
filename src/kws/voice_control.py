@@ -286,7 +286,7 @@ class VoiceControl(threading.Thread):
                         logger.debug("Stopping PvRecorder")
                         self.recorder.stop()
                     logger.debug("Deleting PvRecorder")
-                    self.recorder.delete()  # Release the audio device - it is needed to wait (for other threads) for 2.5-3 seconds to release resources by PvRecorder
+                    self.recorder.delete()  # Release the audio device - it is needed to wait (for other threads) for ~4 seconds to release resources by PvRecorder
                     self.recorder = None
             # Release Picovoice resources - resets Picovoice object so that it doesn't process the same audio data again (pausing mid-command)
             if self.picovoice:

@@ -43,9 +43,8 @@ class ControlInterface:
         }
         
         odas_data_config = {
-            'workspace_root': Path(__file__).parent.parent,
-            'base_logs_dir': Path(__file__).parent.parent / "logs" / "odas" / "ssl",
-            'odas_data_dir': Path(__file__).parent.parent / "data" / "audio" / "odas"
+            'base_logs_dir': Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl",
+            'odas_data_dir': Path(__file__).parent.parent.parent / "data" / "audio" / "odas"
         }
         
         self.odas_processor = ODASDoASSLProcessor(

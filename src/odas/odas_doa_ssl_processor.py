@@ -42,15 +42,13 @@ class ODASDoASSLProcessor:
         def __init__(
             self,
             processor: 'ODASDoASSLProcessor',
-            workspace_root: Path = Path(__file__).parent.parent.parent,
-            base_logs_dir: Path = Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl",
-            odas_data_dir: Path = Path(__file__).parent.parent.parent / "data" / "audio" / "odas"
+            base_logs_dir: Optional[Path] = None,
+            odas_data_dir: Optional[Path] = None
         ) -> None:
             """Initialize the data manager."""
             self.processor = processor
-            self.workspace_root: Path = workspace_root
-            self.base_logs_dir: Path = base_logs_dir
-            self.odas_data_dir: Path = odas_data_dir
+            self.base_logs_dir: Path = base_logs_dir or Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl"
+            self.odas_data_dir: Path = odas_data_dir or Path(__file__).parent.parent.parent / "data" / "audio" / "odas"
             self.log_files: List[TextIO] = []
             self.tracked_log: Optional[TextIO] = None
             self.potential_log: Optional[TextIO] = None

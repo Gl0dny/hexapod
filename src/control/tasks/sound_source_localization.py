@@ -52,7 +52,7 @@ class SoundSourceLocalizationTask(ControlTask):
             # Set external control paused to pause voice control
             self.external_control_paused_event.set()
 
-            time.sleep(3)  # Wait for Voice Control to pause ~2.5-3 seconds to release resources by PvRecorder
+            time.sleep(4)  # Wait for Voice Control to pause and release resources by PvRecorder
 
             self.lights_handler.off()
             
