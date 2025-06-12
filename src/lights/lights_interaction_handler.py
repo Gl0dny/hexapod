@@ -64,16 +64,20 @@ class LightsInteractionHandler:
         @wraps(method)
         def wrapper(self, *args, **kwargs):
             logger.debug(f"Starting animation {method.__name__}.")
-            result = method(self, *args, **kwargs)
-            
-            if not hasattr(self, 'animation') or self.animation is None:
-                logger.error(f"{method.__name__} must set 'self.animation' attribute.")
-                raise AttributeError(f"{method.__name__} must set 'self.animation' attribute")
-            
-            logger.debug(f"'{method.__name__}' successfully set animation attribute: {self.animation}")
-            self.animation.start()
+            try:
+                result = method(self, *args, **kwargs)
+                
+                if not hasattr(self, 'animation') or self.animation is None:
+                    logger.error(f"{method.__name__} must set 'self.animation' attribute.")
+                    raise AttributeError(f"{method.__name__} must set 'self.animation' attribute")
+                
+                logger.debug(f"'{method.__name__}' successfully set animation attribute: {self.animation}")
+                self.animation.start()
 
-            return result
+                return result
+            except Exception as e:
+                logger.error(f"Error in {method.__name__}: {str(e)}")
+                raise
         return wrapper
 
     def off(self) -> None:
@@ -254,3 +258,47 @@ class LightsInteractionHandler:
         self.off()
         self.animation = None  # Ensure animation is set to avoid AttributeError
         raise NotImplementedError("The 'speak' method is not implemented yet.")
+
+    @animation
+    def direction_of_arrival(
+        self,
+        refresh_delay: float = 0.1,
+        source_colors: list[ColorRGB] = [
+            ColorRGB.TEAL,   # First source
+            ColorRGB.INDIGO,   # Second source
+            ColorRGB.YELLOW,     # Third source
+            ColorRGB.LIME    # Fourth source
+        ]
+    ) -> None:
+        """
+        Start the direction of arrival animation to visualize sound source locations.
+
+        Args:
+            refresh_delay (float): The interval between updates.
+            source_colors (list[ColorRGB]): List of colors for different sound sources.
+                Defaults to [TEAL, INDIGO, YELLOW, LIME].
+        """
+        self.off()
+        self.animation = lights.animations.DirectionOfArrivalAnimation(
+            lights=self.lights,
+            refresh_delay=refresh_delay,
+            source_colors=source_colors
+        )
+
+    @animation
+    def odas_loading(self, interval: float = 2.2/12) -> None:
+        """
+        Start the ODAS loading animation using WheelFillAnimation with teal color.
+        The animation completes one full circle in 2.2 seconds.
+
+        Args:
+            interval (float): The interval between filling LEDs. Default is 2.2/12 seconds
+                to complete one full circle in 2.2 seconds (12 LEDs).
+        """
+        self.off()
+        self.animation = lights.animations.WheelFillAnimation(
+            lights=self.lights,
+            use_rainbow=False,
+            color=ColorRGB.TEAL,
+            interval=interval
+        )

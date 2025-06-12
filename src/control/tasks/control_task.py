@@ -62,7 +62,7 @@ class ControlTask(threading.Thread, abc.ABC):
         """
         pass
 
-    def stop_task(self, timeout: float = 10.0) -> None:
+    def stop_task(self, timeout: float = 5.0) -> None:
         """
         Signals the task to stop and joins the thread.
 
@@ -76,7 +76,7 @@ class ControlTask(threading.Thread, abc.ABC):
         self.stop_event.set()
         if self.is_alive():
             try:
-                logger.info(f"Waiting for task {self.__class__.__name__} to stop (timeout: {timeout}s)")
+                logger.info(f"Waiting for task {self.__class__.__name__} to stop (timeout: {timeout} seconds)")
                 self.join(timeout=timeout)
                 if self.is_alive():
                     logger.error(f"Task {self.__class__.__name__} did not stop within {timeout}s timeout")

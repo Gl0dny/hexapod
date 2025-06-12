@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, override, Optional
 import logging
 import math
 
@@ -27,28 +27,28 @@ class DirectionOfArrivalAnimation(Animation):
     def __init__(
         self,
         lights: Lights,
-        base_color: ColorRGB = ColorRGB.BLUE,
-        refresh_delay: float = 0.1
+        refresh_delay: float = 0.1,
+        source_colors: list[ColorRGB] = [
+            ColorRGB.TEAL,   # First source
+            ColorRGB.INDIGO,   # Second source
+            ColorRGB.YELLOW,     # Third source
+            ColorRGB.LIME    # Fourth source
+        ]
     ) -> None:
         """
         Initialize the DirectionOfArrivalAnimation object.
 
         Args:
             lights (Lights): The Lights object to control the LEDs.
-            base_color (ColorRGB): The default color for active sound sources.
             refresh_delay (float): The interval between updates.
+            source_colors (list[ColorRGB]): List of colors for different sound sources.
+                Defaults to [TEAL, INDIGO, YELLOW, LIME].
         """
         super().__init__(lights)
-        self.base_color: ColorRGB = base_color
         self.refresh_delay: float = refresh_delay
         self.tracked_sources: Dict[int, Dict] = {}
         self.active_leds: set[int] = set()  # Keep track of currently lit LEDs
-        self.source_colors: list[ColorRGB] = [
-            ColorRGB.TEAL,   # First source
-            ColorRGB.INDIGO,   # Second source
-            ColorRGB.YELLOW,     # Third source
-            ColorRGB.LIME    # Fourth source
-        ]
+        self.source_colors: list[ColorRGB] = source_colors
 
     def update_sources(self, tracked_sources: Dict[int, Dict]) -> None:
         """

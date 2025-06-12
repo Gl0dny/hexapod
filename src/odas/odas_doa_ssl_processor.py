@@ -25,7 +25,6 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 from lights import LightsInteractionHandler
-from lights.animations.direction_of_arrival_animation import DirectionOfArrivalAnimation
 
 logger = logging.getLogger("odas")
 
@@ -94,7 +93,6 @@ class ODASDoASSLProcessor:
 
         # Initialize LED visualization using the provided lights handler
         self.lights_handler = lights_handler
-        self.doa_animation = DirectionOfArrivalAnimation(self.lights_handler.lights)
         self.tracked_sources: Dict[int, Dict] = {}
         self.potential_sources: Dict[int, Dict] = {}
         self.sources_lock: threading.Lock = threading.Lock()
@@ -330,7 +328,10 @@ class ODASDoASSLProcessor:
                     with self.sources_lock:
                         tracked_sources_copy = dict(self.tracked_sources)
                         potential_sources_copy = dict(self.potential_sources)
-                    self.doa_animation.update_sources(tracked_sources_copy)
+                    
+                    # Update the animation through the lights handler
+                    if hasattr(self.lights_handler.animation, 'update_sources'):
+                        self.lights_handler.animation.update_sources(tracked_sources_copy)
                     
                 except Exception as e:
                     continue
@@ -432,6 +433,9 @@ class ODASDoASSLProcessor:
     def start(self) -> None:
         """Start the ODAS DoA/SSL processor."""
         try:
+            # Show loading animation while initializing
+            self.lights_handler.odas_loading()
+
             if self.mode == 'local':
                 self.start_odas_process()
                 if not self.running:
@@ -443,7 +447,11 @@ class ODASDoASSLProcessor:
             self.tracked_server = self.start_server(self.tracked_port)
             self.potential_server = self.start_server(self.potential_port)
 
-            self.doa_animation.start()
+            # Wait for 2.2 seconds to complete one full loading animation cycle - let servers initialize
+            time.sleep(2.2)
+
+            # Switch to direction of arrival animation once everything is initialized
+            self.lights_handler.direction_of_arrival()
 
             print(f"ODAS DoA/SSL Processor started: mode={self.mode}, tracked={self.tracked_port}, "
                   f"potential={self.potential_port}, GUI forwarding={'on' if self.forward_to_gui else 'off'}, "
@@ -492,8 +500,8 @@ class ODASDoASSLProcessor:
         """Close the ODAS server and clean up resources."""
         self.running = False
         
-        if hasattr(self, 'doa_animation'):
-            self.doa_animation.stop_animation()
+        # Stop the animation through the lights handler
+        self.lights_handler.off()
         
         for socket_obj in [self.tracked_server, self.potential_server,
                          self.tracked_client, self.potential_client,
@@ -528,9 +536,6 @@ class ODASDoASSLProcessor:
                     pass
             finally:
                 self.odas_process = None
-        
-        # Clear lights using the lights handler
-        self.lights_handler.off()
 
 def main() -> None:
     """Main entry point for the ODAS DoA/SSL processor."""

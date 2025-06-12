@@ -41,23 +41,27 @@ class SoundSourceLocalizationTask(ControlTask):
     @override
     def execute_task(self) -> None:
         """
-        Execute the sound source localization task.
+        Analyzes sound sources and updates lights accordingly.
+
+        Processes sound input to identify directions of incoming sounds and adjusts lights to indicate sources.
         """
         logger.info("SoundSourceLocalizationTask started")
         try:
-            self.lights_handler.off()
+            self.lights_handler.think()
 
             # Set maintenance mode to pause voice control
             self.maintenance_mode_event.set()
 
-            time.sleep(3)  # Wait for Voice Control to pause ~2.5 seconds to release resources by PvRecorder
+            time.sleep(3)  # Wait for Voice Control to pause ~2.5-3 seconds to release resources by PvRecorder
+
+            self.lights_handler.off()
             
             # Start ODAS processor
             self.odas_processor.start()
             
             # Wait for the task to complete or be stopped
             while not self.stop_event.is_set():
-                time.sleep(0.1)
+                self.stop_event.wait(0.1)
                 
         except Exception as e:
             logger.exception(f"Sound source localization task failed: {e}")

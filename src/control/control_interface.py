@@ -97,7 +97,7 @@ class ControlInterface:
         if hasattr(self, 'control_task') and self.control_task:
             try:
                 logger.debug(f"Stopping existing control_task {self.control_task}.")
-                self.control_task.stop_task(timeout=10.0)
+                self.control_task.stop_task(timeout=5.0)
                 self.control_task = None
             except Exception as e:
                 logger.exception(f"Error stopping control task: {e}")

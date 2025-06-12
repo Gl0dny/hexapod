@@ -4,7 +4,6 @@ import logging
 import threading
 from pathlib import Path
 import numpy as np
-import time
 
 from picovoice import Picovoice
 from pvrecorder import PvRecorder
@@ -77,11 +76,17 @@ class VoiceControl(threading.Thread):
         self.keyword_path = keyword_path
         self.context_path = context_path
         self.access_key = access_key
+        self.control_interface = control_interface
+        self.device_index = device_index
         self.porcupine_sensitivity = porcupine_sensitivity
         self.rhino_sensitivity = rhino_sensitivity
-        self.device_index = device_index
         self.use_odas = use_odas
-        self.control_interface = control_interface
+        self.odas_dir = odas_dir
+        self.odas_channel = odas_channel
+        self.log_dir = log_dir
+        self.log_config_file = log_config_file
+        self.clean = clean
+        self.print_context = print_context
 
         # Picovoice API callback
         def inference_callback(inference: Any) -> None:
@@ -98,7 +103,7 @@ class VoiceControl(threading.Thread):
             rhino_sensitivity=rhino_sensitivity,
         )
 
-        # Store frame length for reinitialization
+        # Store Picovoice frame length for PvRecorder reinitialization
         self.frame_length = self.picovoice.frame_length
 
         self.context = self.picovoice.context_info
@@ -123,15 +128,15 @@ class VoiceControl(threading.Thread):
             self.recorder = PvRecorder(device_index=device_index, frame_length=self.picovoice.frame_length)
         
         # Set up logging
-        if log_dir:
-            log_dir.mkdir(parents=True, exist_ok=True)
-            if clean:
-                for log_file in log_dir.glob("*.log"):
+        if self.log_dir:
+            self.log_dir.mkdir(parents=True, exist_ok=True)
+            if self.clean:
+                for log_file in self.log_dir.glob("*.log"):
                     log_file.unlink()
-            if log_config_file:
-                logging.config.fileConfig(log_config_file)
+            if self.log_config_file:
+                logging.config.fileConfig(self.log_config_file)
                 
-        if print_context:
+        if self.print_context:
             self.print_context()
         
         logger.debug("VoiceControl thread initialized successfully")
@@ -191,9 +196,19 @@ class VoiceControl(threading.Thread):
             self.control_interface.voice_control_context_info = self.context
 
             if self.use_odas:
-                # Start ODAS audio input
-                logger.debug("Starting ODAS audio input")
-                self.odas_input.start()
+                if not self.odas_dir:
+                    raise ValueError("When using ODAS, odas_dir must be provided")
+                logger.debug(f"Using ODAS for audio input from {self.odas_dir}")
+                # Initialize ODAS voice input with Picovoice-compatible settings
+                # self.odas_input = ODASVoiceInput(
+                #     odas_dir=self.odas_dir,
+                #     selected_channel=self.odas_channel,
+                #     frame_length=self.frame_length)
+                # # Set up audio callback
+                # self.odas_input.set_audio_callback(self._process_audio)
+                # # Start ODAS audio input
+                # logger.debug("Starting ODAS audio input")
+                # self.odas_input.start()
             else:
                 # Start PvRecorder
                 logger.debug("Starting PvRecorder")
@@ -228,7 +243,8 @@ class VoiceControl(threading.Thread):
             try:
                 if self.use_odas:
                     logger.debug("Stopping ODAS audio input")
-                    self.odas_input.stop()
+                    # if self.odas_input:
+                    #     self.odas_input.stop()
                 else:
                     if self.recorder and self.recorder.is_recording:
                         logger.debug("Stopping PvRecorder")
@@ -258,15 +274,21 @@ class VoiceControl(threading.Thread):
         """
         with self.pause_lock:
             self.pause_event.clear()
-            if not self.use_odas and self.recorder:
-                if self.recorder.is_recording:
-                    logger.debug("Stopping PvRecorder")
-                    self.recorder.stop()
-                logger.debug("Deleting PvRecorder")
-                self.recorder.delete()  # Release the audio device
-                self.recorder = None
-                # time.sleep(2.5)  # Wait for device to be fully released
-            # Release Picovoice resources
+            if self.use_odas:
+                # Stop and clean up ODAS resources
+                logger.debug("Stopping ODAS audio input")
+                # if self.odas_input:
+                #     self.odas_input.stop()
+                #     self.odas_input = None
+            else:
+                if self.recorder:
+                    if self.recorder.is_recording:
+                        logger.debug("Stopping PvRecorder")
+                        self.recorder.stop()
+                    logger.debug("Deleting PvRecorder")
+                    self.recorder.delete()  # Release the audio device - it is needed to wait (for other threads) for 2.5-3 seconds to release resources by PvRecorder
+                    self.recorder = None
+            # Release Picovoice resources - resets Picovoice object so that it doesn't process the same audio data again (pausing mid-command)
             if self.picovoice:
                 logger.debug("Deleting Picovoice resources")
                 self.picovoice.delete()
@@ -278,7 +300,19 @@ class VoiceControl(threading.Thread):
         Unpauses the voice control processing and reinitializes the audio device.
         """
         with self.pause_lock:
-            if not self.use_odas:
+            if self.use_odas:
+                if not self.odas_dir:
+                    raise ValueError("When using ODAS, odas_dir must be provided")
+                logger.debug(f"Reinitializing ODAS audio input from {self.odas_dir}")
+                # Initialize ODAS voice input with Picovoice-compatible settings
+                # self.odas_input = ODASVoiceInput(
+                #     odas_dir=self.odas_dir,
+                #     selected_channel=self.odas_channel,
+                #     frame_length=self.frame_length)
+                # # Set up audio callback
+                # self.odas_input.set_audio_callback(self._process_audio)
+                # self.odas_input.start()
+            else:
                 # Reinitialize PvRecorder
                 self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.frame_length)
                 self.recorder.start()
