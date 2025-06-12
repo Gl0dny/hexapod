@@ -152,19 +152,12 @@ class ODASDoASSLProcessor:
         self.potential_sources: Dict[int, Dict] = {}
         self.sources_lock: threading.Lock = threading.Lock()
 
-        # Status tracking variables
-        self.last_active_source_time: float = time.time()
-        self.current_active_sources: int = 0
-        self.last_inactive_time: Optional[float] = None
-        self.last_status_message_time: Optional[float] = None
-        self.status_lock: threading.Lock = threading.Lock()
-
         # Debug mode and display control
         self.debug_mode: bool = debug_mode
         self.last_num_lines: int = 0  # Track number of lines printed last update
         self.initial_connection_made: bool = False
 
-    def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
+    def handle_odas_data(self, client_socket: socket.socket, client_type: str) -> None:
         """Handle data from a connected client."""
         log_file: TextIO = self.data_manager.tracked_log if client_type == "tracked" else self.data_manager.potential_log
         
@@ -233,23 +226,14 @@ class ODASDoASSLProcessor:
                         else:
                             active_sources = all_sources
                         
-                        current_active_sources = len(active_sources)
-                        
                         with self.sources_lock:
                             self.tracked_sources = active_sources
-                        
-                        with self.status_lock:
-                            self.last_active_source_time = time.time()
-                            self.current_active_sources = current_active_sources
-                            self.last_inactive_time = None
-                            self.last_status_message_time = None
                         
                         if self.debug_mode:
                             self._print_debug_info(active_sources)
                     
                     with self.sources_lock:
                         tracked_sources_copy = dict(self.tracked_sources)
-                        potential_sources_copy = dict(self.potential_sources)
                     
                     # Update the animation through the lights handler
                     if hasattr(self.lights_handler.animation, 'update_sources'):
@@ -264,7 +248,7 @@ class ODASDoASSLProcessor:
                 break
             except Exception as e:
                 if self.running:
-                    logger.error(f"Client handler error: {str(e)}")
+                    logger.error(f"ODAS data handler error: {str(e)}")
                 break
 
     def start_server(self, port: int) -> socket.socket:
@@ -370,35 +354,31 @@ class ODASDoASSLProcessor:
                 print(f"\033[KSource {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}", flush=True)
             self.last_num_lines = current_lines
 
-    def _status_check_thread(self) -> None:
-        """Thread that periodically checks and logs the status of tracked sources."""
-        while self.running:
+    def accept_and_handle_data(self, server_socket: socket.socket, client_type: str) -> None:
+        """Accept connections and handle ODAS data in a loop."""
+        def _accept_connection(server_socket: socket.socket, client_type: str) -> Optional[socket.socket]:
+            """Accept a connection from a client."""
             try:
-                current_time = time.time()
-                with self.status_lock:
-                    if self.current_active_sources == 0 and self.last_inactive_time is not None:
-                        inactive_duration = current_time - self.last_inactive_time
-                        if inactive_duration >= 15 and (self.last_status_message_time is None or 
-                                                      current_time - self.last_status_message_time >= 15):
-                            self.last_status_message_time = current_time
-                time.sleep(1)
+                server_socket.settimeout(1.0)
+                client_socket, address = server_socket.accept()
+                return client_socket
+            except socket.timeout:
+                return None
             except Exception as e:
                 if self.running:
-                    logger.error(f"Status thread error: {str(e)}")
-                time.sleep(1)
+                    logger.error(f"Accept error: {str(e)}")
+                return None
 
-    def accept_connection(self, server_socket: socket.socket, client_type: str) -> Optional[socket.socket]:
-        """Accept a connection from a client."""
-        try:
-            server_socket.settimeout(1.0)
-            client_socket, address = server_socket.accept()
-            return client_socket
-        except socket.timeout:
-            return None
-        except Exception as e:
-            if self.running:
-                logger.error(f"Accept error: {str(e)}")
-            return None
+        while self.running:
+            try:
+                client_socket = _accept_connection(server_socket, client_type)
+                if client_socket:
+                    self.handle_odas_data(client_socket, client_type)
+                time.sleep(0.1)
+            except Exception as e:
+                if self.running:
+                    logger.error(f"Accept/handle error: {str(e)}")
+                time.sleep(1)
 
     def start_odas_process(self) -> None:
         """Start the ODAS process."""
@@ -438,6 +418,30 @@ class ODASDoASSLProcessor:
         except Exception as e:
             logger.error(f"ODAS monitor error: {str(e)}")
 
+    def _close_odas_process(self) -> None:
+        """Close the ODAS process with graceful termination and fallback to force kill."""
+        if not self.odas_process:
+            return
+
+        try:
+            # First try graceful termination
+            self.odas_process.terminate()
+            try:
+                self.odas_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                # If process doesn't terminate, force kill
+                logger.warning("ODAS process did not terminate gracefully, forcing kill")
+                self.odas_process.kill()
+                self.odas_process.wait()
+        except Exception as e:
+            logger.error(f"Error terminating ODAS process: {e}")
+            try:
+                self.odas_process.kill()
+            except:
+                logger.error("Error killing ODAS process")
+        finally:
+            self.odas_process = None
+
     def start(self) -> None:
         """Start the ODAS DoA/SSL processor."""
         try:
@@ -464,17 +468,12 @@ class ODASDoASSLProcessor:
                   f"potential={self.potential_port}, GUI forwarding={'on' if self.forward_to_gui else 'off'}, "
                   f"debug={'on' if self.debug_mode else 'off'}")
 
-            status_thread = threading.Thread(target=self._status_check_thread)
-            status_thread.daemon = True
-            status_thread.start()
-            self.threads.append(status_thread)
-
             tracked_thread = threading.Thread(
-                target=self.accept_and_handle,
+                target=self.accept_and_handle_data,
                 args=(self.tracked_server, "tracked")
             )
             potential_thread = threading.Thread(
-                target=self.accept_and_handle,
+                target=self.accept_and_handle_data,
                 args=(self.potential_server, "potential")
             )
             
@@ -489,19 +488,6 @@ class ODASDoASSLProcessor:
         except Exception as e:
             logger.error(f"Start error: {e}")
             self.running = False
-
-    def accept_and_handle(self, server_socket: socket.socket, client_type: str) -> None:
-        """Accept connections and handle clients in a loop."""
-        while self.running:
-            try:
-                client_socket = self.accept_connection(server_socket, client_type)
-                if client_socket:
-                    self.handle_client(client_socket, client_type)
-                time.sleep(0.1)
-            except Exception as e:
-                if self.running:
-                    logger.error(f"Accept/handle error: {str(e)}")
-                time.sleep(1)
 
     def close(self) -> None:
         """Close the ODAS server and clean up resources."""
@@ -522,24 +508,8 @@ class ODASDoASSLProcessor:
         # Close all log files through the data manager
         self.data_manager.close()
         
-        if self.odas_process:
-            try:
-                # First try graceful termination
-                self.odas_process.terminate()
-                try:
-                    self.odas_process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    # If process doesn't terminate, force kill
-                    self.odas_process.kill()
-                    self.odas_process.wait()
-            except Exception as e:
-                logger.error(f"Error terminating ODAS process: {e}")
-                try:
-                    self.odas_process.kill()
-                except:
-                    pass
-            finally:
-                self.odas_process = None
+        # Close ODAS process
+        self._close_odas_process()
 
 def main() -> None:
     """Main entry point for the ODAS DoA/SSL processor."""
