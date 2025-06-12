@@ -34,6 +34,7 @@ class ControlInterface:
         self.odas_processor = ODASDoASSLProcessor(
             lights_handler=self.lights_handler,
             mode='local',
+            forward_to_gui=True,
             debug_mode=True
         )
         self.control_task: ControlTask = None
