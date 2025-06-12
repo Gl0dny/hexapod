@@ -37,8 +37,6 @@ class ODASDoASSLProcessor:
     def __init__(
         self,
         lights_handler: LightsInteractionHandler,
-        mode: str = 'local',
-        host: str = '192.168.0.171',
         tracked_port: int = 9000,
         potential_port: int = 9001,
         forward_to_gui: bool = False,
@@ -49,18 +47,12 @@ class ODASDoASSLProcessor:
 
         Args:
             lights_handler (LightsInteractionHandler): The lights handler to use for visualization.
-            mode (str): Operation mode ('local' or 'remote').
-            host (str): Host IP address for remote mode.
             tracked_port (int): Port for tracked sources.
             potential_port (int): Port for potential sources.
             forward_to_gui (bool): Whether to forward data to GUI.
             debug_mode (bool): Whether to enable debug mode.
         """
-        self.mode: str = mode.lower()
-        if self.mode == 'local':
-            self.host: str = '127.0.0.1'
-        else:
-            self.host: str = host
+        self.host: str = '127.0.0.1'
         self.tracked_port: int = tracked_port
         self.potential_port: int = potential_port
         self.tracked_server: Optional[socket.socket] = None
@@ -78,18 +70,8 @@ class ODASDoASSLProcessor:
         self.gui_tracked_port: int = 9000
         self.gui_potential_port: int = 9001
 
-        # Create base logs directory
-        workspace_root: Path = Path(__file__).parent.parent.parent
-        self.base_logs_dir: Path = workspace_root / "logs" / "odas" / "ssl"
-        try:
-            self.base_logs_dir.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            print(f"Error creating log directory: {str(e)}")
-            self.base_logs_dir = Path(__file__).parent
-
-        # Create log files
-        self.tracked_log: TextIO = self._open_log_file(self.base_logs_dir / "tracked.log")
-        self.potential_log: TextIO = self._open_log_file(self.base_logs_dir / "potential.log")
+        # Setup all required directories and files
+        self._setup_directories()
 
         # Initialize LED visualization using the provided lights handler
         self.lights_handler = lights_handler
@@ -108,6 +90,31 @@ class ODASDoASSLProcessor:
         self.debug_mode: bool = debug_mode
         self.last_num_lines: int = 0  # Track number of lines printed last update
         self.initial_connection_made: bool = False
+
+    def _setup_directories(self) -> None:
+        """Setup all required directories and files for ODAS operation."""
+        try:
+            # Get workspace root
+            workspace_root: Path = Path(__file__).parent.parent.parent
+
+            # Setup logging directories and files
+            self.base_logs_dir: Path = workspace_root / "logs" / "odas" / "ssl"
+            self.base_logs_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create log files
+            self.tracked_log: TextIO = self._open_log_file(self.base_logs_dir / "tracked.log")
+            self.potential_log: TextIO = self._open_log_file(self.base_logs_dir / "potential.log")
+
+            # Setup ODAS data directories and files
+            odas_data_dir = workspace_root / "data" / "audio" / "odas"
+            odas_data_dir.mkdir(parents=True, exist_ok=True)
+
+        except Exception as e:
+            print(f"Error setting up directories: {str(e)}")
+            # Fallback to current directory for logs if setup fails
+            self.base_logs_dir = Path(__file__).parent
+            self.tracked_log = self._open_log_file(self.base_logs_dir / "tracked.log")
+            self.potential_log = self._open_log_file(self.base_logs_dir / "potential.log")
 
     def _open_log_file(self, path: Path) -> TextIO:
         """Open a log file and add it to the list of managed log files."""
@@ -375,26 +382,9 @@ class ODASDoASSLProcessor:
                 self.log(f"Accept error: {str(e)}")
             return None
 
-    def _setup_odas_directories(self) -> None:
-        """Create required ODAS directories and files."""
-        workspace_root = Path(__file__).parent.parent.parent
-        odas_data_dir = workspace_root / "data" / "audio" / "odas"
-        odas_data_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create empty postfiltered.raw file if it doesn't exist
-        postfiltered_file = odas_data_dir / "postfiltered.raw"
-        if not postfiltered_file.exists():
-            postfiltered_file.touch()
-
     def start_odas_process(self) -> None:
-        """Start the ODAS process in local mode."""
-        if self.mode != 'local':
-            return
-
+        """Start the ODAS process."""
         try:
-            # Setup required ODAS directories and files
-            self._setup_odas_directories()
-
             config_path = Path(__file__).parent / "config" / "local_odas.cfg"
             if not config_path.exists():
                 raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -436,10 +426,9 @@ class ODASDoASSLProcessor:
             # Show loading animation while initializing
             self.lights_handler.odas_loading()
 
-            if self.mode == 'local':
-                self.start_odas_process()
-                if not self.running:
-                    return
+            self.start_odas_process()
+            if not self.running:
+                return
 
             if self.forward_to_gui:
                 self.connect_to_gui()
@@ -453,7 +442,7 @@ class ODASDoASSLProcessor:
             # Switch to direction of arrival animation once everything is initialized
             self.lights_handler.direction_of_arrival()
 
-            print(f"ODAS DoA/SSL Processor started: mode={self.mode}, tracked={self.tracked_port}, "
+            print(f"ODAS DoA/SSL Processor started: tracked={self.tracked_port}, "
                   f"potential={self.potential_port}, GUI forwarding={'on' if self.forward_to_gui else 'off'}, "
                   f"debug={'on' if self.debug_mode else 'off'}")
 
@@ -540,10 +529,6 @@ class ODASDoASSLProcessor:
 def main() -> None:
     """Main entry point for the ODAS DoA/SSL processor."""
     parser = argparse.ArgumentParser(description='ODAS DoA/SSL Processor for sound source tracking')
-    parser.add_argument('--mode', choices=['local', 'remote'], default='local',
-                      help='Operation mode: local (127.0.0.1) or remote (default: local)')
-    parser.add_argument('--host', default='192.168.0.171',
-                      help='Host IP address for remote mode (default: 192.168.0.171)')
     parser.add_argument('--tracked-port', type=int, default=9000,
                       help='Port for tracked sources (default: 9000)')
     parser.add_argument('--potential-port', type=int, default=9001,
@@ -561,8 +546,6 @@ def main() -> None:
     
     server = ODASDoASSLProcessor(
         lights_handler=lights_handler,
-        mode=args.mode,
-        host=args.host,
         tracked_port=args.tracked_port,
         potential_port=args.potential_port,
         forward_to_gui=args.forward_to_gui,
