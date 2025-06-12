@@ -14,7 +14,7 @@ from datetime import datetime
 import logging
 import subprocess
 from pathlib import Path
-from typing import Optional, List, TextIO, Any, Dict, Tuple
+from typing import Optional, List, TextIO, Any, Dict
 import argparse
 import sys
 import math
@@ -26,13 +26,86 @@ if src_dir not in sys.path:
 
 from lights import LightsInteractionHandler
 
-logger = logging.getLogger("odas")
+logger = logging.getLogger("odas_logger")
 
 class ODASDoASSLProcessor:
     """
     ODAS DoA (Direction of Arrival) and SSL (Sound Source Localization) processor implementation.
     Handles sound source tracking, processing, and visualization.
     """
+
+    class DataManager:
+        """
+        Manages data-related operations including directory management, file handling, and logging.
+        """
+        def __init__(self, processor: 'ODASDoASSLProcessor') -> None:
+            """Initialize the data manager."""
+            self.processor = processor
+            self.workspace_root: Path = Path(__file__).parent.parent.parent
+            self.base_logs_dir: Path = self.workspace_root / "logs" / "odas" / "ssl"
+            self.odas_data_dir: Path = self.workspace_root / "data" / "audio" / "odas"
+            self.log_files: List[TextIO] = []
+            self.tracked_log: Optional[TextIO] = None
+            self.potential_log: Optional[TextIO] = None
+
+        def setup(self) -> None:
+            """Setup all required directories and files."""
+            try:
+                # Setup logging directories and files
+                self.base_logs_dir.mkdir(parents=True, exist_ok=True)
+                self.tracked_log = self._open_log_file(self.base_logs_dir / "tracked.log")
+                self.potential_log = self._open_log_file(self.base_logs_dir / "potential.log")
+
+                # Setup ODAS data directories
+                self.odas_data_dir.mkdir(parents=True, exist_ok=True)
+
+            except Exception as e:
+                logger.error(f"Error setting up directories: {str(e)}")
+                # Fallback to current directory for logs if setup fails
+                self.base_logs_dir = Path(__file__).parent
+                self.tracked_log = self._open_log_file(self.base_logs_dir / "tracked.log")
+                self.potential_log = self._open_log_file(self.base_logs_dir / "potential.log")
+
+        def _open_log_file(self, path: Path) -> TextIO:
+            """Open a log file and add it to the list of managed log files."""
+            try:
+                log_file: TextIO = open(path, "w")
+                self.log_files.append(log_file)
+                return log_file
+            except Exception as e:
+                logger.error(f"Error creating log file: {str(e)}")
+                class DummyFile:
+                    def write(self, *args: Any, **kwargs: Any) -> None: pass
+                    def flush(self, *args: Any, **kwargs: Any) -> None: pass
+                    def close(self, *args: Any, **kwargs: Any) -> None: pass
+                return DummyFile()
+
+        def log(self, message: str, log_file: Optional[TextIO] = None, print_to_console: bool = False) -> None:
+            """Log a message to console and optionally to a specific log file."""
+            if not self.processor.running:
+                return
+                
+            timestamp: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_message: str = f"[{timestamp}] {message}\n"
+            
+            if print_to_console:
+                print(log_message, end='')
+            
+            try:
+                if log_file:
+                    log_file.write(log_message)
+                    log_file.flush()
+            except:
+                pass
+
+        def close(self) -> None:
+            """Close all managed log files."""
+            for log_file in self.log_files:
+                try:
+                    log_file.close()
+                except:
+                    pass
+            self.log_files.clear()
 
     def __init__(
         self,
@@ -61,7 +134,6 @@ class ODASDoASSLProcessor:
         self.potential_client: Optional[socket.socket] = None
         self.running: bool = True
         self.threads: List[threading.Thread] = []
-        self.log_files: List[TextIO] = []
         self.odas_process: Optional[subprocess.Popen] = None
         self.forward_to_gui: bool = forward_to_gui
         self.gui_tracked_socket: Optional[socket.socket] = None
@@ -70,8 +142,9 @@ class ODASDoASSLProcessor:
         self.gui_tracked_port: int = 9000
         self.gui_potential_port: int = 9001
 
-        # Setup all required directories and files
-        self._setup_directories()
+        # Initialize data manager
+        self.data_manager = self.DataManager(self)
+        self.data_manager.setup()
 
         # Initialize LED visualization using the provided lights handler
         self.lights_handler = lights_handler
@@ -91,169 +164,9 @@ class ODASDoASSLProcessor:
         self.last_num_lines: int = 0  # Track number of lines printed last update
         self.initial_connection_made: bool = False
 
-    def _setup_directories(self) -> None:
-        """Setup all required directories and files for ODAS operation."""
-        try:
-            # Get workspace root
-            workspace_root: Path = Path(__file__).parent.parent.parent
-
-            # Setup logging directories and files
-            self.base_logs_dir: Path = workspace_root / "logs" / "odas" / "ssl"
-            self.base_logs_dir.mkdir(parents=True, exist_ok=True)
-
-            # Create log files
-            self.tracked_log: TextIO = self._open_log_file(self.base_logs_dir / "tracked.log")
-            self.potential_log: TextIO = self._open_log_file(self.base_logs_dir / "potential.log")
-
-            # Setup ODAS data directories and files
-            odas_data_dir = workspace_root / "data" / "audio" / "odas"
-            odas_data_dir.mkdir(parents=True, exist_ok=True)
-
-        except Exception as e:
-            print(f"Error setting up directories: {str(e)}")
-            # Fallback to current directory for logs if setup fails
-            self.base_logs_dir = Path(__file__).parent
-            self.tracked_log = self._open_log_file(self.base_logs_dir / "tracked.log")
-            self.potential_log = self._open_log_file(self.base_logs_dir / "potential.log")
-
-    def _open_log_file(self, path: Path) -> TextIO:
-        """Open a log file and add it to the list of managed log files."""
-        try:
-            log_file: TextIO = open(path, "w")
-            self.log_files.append(log_file)
-            return log_file
-        except Exception as e:
-            print(f"Error creating log file: {str(e)}")
-            class DummyFile:
-                def write(self, *args: Any, **kwargs: Any) -> None: pass
-                def flush(self, *args: Any, **kwargs: Any) -> None: pass
-                def close(self, *args: Any, **kwargs: Any) -> None: pass
-            return DummyFile()
-
-    def log(self, message: str, log_file: Optional[TextIO] = None, print_to_console: bool = False) -> None:
-        """Log a message to console and optionally to a specific log file."""
-        if not self.running:
-            return
-        
-        timestamp: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_message: str = f"[{timestamp}] {message}\n"
-        
-        if print_to_console:
-            print(log_message, end='')
-        
-        try:
-            if log_file:
-                log_file.write(log_message)
-                log_file.flush()
-        except:
-            pass
-
-    def start_server(self, port: int) -> socket.socket:
-        """Start a TCP server on the specified port."""
-        server_socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_socket.bind((self.host, port))
-        server_socket.listen(1)
-        if not self.initial_connection_made:
-            print(f"Listening on {self.host}:{port}")
-            self.initial_connection_made = True
-        return server_socket
-
-    def connect_to_gui(self) -> None:
-        """Connect to the remote GUI station."""
-        try:
-            self.gui_tracked_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.gui_tracked_socket.connect((self.gui_host, self.gui_tracked_port))
-            self.gui_potential_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.gui_potential_socket.connect((self.gui_host, self.gui_potential_port))
-            print(f"Connected to GUI at {self.gui_host}")
-        except Exception as e:
-            print(f"GUI connection error: {str(e)}")
-            print("Disabling GUI forwarding...")
-            self.forward_to_gui = False
-            if self.gui_tracked_socket:
-                self.gui_tracked_socket.close()
-                self.gui_tracked_socket = None
-            if self.gui_potential_socket:
-                self.gui_potential_socket.close()
-                self.gui_potential_socket = None
-
-    def forward_data_to_gui(self, data: bytes, client_type: str) -> None:
-        """Forward data to the GUI station."""
-        try:
-            if client_type == "tracked" and self.gui_tracked_socket:
-                self.gui_tracked_socket.send(data)
-            elif client_type == "potential" and self.gui_potential_socket:
-                self.gui_potential_socket.send(data)
-        except (BrokenPipeError, ConnectionResetError):
-            print("GUI connection lost. Attempting to reconnect...")
-            self._handle_gui_disconnection()
-        except Exception as e:
-            print(f"GUI forward error: {str(e)}")
-
-    def _handle_gui_disconnection(self) -> None:
-        """Handle GUI disconnection by attempting to reconnect or disabling forwarding."""
-        try:
-            # Close existing sockets
-            if self.gui_tracked_socket:
-                self.gui_tracked_socket.close()
-                self.gui_tracked_socket = None
-            if self.gui_potential_socket:
-                self.gui_potential_socket.close()
-                self.gui_potential_socket = None
-
-            # Attempt to reconnect
-            self.connect_to_gui()
-        except Exception as e:
-            print(f"Failed to reconnect to GUI: {str(e)}")
-            print("Disabling GUI forwarding...")
-            self.forward_to_gui = False
-
-    def _get_direction(self, x: float, y: float, z: float) -> str:
-        """Calculate the estimated direction based on x, y, z coordinates."""
-        azimuth = math.degrees(math.atan2(y, x))
-        azimuth = (azimuth + 360) % 360
-        directions = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE']
-        index = round(azimuth / 45) % 8
-        return directions[index]
-
-    def _print_debug_info(self, active_sources: Dict[int, Dict]) -> None:
-        """Print active sources in a multi-line format that updates in-place."""
-        if not self.debug_mode:
-            return
-
-        current_lines = len(active_sources)
-        
-        # Move up to start of block
-        if self.last_num_lines > 0:
-            print(f"\033[{self.last_num_lines}A", end='', flush=True)
-
-        # Clear all previous lines in the block
-        for _ in range(self.last_num_lines):
-            print("\033[K", flush=True)  # Clear the line and move down
-            
-        # Move back to the top of the block
-        if self.last_num_lines > 0:
-            print(f"\033[{self.last_num_lines}A", end='', flush=True)
-        
-        if current_lines == 0:
-            # Print "no sources" message
-            print("\033[KNo sources tracked", flush=True)
-            self.last_num_lines = 1
-        else:
-            
-            for sid, src in active_sources.items():
-                x = src.get('x', 0)
-                y = src.get('y', 0)
-                z = src.get('z', 0)
-                activity = src.get('activity', 0)
-                direction = self._get_direction(x, y, z)
-                print(f"\033[KSource {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}", flush=True)
-            self.last_num_lines = current_lines
-
     def handle_client(self, client_socket: socket.socket, client_type: str) -> None:
         """Handle data from a connected client."""
-        log_file: TextIO = self.tracked_log if client_type == "tracked" else self.potential_log
+        log_file: TextIO = self.data_manager.tracked_log if client_type == "tracked" else self.data_manager.potential_log
         
         while self.running:
             try:
@@ -299,12 +212,14 @@ class ODASDoASSLProcessor:
                                 source_id = source_data.get('id', 0)
                                 if source_id > 0:
                                     all_sources[source_id] = source_data
+                                    self.data_manager.log(f"Tracked source detected:", log_file)
+                                    self.data_manager.log(json.dumps(source_data, indent=2), log_file)
                             else:
                                 source_id = len(self.potential_sources)
                                 with self.sources_lock:
                                     self.potential_sources[source_id] = source_data
-                                self.log(f"Potential source detected:", log_file)
-                                self.log(json.dumps(source_data, indent=2), log_file)
+                                self.data_manager.log(f"Potential source detected:", log_file)
+                                self.data_manager.log(json.dumps(source_data, indent=2), log_file)
                             
                         except json.JSONDecodeError as e:
                             continue
@@ -349,8 +264,111 @@ class ODASDoASSLProcessor:
                 break
             except Exception as e:
                 if self.running:
-                    self.log(f"Client handler error: {str(e)}", log_file)
+                    logger.error(f"Client handler error: {str(e)}")
                 break
+
+    def start_server(self, port: int) -> socket.socket:
+        """Start a TCP server on the specified port."""
+        server_socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket.bind((self.host, port))
+        server_socket.listen(1)
+        if not self.initial_connection_made:
+            print(f"Listening on {self.host}:{port}")
+            self.initial_connection_made = True
+        return server_socket
+
+    def connect_to_gui(self) -> None:
+        """Connect to the remote GUI station."""
+        try:
+            self.gui_tracked_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.gui_tracked_socket.connect((self.gui_host, self.gui_tracked_port))
+            self.gui_potential_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.gui_potential_socket.connect((self.gui_host, self.gui_potential_port))
+            print(f"Connected to GUI at {self.gui_host}")
+        except Exception as e:
+            logger.error(f"GUI connection error: {str(e)}")
+            print("Disabling GUI forwarding...")
+            self.forward_to_gui = False
+            if self.gui_tracked_socket:
+                self.gui_tracked_socket.close()
+                self.gui_tracked_socket = None
+            if self.gui_potential_socket:
+                self.gui_potential_socket.close()
+                self.gui_potential_socket = None
+
+    def forward_data_to_gui(self, data: bytes, client_type: str) -> None:
+        """Forward data to the GUI station."""
+        try:
+            if client_type == "tracked" and self.gui_tracked_socket:
+                self.gui_tracked_socket.send(data)
+            elif client_type == "potential" and self.gui_potential_socket:
+                self.gui_potential_socket.send(data)
+        except (BrokenPipeError, ConnectionResetError):
+            logger.error("GUI connection lost. Attempting to reconnect...")
+            self._handle_gui_disconnection()
+        except Exception as e:
+            logger.error(f"GUI forward error: {str(e)}")
+
+    def _handle_gui_disconnection(self) -> None:
+        """Handle GUI disconnection by attempting to reconnect or disabling forwarding."""
+        try:
+            # Close existing sockets
+            if self.gui_tracked_socket:
+                self.gui_tracked_socket.close()
+                self.gui_tracked_socket = None
+            if self.gui_potential_socket:
+                self.gui_potential_socket.close()
+                self.gui_potential_socket = None
+
+            # Attempt to reconnect
+            self.connect_to_gui()
+        except Exception as e:
+            logger.error(f"Failed to reconnect to GUI: {str(e)}")
+            print("Disabling GUI forwarding...")
+            self.forward_to_gui = False
+
+    def _get_direction(self, x: float, y: float, z: float) -> str:
+        """Calculate the estimated direction based on x, y, z coordinates."""
+        azimuth = math.degrees(math.atan2(y, x))
+        azimuth = (azimuth + 360) % 360
+        directions = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE']
+        index = round(azimuth / 45) % 8
+        return directions[index]
+
+    def _print_debug_info(self, active_sources: Dict[int, Dict]) -> None:
+        """Print active sources in a multi-line format that updates in-place."""
+        if not self.debug_mode:
+            return
+
+        current_lines = len(active_sources)
+        
+        # Move up to start of block
+        if self.last_num_lines > 0:
+            print(f"\033[{self.last_num_lines}A", end='', flush=True)
+
+        # Clear all previous lines in the block
+        for _ in range(self.last_num_lines):
+            print("\033[K", flush=True)  # Clear the line and move down
+            
+        # Move back to the top of the block
+        if self.last_num_lines > 0:
+            print(f"\033[{self.last_num_lines}A", end='', flush=True)
+        
+        if current_lines == 0:
+            # Print "no sources" message
+            print("\033[KNo sources tracked", flush=True)
+            self.last_num_lines = 1
+        else:
+            
+            for sid, src in active_sources.items():
+                x = src.get('x', 0)
+                y = src.get('y', 0)
+                z = src.get('z', 0)
+                activity = src.get('activity', 0)
+                direction = self._get_direction(x, y, z)
+                print(f"\033[KSource {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}", flush=True)
+            self.last_num_lines = current_lines
 
     def _status_check_thread(self) -> None:
         """Thread that periodically checks and logs the status of tracked sources."""
@@ -366,7 +384,7 @@ class ODASDoASSLProcessor:
                 time.sleep(1)
             except Exception as e:
                 if self.running:
-                    self.log(f"Status thread error: {str(e)}", self.tracked_log)
+                    logger.error(f"Status thread error: {str(e)}")
                 time.sleep(1)
 
     def accept_connection(self, server_socket: socket.socket, client_type: str) -> Optional[socket.socket]:
@@ -379,7 +397,7 @@ class ODASDoASSLProcessor:
             return None
         except Exception as e:
             if self.running:
-                self.log(f"Accept error: {str(e)}")
+                logger.error(f"Accept error: {str(e)}")
             return None
 
     def start_odas_process(self) -> None:
@@ -399,7 +417,7 @@ class ODASDoASSLProcessor:
             threading.Thread(target=self._monitor_odas_output, daemon=True).start()
             
         except Exception as e:
-            print(f"ODAS start error: {str(e)}")
+            logger.error(f"ODAS start error: {str(e)}")
             self.running = False
 
     def _monitor_odas_output(self) -> None:
@@ -415,10 +433,10 @@ class ODASDoASSLProcessor:
                 if stdout:
                     print(f"ODAS: {stdout.strip()}")
                 if stderr:
-                    print(f"ODAS Error: {stderr.strip()}")
+                    logger.error(f"ODAS Error: {stderr.strip()}")
 
         except Exception as e:
-            print(f"ODAS monitor error: {str(e)}")
+            logger.error(f"ODAS monitor error: {str(e)}")
 
     def start(self) -> None:
         """Start the ODAS DoA/SSL processor."""
@@ -469,7 +487,7 @@ class ODASDoASSLProcessor:
                 thread.join()
                 
         except Exception as e:
-            self.log(f"Start error: {e}")
+            logger.error(f"Start error: {e}")
             self.running = False
 
     def accept_and_handle(self, server_socket: socket.socket, client_type: str) -> None:
@@ -482,7 +500,7 @@ class ODASDoASSLProcessor:
                 time.sleep(0.1)
             except Exception as e:
                 if self.running:
-                    self.log(f"Accept/handle error: {str(e)}")
+                    logger.error(f"Accept/handle error: {str(e)}")
                 time.sleep(1)
 
     def close(self) -> None:
@@ -501,11 +519,8 @@ class ODASDoASSLProcessor:
                 except:
                     pass
         
-        for log_file in self.log_files:
-            try:
-                log_file.close()
-            except:
-                pass
+        # Close all log files through the data manager
+        self.data_manager.close()
         
         if self.odas_process:
             try:
