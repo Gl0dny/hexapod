@@ -7,7 +7,7 @@ from typing import Tuple, Optional
 logger = logging.getLogger("button_logger")
 
 class ButtonHandler:
-    def __init__(self, pin=26, long_press_time=3.0):
+    def __init__(self, pin=26, long_press_time=3.0, maintenance_mode_event=None):
         self.pin = pin
         self.is_running = True
         self.lock = threading.Lock()
@@ -15,6 +15,7 @@ class ButtonHandler:
         self.press_start_time = 0
         self.is_pressed = False
         self.long_press_detected = False
+        self.maintenance_mode_event = maintenance_mode_event
         
         # Setup GPIO
         GPIO.setmode(GPIO.BCM)
@@ -36,6 +37,10 @@ class ButtonHandler:
             - action: 'long_press', 'toggle', or None
             - is_running: current system state (only valid for 'toggle' action)
         """
+        # If in maintenance mode, ignore button presses
+        if self.maintenance_mode_event and self.maintenance_mode_event.is_set():
+            return None, self.is_running
+
         current_time = time.time()
         button_state = GPIO.input(self.pin)
         

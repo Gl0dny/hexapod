@@ -17,7 +17,6 @@ from control import ControlInterface
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
 from utils import setup_logging, clean_logs
-from utils import ButtonHandler
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -68,9 +67,6 @@ def main() -> None:
     # Initialize control interface
     control_interface = ControlInterface()
     
-    # Initialize button handler
-    button_handler = ButtonHandler()
-    
     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
     
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
@@ -108,7 +104,7 @@ def main() -> None:
             #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             #     break
             # time.sleep(1)
-            action, is_running = button_handler.check_button()
+            action, is_running = control_interface.button_handler.check_button()
             
             if action == 'long_press':
                 logger.user_info("Long press detected, starting sound source localization...")
@@ -147,7 +143,7 @@ def main() -> None:
         control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
         time.sleep(0.5)
         control_interface.hexapod.deactivate_all_servos()
-        button_handler.cleanup()
+        control_interface.button_handler.cleanup()
         logger.user_info('Exiting...')
 
 if __name__ == '__main__':

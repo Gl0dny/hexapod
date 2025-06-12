@@ -13,6 +13,7 @@ import control.tasks
 from interface import InputHandler
 from utils import rename_thread
 from odas import ODASDoASSLProcessor
+from utils import ButtonHandler
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional
@@ -43,6 +44,7 @@ class ControlInterface:
         self._last_args = None
         self._last_kwargs = None
         self.maintenance_mode_event = threading.Event()
+        self.button_handler = ButtonHandler(pin=26, maintenance_mode_event=self.maintenance_mode_event)
         self.task_complete_callback: Optional[Callable[[ControlTask], None]] = None
         logger.debug("ControlInterface initialized successfully.")
 
