@@ -41,6 +41,9 @@ filters:
   robot_filter:
     class: logging.Filter
     name: robot_logger
+  odas_filter:
+    class: logging.Filter
+    name: odas_logger
 handlers:
   stdout:
     class: logging.StreamHandler
@@ -124,6 +127,15 @@ handlers:
     backupCount: 5
     filters:
       - robot_filter
+  odas_logger:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: verbose
+    filename: odas.log
+    maxBytes: 10485760 # 10MB
+    backupCount: 5
+    filters:
+      - odas_filter
   queue_handler:
     class: logging.handlers.QueueHandler
     level: DEBUG
@@ -137,6 +149,7 @@ handlers:
       - lights_logger
       - maestro_logger
       - robot_logger
+      - odas_logger
     respect_handler_level: true
 loggers:
   root:
@@ -179,6 +192,11 @@ loggers:
       - queue_handler
     propagate: false
   robot_logger:
+    level: DEBUG
+    handlers:
+      - queue_handler
+    propagate: false
+  odas_logger:
     level: DEBUG
     handlers:
       - queue_handler

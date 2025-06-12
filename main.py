@@ -1,61 +1,27 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging.config
-import os
 import sys
 import argparse
-import sys
 import time
-import atexit
 import threading
 from pathlib import Path
 
-import yaml
-
-src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
-if src_path not in sys.path:
-    sys.path.append(src_path)
+# Add src directory to Python path
+src_path = Path(__file__).resolve().parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.append(str(src_path))
 
 from kws import VoiceControl
 from control import ControlInterface
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
-from utils import rename_thread
+from utils import setup_logging, clean_logs
 
 if TYPE_CHECKING:
     from typing import Optional
 
 logger = logging.getLogger("main_logger")
-
-def setup_logging(log_dir: Optional[Path] = None, config_file: Optional[Path] = None) -> None:
-    if config_file is None:
-        log_dir = Path("logs")
-    
-    if not log_dir.exists():
-        log_dir.mkdir(parents=True, exist_ok=True)
-
-    if config_file is None:
-        config_file = log_dir / "config.yaml"
-
-    if config_file.is_file():
-        with open(config_file, "rt") as f:
-            config = yaml.safe_load(f)
-        
-        # Update handler filenames to use the provided log_dir
-        for handler_name, handler in config.get("handlers", {}).items():
-            filename = handler.get("filename")
-            if filename:
-                handler["filename"] = str(log_dir / Path(filename).name)  # Set to log_dir/<basename>
-        
-        logging.config.dictConfig(config)
-        queue_handler = logging.getLogger("root").handlers[0]  # Assuming queue_handler is the first handler
-        if queue_handler is not None and hasattr(queue_handler, 'listener'):
-            queue_handler.listener.start()
-            rename_thread(queue_handler.listener._thread, "QueueHandlerListener")
-            atexit.register(queue_handler.listener.stop)
-    else:
-        logging.basicConfig(level=logging.INFO)
-        logger.warning(f"Logging configuration file not found at {config_file}. Using basic logging configuration")
 
 def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments."""
@@ -70,7 +36,7 @@ def parse_arguments() -> argparse.Namespace:
                         help='Index of the audio input device (default: autoselect)')
     parser.add_argument('--log-dir', type=Path, default=Path('logs'),
                         help='Directory to store logs')
-    parser.add_argument('--log-config-file', type=Path, default=Path('logs/config.yaml'),
+    parser.add_argument('--log-config-file', type=Path, default=Path('src/utils/logging/config/config.yaml'),
                         help='Path to log configuration file')
     parser.add_argument('--clean', '-c', action='store_true',
                         help='Clean all logs in the logs directory.')
@@ -84,13 +50,6 @@ def parse_arguments() -> argparse.Namespace:
                         help='Directory where ODAS creates raw files')
     
     return parser.parse_args()
-
-def clean_logs() -> None:
-    project_dir = Path(__file__).parent
-    log_patterns = ['*.log', '*.log.jsonl']
-    for pattern in log_patterns:
-        for log_file in project_dir.rglob(pattern):
-            log_file.unlink()
 
 def main() -> None:
     """Main entry point."""
@@ -108,7 +67,6 @@ def main() -> None:
     # Initialize control interface
     control_interface = ControlInterface()
     
-    control_interface.lights_handler.set_single_color(ColorRGB.RED)
     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
     
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
@@ -129,12 +87,13 @@ def main() -> None:
     if args.print_context:
         logger.debug("Print context flag detected, printing context")
         voice_control.print_context()
-        
+    
     # Start voice control
     voice_control.start()
     
     try:
-        logger.debug("Entering main loop to monitor controller errors")
+        # logger.debug("Entering main loop to monitor controller errors")
+        logger.debug("Waiting for button press to start the system")
         while True:
             # controller_error_code = control_interface.hexapod.controller.get_error()
             # if controller_error_code != 0:
@@ -144,7 +103,27 @@ def main() -> None:
             #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
             #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             #     break
-            time.sleep(1)
+            # time.sleep(1)
+            action, is_running = control_interface.button_handler.check_button()
+            
+            if action == 'long_press':
+                logger.user_info("Long press detected, starting sound source localization...")
+                control_interface.sound_source_localization()
+            elif action == 'toggle':
+                if is_running:
+                    logger.user_info("Starting system...")
+                    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+                    voice_control.unpause()
+                else:
+                    logger.user_info("Stopping system...")
+                    voice_control.pause()
+                    control_interface.lights_handler.off()
+                    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+                    time.sleep(0.5)
+                    control_interface.hexapod.deactivate_all_servos()
+            
+            time.sleep(0.1)  # Small delay to prevent CPU overuse
+            
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt detected, initiating shutdown")
         sys.stdout.write('\b' * 2)
@@ -162,8 +141,9 @@ def main() -> None:
     finally:
         time.sleep(1)
         control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+        time.sleep(0.5)
         control_interface.hexapod.deactivate_all_servos()
-        # control_interface.hexapod.controller.close()
+        control_interface.button_handler.cleanup()
         logger.user_info('Exiting...')
 
 if __name__ == '__main__':

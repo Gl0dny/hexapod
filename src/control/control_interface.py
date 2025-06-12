@@ -6,12 +6,15 @@ import time
 import threading
 from functools import wraps
 from types import MethodType
+from pathlib import Path
 
 from lights import LightsInteractionHandler, ColorRGB
 from robot import Hexapod
 import control.tasks
 from interface import InputHandler
 from utils import rename_thread
+from odas import ODASDoASSLProcessor
+from utils import ButtonHandler
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional
@@ -30,12 +33,38 @@ class ControlInterface:
         """
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
+        
+        # Configure ODAS processor
+        odas_gui_config = {
+            'gui_host': "192.168.0.102",
+            'gui_tracked_sources_port': 9000,
+            'gui_potential_sources_port': 9001,
+            'forward_to_gui': True
+        }
+        
+        odas_data_config = {
+            'base_logs_dir': Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl",
+            'odas_data_dir': Path(__file__).parent.parent.parent / "data" / "audio" / "odas"
+        }
+        
+        self.odas_processor = ODASDoASSLProcessor(
+            lights_handler=self.lights_handler,
+            tracked_sources_port=9000,
+            potential_sources_port=9001,
+            debug_mode=True,
+            gui_config=odas_gui_config,
+            data_config=odas_data_config
+        )
+        
         self.control_task: ControlTask = None
         self.voice_control_context_info = None
         self._last_command = None
         self._last_args = None
         self._last_kwargs = None
-        self.maintenance_mode_event = threading.Event()
+        # Event to pause external control (button, voice commands) during particular operations
+        # like calibration, shutdown, or other maintenance tasks
+        self.external_control_paused_event = threading.Event()
+        self.button_handler = ButtonHandler(pin=26, external_control_paused_event=self.external_control_paused_event)
         self.task_complete_callback: Optional[Callable[[ControlTask], None]] = None
         logger.debug("ControlInterface initialized successfully.")
 
@@ -69,14 +98,33 @@ class ControlInterface:
             return func(self, self.lights_handler, *args, **kwargs)
         return wrapper
 
+    def inject_odas(func: Callable[..., Any]) -> Callable[..., Any]:
+        """
+        Decorator to inject the ODASDoASSLProcessor into the decorated method.
+
+        Args:
+            func (Callable): The function to decorate.
+
+        Returns:
+            Callable: The decorated function with the ODAS processor injected.
+        """
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            return func(self, self.odas_processor, *args, **kwargs)
+        return wrapper
+
     def stop_control_task(self) -> None:
         """
         Stop any running control task and reset the control_task attribute.
         """
         if hasattr(self, 'control_task') and self.control_task:
-            logger.debug(f"Stopping existing control_task {self.control_task}.")
-            self.control_task.stop_task()
-            self.control_task = None
+            try:
+                logger.debug(f"Stopping existing control_task {self.control_task}.")
+                self.control_task.stop_task(timeout=5.0)
+                self.control_task = None
+            except Exception as e:
+                logger.exception(f"Error stopping control task: {e}")
+                self.control_task = None
         else:
             logger.debug("No active control_task to stop.")
 
@@ -187,7 +235,7 @@ class ControlInterface:
             rename_thread(input_handler, "ShutdownInputHandler")
             input_handler.start()
 
-            self.maintenance_mode_event.set()  # Signal maintenance mode
+            self.external_control_paused_event.set()  # Signal external control paused
 
             shutdown_delay = 15.0  # seconds
             lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
@@ -223,7 +271,7 @@ class ControlInterface:
                 user_input = input_handler.get_input()
                 if user_input:
                     shutdown_timer.cancel()
-                    self.maintenance_mode_event.clear()
+                    self.external_control_paused_event.clear()
                     input_handler.shutdown()
                     input_handler = None
                     logger.user_info("Shutdown canceled by user.")
@@ -339,13 +387,13 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.maintenance_mode_event.set()  # Signal maintenance mode
+            self.external_control_paused_event.set()  # Signal external control paused
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = control.tasks.CompositeCalibrationTask(
                 hexapod, 
                 lights_handler, 
-                self.maintenance_mode_event, 
+                self.external_control_paused_event, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
             logger.user_info("Calibration process started.")
@@ -658,52 +706,32 @@ class ControlInterface:
 
     @voice_command
     @control_task
+    @inject_odas
     @inject_lights_handler
     @inject_hexapod
-    def sound_source_analysis(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def sound_source_localization(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor) -> None:
         """
-        Initiate sound source analysis.
+        Initiate sound source localization.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
+            odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
         """
         try:
             if self.control_task:
                 self.control_task.stop_task()
-            self.control_task = control.tasks.SoundSourceAnalysisTask(
-                hexapod, 
-                lights_handler, 
+            self.control_task = control.tasks.SoundSourceLocalizationTask(
+                hexapod=hexapod, 
+                lights_handler=lights_handler,
+                odas_processor=odas_processor,
+                external_control_paused_event=self.external_control_paused_event,
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-            logger.user_info("Sound source analysis started.")
+            logger.user_info("Sound source localization started.")
         except Exception as e:
-            logger.exception(f"Sound source analysis task failed: {e}")
+            logger.exception(f"Sound source localization task failed: {e}")
 
-    @voice_command
-    @control_task
-    @inject_lights_handler
-    @inject_hexapod
-    def direction_of_arrival(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
-        """
-        Calculate the direction of arrival of a sound.
-
-        Args:
-            hexapod (Hexapod): The hexapod instance.
-            lights_handler (LightsInteractionHandler): Handles lights activity.
-        """
-        try:
-            logger.user_info("Calculating direction of arrival.")
-            if self.control_task:
-                self.control_task.stop_task()
-            self.control_task = control.tasks.DirectionOfArrivalTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.control_task)
-            )
-        except Exception as e:
-            logger.exception(f"Direction of arrival task failed: {e}")
-            
     @voice_command
     @inject_lights_handler
     def police(self, lights_handler: LightsInteractionHandler) -> None:
@@ -856,17 +884,3 @@ class ControlInterface:
             )
         except Exception as e:
             logger.exception(f"Say hello task failed: {e}")
-
-    # @voice_command
-    # def pause_voice_control(self) -> None:
-    #     """
-    #     Pause the voice control functionality.
-    #     """
-    #     self.voice_control.pause()
-
-    # @voice_command
-    # def unpause_voice_control(self) -> None:
-    #     """
-    #     Unpause the voice control functionality.
-    #     """
-    #     self.voice_control.unpause()

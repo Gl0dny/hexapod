@@ -19,20 +19,20 @@ class CompositeCalibrationTask(ControlTask):
 
     This composite task manages both the execution of calibration routines and the monitoring of their status.
     """
-    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, maintenance_mode_event: threading.Event, callback: Optional[Callable] = None) -> None:
+    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, external_control_paused_event: threading.Event, callback: Optional[Callable] = None) -> None:
         """
         Initialize the CompositeCalibrationTask.
 
         Args:
             hexapod (Hexapod): The hexapod instance to calibrate.
             lights_handler (LightsInteractionHandler): Handler to manage the hexapod's lights during calibration.
-            maintenance_mode_event (threading.Event): Event to manage maintenance mode state.
+            external_control_paused_event (threading.Event): Event to manage external control state.
             callback (Optional[Callable]): Function to execute after task completion.
         """
         super().__init__(callback)
         self.hexapod = hexapod
         self.lights_handler = lights_handler
-        self.maintenance_mode_event = maintenance_mode_event
+        self.external_control_paused_event = external_control_paused_event
         self.run_calibration_task = RunCalibrationTask(hexapod)
         self.monitor_calibration_task = MonitorCalibrationStatusTask(hexapod, lights_handler)
 
@@ -54,8 +54,9 @@ class CompositeCalibrationTask(ControlTask):
         except Exception as e:
             logger.exception(f"Composite calibration task failed: {e}")
         finally:
-            self.maintenance_mode_event.clear()
-            logger.info("CompositeCalibrationTask completed.")
+            # Clear external control paused to resume voice control
+            self.external_control_paused_event.clear()
+            logger.info("CompositeCalibrationTask completed")
 
     @override
     def stop_task(self) -> None:

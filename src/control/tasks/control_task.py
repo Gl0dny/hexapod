@@ -62,9 +62,12 @@ class ControlTask(threading.Thread, abc.ABC):
         """
         pass
 
-    def stop_task(self) -> None:
+    def stop_task(self, timeout: float = 5.0) -> None:
         """
         Signals the task to stop and joins the thread.
+
+        Args:
+            timeout (float): Maximum time to wait for the task to stop in seconds.
 
         Sets the stop_event to notify the thread to terminate.
         If the thread is alive, it forcefully stops the thread and invokes the callback if provided.
@@ -72,6 +75,11 @@ class ControlTask(threading.Thread, abc.ABC):
         logger.info(f"Stopping task: {self.__class__.__name__}")
         self.stop_event.set()
         if self.is_alive():
-            logger.info(f"Task {self.__class__.__name__} forcefully stopping.")
-            self.join()
+            try:
+                logger.info(f"Waiting for task {self.__class__.__name__} to stop (timeout: {timeout} seconds)")
+                self.join(timeout=timeout)
+                if self.is_alive():
+                    logger.error(f"Task {self.__class__.__name__} did not stop within {timeout}s timeout")
+            except Exception as e:
+                logger.error(f"Error while stopping task {self.__class__.__name__}: {e}")
 

@@ -1,1 +1,2 @@
-from odas.odas_voice_input import ODASVoiceInput
+# from odas.odas_audio_processor import ODASAudioProcessor
+from odas.odas_doa_ssl_processor import ODASDoASSLProcessor

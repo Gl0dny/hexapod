@@ -1,6 +1,7 @@
 from .animation import Animation
 from .alternate_rotate_animation import AlternateRotateAnimation
 from .calibration_animation import CalibrationAnimation
+from .direction_of_arrival_animation import DirectionOfArrivalAnimation
 from .opposite_rotate_animation import OppositeRotateAnimation
 from .pulse_animation import PulseAnimation
 from .pulse_smoothly_animation import PulseSmoothlyAnimation

@@ -62,8 +62,7 @@ class IntentDispatcher:
             'stop': self.handle_stop,
             'rotate': self.handle_rotate,
             'follow': self.handle_follow,
-            'sound_source_analysis': self.handle_sound_source_analysis,
-            'direction_of_arrival': self.handle_direction_of_arrival,
+            'sound_source_analysis': self.handle_sound_source_localization,
             'police': self.handle_police,
             'rainbow': self.handle_rainbow,
             'sit_up': self.handle_sit_up,
@@ -335,24 +334,14 @@ class IntentDispatcher:
         self.control_interface.follow()
 
     @handler
-    def handle_sound_source_analysis(self, slots: Dict[str, Any]) -> None:
+    def handle_sound_source_localization(self, slots: Dict[str, Any]) -> None:
         """
-        Handle the 'sound_source_analysis' intent.
+        Handle the 'sound_source_localization' intent.
         
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.sound_source_analysis()
-
-    @handler
-    def handle_direction_of_arrival(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'direction_of_arrival' intent.
-        
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        self.control_interface.direction_of_arrival()
+        self.control_interface.sound_source_localization()
 
     @handler
     def handle_police(self, slots: Dict[str, Any]) -> None:

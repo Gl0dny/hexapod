@@ -70,17 +70,13 @@ context:
         (direction)"
     follow:
       - "[Follow, Come to me, Follow me, Track me]"
-    sound_source_analysis:
-      - "[Run, Start, Perform, Execute, Begin, Initiate] (a, the) sound source [analysis, tracking]"
-      - "[Run, Start, Execute, Use, Activate, Launch] (a, the) sound source analysis [tool, system]"
+    sound_source_localization:
+      - "[Run, Start, Perform, Execute, Begin, Initiate] (a, the) sound source [analysis, tracking, localization]"
+      - "[Run, Start, Execute, Use, Activate, Launch] (a, the) sound source localization [tool, system]"
       - "(Run, Start, Execute, Use, Activate, Launch) (a, the) ODAS (process, system)"
       - "[Locate, Identify, Track] sound sources (in the area)"
       - "[Analyze, Scan] (the) environment for sound sources"
-    direction_of_arrival:
-      - "[Where, From where, What direction, From which direction] (is, does) (the) sound (come from, coming from)"
-      - "[Detect, Locate] (the) [direction, source] (of) (the) sound"
-      - "[Detect, Locate] (the) sound [direction, source]"
-      - "(Use, Activate) [DOA, Direction of Arrival]"
+      - "[Sound source localization, Sound source tracking, Sound source analysis]"
     police:
       - "(Activate, Switch to) police (mode)"
       - "(Turn on, Enable) police lights"

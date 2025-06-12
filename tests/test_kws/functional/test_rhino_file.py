@@ -26,8 +26,8 @@ def test_rhino_on_file(input_file: Path, access_key: str):
     if wav_file.getframerate() != 16000:
         raise ValueError("WAV file must be 16000 Hz")
     
-    # Get the path to the context file
-    context_path = Path(__file__).parent.parent / "kws" / "rhino" / "hexapod_en_raspberry-pi_v3_0_0.rhn"
+    # Get fixed path to model file
+    context_path = Path(__file__).parent.parent.parent.parent / "src" / "kws" / "rhino" / "hexapod_en_raspberry-pi_v3_0_0.rhn"
     if not context_path.exists():
         raise FileNotFoundError(f"Context file not found at {context_path}")
     
