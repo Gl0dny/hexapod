@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, override
 import logging
+import threading
+import time
 
 from control.tasks import ControlTask
 
@@ -18,7 +20,7 @@ class SoundSourceLocalizationTask(ControlTask):
 
     Processes incoming sound data to determine source directions and updates lights based on analysis.
     """
-    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor, callback: Optional[Callable] = None) -> None:
+    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor, maintenance_mode_event: threading.Event, callback: Optional[Callable] = None) -> None:
         """
         Initialize the SoundSourceLocalizationTask.
 
@@ -26,6 +28,7 @@ class SoundSourceLocalizationTask(ControlTask):
             hexapod: The hexapod object to control.
             lights_handler: Manages lights on the hexapod.
             odas_processor: The ODAS processor for sound source localization.
+            maintenance_mode_event: Event to manage maintenance mode state.
             callback: Function to call upon task completion.
         """
         logger.debug("Initializing SoundSourceLocalizationTask")
@@ -33,26 +36,35 @@ class SoundSourceLocalizationTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
         self.odas_processor = odas_processor
+        self.maintenance_mode_event = maintenance_mode_event
 
     @override
     def execute_task(self) -> None:
         """
-        Analyzes sound sources and updates lights accordingly.
-
-        Processes sound input to identify directions of incoming sounds and adjusts lights to indicate sources.
+        Execute the sound source localization task.
         """
         logger.info("SoundSourceLocalizationTask started")
         try:
-            logger.info("Starting sound source localization.")
+            self.lights_handler.off()
+
+            # Set maintenance mode to pause voice control
+            self.maintenance_mode_event.set()
+
+            time.sleep(3)  # Wait for Voice Control to pause ~2.5 seconds to release resources by PvRecorder
+            
+            # Start ODAS processor
             self.odas_processor.start()
             
-            # Wait for the stop event
+            # Wait for the task to complete or be stopped
             while not self.stop_event.is_set():
-                self.stop_event.wait(0.1)
+                time.sleep(0.1)
                 
         except Exception as e:
             logger.exception(f"Sound source localization task failed: {e}")
         finally:
-            logger.info("Stopping sound source localization.")
-            self.odas_processor.close()
+            # Ensure ODAS processor is closed
+            if hasattr(self, 'odas_processor'):
+                self.odas_processor.close()
+            # Clear maintenance mode to resume voice control
+            self.maintenance_mode_event.clear()
             logger.info("SoundSourceLocalizationTask completed")

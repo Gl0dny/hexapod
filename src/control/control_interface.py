@@ -95,9 +95,13 @@ class ControlInterface:
         Stop any running control task and reset the control_task attribute.
         """
         if hasattr(self, 'control_task') and self.control_task:
-            logger.debug(f"Stopping existing control_task {self.control_task}.")
-            self.control_task.stop_task()
-            self.control_task = None
+            try:
+                logger.debug(f"Stopping existing control_task {self.control_task}.")
+                self.control_task.stop_task(timeout=10.0)
+                self.control_task = None
+            except Exception as e:
+                logger.exception(f"Error stopping control task: {e}")
+                self.control_task = None
         else:
             logger.debug("No active control_task to stop.")
 
@@ -679,9 +683,9 @@ class ControlInterface:
 
     @voice_command
     @control_task
+    @inject_odas
     @inject_lights_handler
     @inject_hexapod
-    @inject_odas
     def sound_source_localization(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor) -> None:
         """
         Initiate sound source localization.
@@ -695,9 +699,10 @@ class ControlInterface:
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = control.tasks.SoundSourceLocalizationTask(
-                hexapod, 
-                lights_handler,
-                odas_processor,
+                hexapod=hexapod, 
+                lights_handler=lights_handler,
+                odas_processor=odas_processor,
+                maintenance_mode_event=self.maintenance_mode_event,
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
             logger.user_info("Sound source localization started.")

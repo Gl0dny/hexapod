@@ -11,7 +11,6 @@ import json
 import time
 import threading
 from datetime import datetime
-import signal
 import logging
 import subprocess
 from pathlib import Path
@@ -93,10 +92,6 @@ class ODASDoASSLProcessor:
         self.tracked_log: TextIO = self._open_log_file(self.base_logs_dir / "tracked.log")
         self.potential_log: TextIO = self._open_log_file(self.base_logs_dir / "potential.log")
 
-        # Set up signal handler
-        signal.signal(signal.SIGINT, self.signal_handler)
-        signal.signal(signal.SIGTERM, self.signal_handler)
-
         # Initialize LED visualization using the provided lights handler
         self.lights_handler = lights_handler
         self.doa_animation = DirectionOfArrivalAnimation(self.lights_handler.lights)
@@ -129,11 +124,6 @@ class ODASDoASSLProcessor:
                 def flush(self, *args: Any, **kwargs: Any) -> None: pass
                 def close(self, *args: Any, **kwargs: Any) -> None: pass
             return DummyFile()
-
-    def signal_handler(self, signum: int, frame: Any) -> None:
-        """Handle shutdown signals (SIGINT, SIGTERM)."""
-        print(f"\nShutting down...")
-        self.running = False
 
     def log(self, message: str, log_file: Optional[TextIO] = None, print_to_console: bool = False) -> None:
         """Log a message to console and optionally to a specific log file."""
@@ -384,12 +374,26 @@ class ODASDoASSLProcessor:
                 self.log(f"Accept error: {str(e)}")
             return None
 
+    def _setup_odas_directories(self) -> None:
+        """Create required ODAS directories and files."""
+        workspace_root = Path(__file__).parent.parent.parent
+        odas_data_dir = workspace_root / "data" / "audio" / "odas"
+        odas_data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create empty postfiltered.raw file if it doesn't exist
+        postfiltered_file = odas_data_dir / "postfiltered.raw"
+        if not postfiltered_file.exists():
+            postfiltered_file.touch()
+
     def start_odas_process(self) -> None:
         """Start the ODAS process in local mode."""
         if self.mode != 'local':
             return
 
         try:
+            # Setup required ODAS directories and files
+            self._setup_odas_directories()
+
             config_path = Path(__file__).parent / "config" / "local_odas.cfg"
             if not config_path.exists():
                 raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -508,10 +512,22 @@ class ODASDoASSLProcessor:
         
         if self.odas_process:
             try:
+                # First try graceful termination
                 self.odas_process.terminate()
-                self.odas_process.wait(timeout=5)
-            except:
-                self.odas_process.kill()
+                try:
+                    self.odas_process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    # If process doesn't terminate, force kill
+                    self.odas_process.kill()
+                    self.odas_process.wait()
+            except Exception as e:
+                logger.error(f"Error terminating ODAS process: {e}")
+                try:
+                    self.odas_process.kill()
+                except:
+                    pass
+            finally:
+                self.odas_process = None
         
         # Clear lights using the lights handler
         self.lights_handler.off()
@@ -551,7 +567,9 @@ def main() -> None:
     try:
         server.start()
     except KeyboardInterrupt:
-        pass
+        logger.critical("KeyboardInterrupt detected, initiating shutdown")
+        sys.stdout.write('\b' * 2)
+        logger.critical('Stopping ODAS DoA/SSL processor and cleaning up due to keyboard interrupt...')
     finally:
         server.close()
 
