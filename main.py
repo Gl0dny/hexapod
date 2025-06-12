@@ -108,10 +108,12 @@ def main() -> None:
             #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             #     break
             # time.sleep(1)
-            if button_handler.get_state():
-                # Button is pressed, toggle the system state
-                is_running = button_handler.toggle_state()
-                
+            action, is_running = button_handler.check_button()
+            
+            if action == 'long_press':
+                logger.user_info("Long press detected, starting sound source localization...")
+                control_interface.sound_source_localization()
+            elif action == 'toggle':
                 if is_running:
                     logger.user_info("Starting system...")
                     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
@@ -123,10 +125,6 @@ def main() -> None:
                     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
                     time.sleep(0.5)
                     control_interface.hexapod.deactivate_all_servos()
-                
-                # Wait for button release to prevent multiple toggles
-                while button_handler.get_state():
-                    time.sleep(0.1)
             
             time.sleep(0.1)  # Small delay to prevent CPU overuse
             
@@ -149,7 +147,6 @@ def main() -> None:
         control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
         time.sleep(0.5)
         control_interface.hexapod.deactivate_all_servos()
-        # control_interface.hexapod.controller.close() # TODO: Uncomment this if you think its needed
         button_handler.cleanup()
         logger.user_info('Exiting...')
 
