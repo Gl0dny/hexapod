@@ -6,6 +6,7 @@ import time
 import threading
 from functools import wraps
 from types import MethodType
+from pathlib import Path
 
 from lights import LightsInteractionHandler, ColorRGB
 from robot import Hexapod
@@ -32,12 +33,30 @@ class ControlInterface:
         """
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
+        
+        # Configure ODAS processor
+        odas_gui_config = {
+            'gui_host': "192.168.0.102",
+            'gui_tracked_sources_port': 9000,
+            'gui_potential_sources_port': 9001,
+            'forward_to_gui': True
+        }
+        
+        odas_data_config = {
+            'workspace_root': Path(__file__).parent.parent,
+            'base_logs_dir': Path(__file__).parent.parent / "logs" / "odas" / "ssl",
+            'odas_data_dir': Path(__file__).parent.parent / "data" / "audio" / "odas"
+        }
+        
         self.odas_processor = ODASDoASSLProcessor(
             lights_handler=self.lights_handler,
-            mode='local',
-            forward_to_gui=True,
-            debug_mode=True
+            tracked_sources_port=9000,
+            potential_sources_port=9001,
+            debug_mode=True,
+            gui_config=odas_gui_config,
+            data_config=odas_data_config
         )
+        
         self.control_task: ControlTask = None
         self.voice_control_context_info = None
         self._last_command = None
