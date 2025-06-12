@@ -14,7 +14,7 @@ The hardware is designed to accommodate the circular microphone array, ensuring 
 ![](./assets/hexapod.jpg)
 
 ![](./assets/hexapod2.jpg)
-
+<!-- 
 ## Table of Contents
 - [Key Features](#key-features)
 - [Implementation Details](#implementation-details)
@@ -309,4 +309,4 @@ pytest tests/test_imu.py
 
 ## License
 
-Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved.
+Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved. -->
