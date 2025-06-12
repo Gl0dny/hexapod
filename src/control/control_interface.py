@@ -43,8 +43,10 @@ class ControlInterface:
         self._last_command = None
         self._last_args = None
         self._last_kwargs = None
-        self.maintenance_mode_event = threading.Event()
-        self.button_handler = ButtonHandler(pin=26, maintenance_mode_event=self.maintenance_mode_event)
+        # Event to pause external control (button, voice commands) during particular operations
+        # like calibration, shutdown, or other maintenance tasks
+        self.external_control_paused_event = threading.Event()
+        self.button_handler = ButtonHandler(pin=26, external_control_paused_event=self.external_control_paused_event)
         self.task_complete_callback: Optional[Callable[[ControlTask], None]] = None
         logger.debug("ControlInterface initialized successfully.")
 
@@ -215,7 +217,7 @@ class ControlInterface:
             rename_thread(input_handler, "ShutdownInputHandler")
             input_handler.start()
 
-            self.maintenance_mode_event.set()  # Signal maintenance mode
+            self.external_control_paused_event.set()  # Signal external control paused
 
             shutdown_delay = 15.0  # seconds
             lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
@@ -251,7 +253,7 @@ class ControlInterface:
                 user_input = input_handler.get_input()
                 if user_input:
                     shutdown_timer.cancel()
-                    self.maintenance_mode_event.clear()
+                    self.external_control_paused_event.clear()
                     input_handler.shutdown()
                     input_handler = None
                     logger.user_info("Shutdown canceled by user.")
@@ -367,13 +369,13 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.maintenance_mode_event.set()  # Signal maintenance mode
+            self.external_control_paused_event.set()  # Signal external control paused
             if self.control_task:
                 self.control_task.stop_task()
             self.control_task = control.tasks.CompositeCalibrationTask(
                 hexapod, 
                 lights_handler, 
-                self.maintenance_mode_event, 
+                self.external_control_paused_event, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
             logger.user_info("Calibration process started.")
@@ -705,7 +707,7 @@ class ControlInterface:
                 hexapod=hexapod, 
                 lights_handler=lights_handler,
                 odas_processor=odas_processor,
-                maintenance_mode_event=self.maintenance_mode_event,
+                external_control_paused_event=self.external_control_paused_event,
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
             logger.user_info("Sound source localization started.")

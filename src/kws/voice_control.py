@@ -221,10 +221,10 @@ class VoiceControl(threading.Thread):
             paused = False
 
             while not self.stop_event.is_set():
-                if self.control_interface.maintenance_mode_event.is_set() and not paused:
+                if self.control_interface.external_control_paused_event.is_set() and not paused:
                     self.pause()
                     paused = True
-                elif not self.control_interface.maintenance_mode_event.is_set() and paused:
+                elif not self.control_interface.external_control_paused_event.is_set() and paused:
                     self.unpause()
                     paused = False
                 
