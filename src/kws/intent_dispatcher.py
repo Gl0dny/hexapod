@@ -333,16 +333,24 @@ class IntentDispatcher:
         """
         self.control_interface.sound_source_localization()
 
-    
     @handler
     def handle_stream_odas_audio(self, slots: Dict[str, Any]) -> None:
         """
-        Handle the 'stream_odas_audio' intent.
-        
+        Handle the stream_odas_audio intent.
+
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
+            
+        If odas_stream_type is provided, use it; otherwise use default (separated).
         """
-        self.control_interface.stream_odas_audio()
+        try:
+            stream_type = slots.get("odas_stream_type", "separated")
+            # Convert "post filtered" to "postfiltered" to match the expected format
+            if stream_type == "post filtered":
+                stream_type = "postfiltered"
+            self.control_interface.stream_odas_audio(stream_type=stream_type)
+        except Exception as e:
+            logger.exception(f"Error handling stream_odas_audio intent: {e}")
 
     @handler
     def handle_police(self, slots: Dict[str, Any]) -> None:
