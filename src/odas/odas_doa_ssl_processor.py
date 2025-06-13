@@ -217,7 +217,7 @@ class ODASDoASSLProcessor:
         stop_event: Optional[threading.Event] = None
     ) -> None:
         """
-        Initialize the ODAS server with configuration parameters.
+        Initialize the ODAS DoA/SSL processor with configuration parameters.
 
         Args:
             lights_handler (LightsInteractionHandler): The lights handler to use for visualization.
@@ -644,8 +644,8 @@ class ODASDoASSLProcessor:
             self.running = False
 
     def close(self) -> None:
-        """Close the ODAS server and clean up resources."""
-        logger.info("Closing ODAS server and cleaning up resources")
+        """Close the ODAS DoA/SSL processor and clean up resources."""
+        logger.info("Closing ODAS DoA/SSL processor and cleaning up resources")
         self.running = False
         
         # Stop the animation through the lights handler
@@ -666,7 +666,7 @@ class ODASDoASSLProcessor:
         
         # Close ODAS process
         self._close_odas_process()
-        logger.odas_user_info("ODAS server closed successfully")
+        logger.odas_user_info("ODAS DoA/SSL processor closed successfully")
 
 def main() -> None:
     """Main entry point for the ODAS DoA/SSL processor."""
