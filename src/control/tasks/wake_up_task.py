@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, override
 import logging
+import time
 
 from control.tasks import ControlTask
 from robot import PredefinedPosition, PredefinedAnglePosition
@@ -41,6 +42,7 @@ class WakeUpTask(ControlTask):
         try:
             self.lights_handler.set_brightness(50)
             self.lights_handler.rainbow()
+            time.sleep(1.5)
             self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
             self.hexapod.wait_until_motion_complete(self.stop_event)
             logger.debug("Hexapod woke up")

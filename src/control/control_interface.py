@@ -477,10 +477,12 @@ class ControlInterface:
         """
         logger.debug(f"Setting brightness to {brightness_percentage}%.")
         lights_handler.set_brightness(brightness_percentage)
+        lights_handler.listen_wakeword()
 
     @voice_command
+    @inject_lights_handler
     @inject_hexapod
-    def set_speed(self, hexapod: Hexapod, speed_percentage: float) -> None:
+    def set_speed(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, speed_percentage: float) -> None:
         """
         Set the speed of all servos.
 
@@ -490,10 +492,12 @@ class ControlInterface:
         """
         logger.debug(f"Setting speed to {speed_percentage}%.")
         hexapod.set_all_servos_speed(speed_percentage)
+        lights_handler.listen_wakeword()
    
     @voice_command 
+    @inject_lights_handler
     @inject_hexapod
-    def set_accel(self, hexapod: Hexapod, accel_percentage: float) -> None:
+    def set_accel(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, accel_percentage: float) -> None:
         """
         Set the acceleration of all servos.
 
@@ -503,6 +507,7 @@ class ControlInterface:
         """
         logger.debug(f"Setting acceleration to {accel_percentage}%.")
         hexapod.set_all_servos_accel(accel_percentage)
+        lights_handler.listen_wakeword()
 
     @voice_command
     @control_task
