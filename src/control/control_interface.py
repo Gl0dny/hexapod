@@ -43,7 +43,7 @@ class ControlInterface:
         }
         
         odas_data_config = {
-            'base_logs_dir': Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl",
+            'odas_logs_dir': Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl",
             'odas_data_dir': Path(__file__).parent.parent.parent / "data" / "audio" / "odas"
         }
         

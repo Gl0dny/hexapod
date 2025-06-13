@@ -42,7 +42,37 @@ def add_user_info_level() -> None:
 
     logging.Logger.user_info = user_info
 
+def add_odas_user_info() -> None:
+    """
+    Initialize and add a custom logging level 'ODAS_USER_INFO' to the logging module.
+    
+    This function sets up a new logging level with a numeric value of 24 and 
+    associates it with the name "ODAS_USER_INFO". It also adds the `odas_user_info` method 
+    to the `logging.Logger` class for ease of logging at this level.
+    """
+    ODAS_USER_INFO_LEVEL = 26
+    logging.addLevelName(ODAS_USER_INFO_LEVEL, "ODAS_USER_INFO")
+    logging.ODAS_USER_INFO = ODAS_USER_INFO_LEVEL
+
+    def odas_user_info(self, message: str, *args: Any, **kwargs: Any) -> None:
+        """
+        Log an ODAS user info message.
+
+        Args:
+            message (str): The message to be logged.
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+        
+        Returns:
+            None
+        """
+        if self.isEnabledFor(ODAS_USER_INFO_LEVEL):
+            self._log(ODAS_USER_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
+
+    logging.Logger.odas_user_info = odas_user_info
+
 add_user_info_level()
+add_odas_user_info()
 
 
 class MyJSONFormatter(logging.Formatter):
@@ -170,6 +200,7 @@ class ColoredTerminalFormatter(logging.Formatter):
         logging.DEBUG: FMT,
         logging.INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
         logging.USER_INFO: f"{ANSI_COLORS['CYAN']}{FMT}{RESET_COLOR}",
+        logging.ODAS_USER_INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
         logging.WARNING: f"{ANSI_COLORS['YELLOW']}{FMT}{RESET_COLOR}",
         logging.ERROR: f"{ANSI_COLORS['RED']}{FMT}{RESET_COLOR}",
         logging.CRITICAL: f"{ANSI_COLORS['BOLD_RED']}{FMT}{RESET_COLOR}",
