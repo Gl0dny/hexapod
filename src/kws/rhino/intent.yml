@@ -74,6 +74,9 @@ context:
       - "[Locate, Identify, Track] sound sources (in the area)"
       - "[Analyze, Scan] (the) environment for sound sources"
       - "[Sound source localization, Sound source tracking, Sound source analysis]"
+    stream_audio:
+      - "(Start, Begin, Run, Launch) (the) (ODAS) (audio) [stream, streaming]"
+      - "Stream (the) (ODAS) (audio)"
     police:
       - "(Activate, Switch to) police (mode)"
       - "(Turn on, Enable) police lights"
@@ -149,4 +152,8 @@ context:
       - three hundred sixty
     sequence_name:
       - pass
+    stream_type:
+      - postfiltered
+      - separated
+      - both
   macros: {}

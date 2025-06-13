@@ -715,6 +715,34 @@ class ControlInterface:
             logger.exception(f"Sound source localization task failed: {e}")
 
     @voice_command
+    @control_task
+    @inject_odas
+    @inject_lights_handler
+    @inject_hexapod
+    def stream_odas_audio(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor) -> None:
+        """
+        Initiate the ODAS audio streaming task. First runs sound source localization to ensure ODAS is properly initialized.
+
+        Args:
+            hexapod (Hexapod): The hexapod instance.
+            lights_handler (LightsInteractionHandler): Handles lights activity.
+            odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
+        """
+        try:
+            logger.user_info("Starting ODAS audio streaming.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = control.tasks.StreamODASAudioTask(
+                hexapod=hexapod, 
+                lights_handler=lights_handler,
+                odas_processor=odas_processor,
+                external_control_paused_event=self.external_control_paused_event,
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
+        except Exception as e:
+            logger.exception(f"ODAS audio streaming task failed: {e}")
+
+    @voice_command
     @inject_lights_handler
     def police(self, lights_handler: LightsInteractionHandler) -> None:
         """
