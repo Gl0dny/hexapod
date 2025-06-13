@@ -16,7 +16,7 @@ from kws import VoiceControl
 from control import ControlInterface
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
-from utils import setup_logging, clean_logs
+from interface import setup_logging, clean_logs
 
 if TYPE_CHECKING:
     from typing import Optional
