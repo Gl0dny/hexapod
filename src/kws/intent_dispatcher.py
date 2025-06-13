@@ -61,7 +61,7 @@ class IntentDispatcher:
             'stop': self.handle_stop,
             'rotate': self.handle_rotate,
             'follow': self.handle_follow,
-            'sound_source_analysis': self.handle_sound_source_localization,
+            'sound_source_localization': self.handle_sound_source_localization,
             'stream_odas_audio': self.handle_stream_odas_audio,
             'police': self.handle_police,
             'rainbow': self.handle_rainbow,

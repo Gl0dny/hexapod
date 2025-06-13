@@ -727,16 +727,20 @@ class ControlInterface:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
             odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
-            stream_type (str): Type of audio stream to play ('postfiltered' or 'separated'). Defaults to 'separated'.
+            stream_type (str): Type of audio stream to play (default: "separated").
         """
         try:
-            logger.user_info(f"Starting ODAS audio streaming ({stream_type}).")
-            # First run sound source localization to initialize ODAS
-            self.sound_source_localization(hexapod, lights_handler, odas_processor)
-            
-            # TODO: Add audio streaming functionality here with the specified stream_type
-            # This will run after sound source localization is complete
-            
+            logger.user_info("Starting ODAS audio streaming.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = control.tasks.StreamODASAudioTask(
+                hexapod=hexapod, 
+                lights_handler=lights_handler,
+                odas_processor=odas_processor,
+                external_control_paused_event=self.external_control_paused_event,
+                stream_type=stream_type,
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
         except Exception as e:
             logger.exception(f"ODAS audio streaming task failed: {e}")
 
