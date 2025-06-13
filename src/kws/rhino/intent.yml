@@ -8,9 +8,6 @@ context:
     shut_down:
       - "[Shut down, Power off] (now, immediately)"
       - "[Turn off, Deactivate] [the system, the robot]"
-    emergency_stop:
-      - "[Emergency stop, Stop everything] (now, immediately)"
-      - "[Abort, Cancel] [all actions, current operations, operations, activities] (now, immediately)"
     wake_up:
       - "[Activate, Wake up]"
     sleep:

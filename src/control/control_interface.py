@@ -303,29 +303,6 @@ class ControlInterface:
     @control_task
     @inject_lights_handler
     @inject_hexapod
-    def emergency_stop(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
-        """
-        Initiate an emergency stop to halt all activities.
-
-        Args:
-            hexapod (Hexapod): The hexapod instance.
-            lights_handler (LightsInteractionHandler): Handles lights activity.
-        """
-        try:
-            if self.control_task:
-                self.control_task.stop_task()
-            self.control_task = control.tasks.EmergencyStopTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.control_task)
-            )
-        except Exception as e:
-            logger.exception(f"Emergency stop failed: {e}")
-
-    @voice_command
-    @control_task
-    @inject_lights_handler
-    @inject_hexapod
     def wake_up(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
         Activate the robot from a sleep state.

@@ -44,7 +44,6 @@ class IntentDispatcher:
             'help': self.handle_help,
             'system_status': self.handle_system_status,
             'shut_down': self.handle_shut_down,
-            'emergency_stop': self.handle_emergency_stop,
             'wake_up': self.handle_wake_up,
             'sleep': self.handle_sleep,
             'calibrate': self.handle_calibrate,
@@ -121,16 +120,6 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         self.control_interface.shut_down()
-
-    @handler
-    def handle_emergency_stop(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'emergency_stop' intent.
-        
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        self.control_interface.emergency_stop()
 
     @handler
     def handle_wake_up(self, slots: Dict[str, Any]) -> None:
