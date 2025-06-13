@@ -149,14 +149,24 @@ class ODASDoASSLProcessor:
         def connect(self) -> None:
             """Connect to the remote GUI station."""
             try:
+                # Create socket with timeout
                 self.gui_tracked_sources_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.gui_tracked_sources_socket.settimeout(0.5)
                 self.gui_tracked_sources_socket.connect((self.gui_host, self.gui_tracked_sources_port))
+                
                 self.gui_potential_sources_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.gui_potential_sources_socket.settimeout(0.5)
                 self.gui_potential_sources_socket.connect((self.gui_host, self.gui_potential_sources_port))
-                print(f"Connected to GUI at {self.gui_host}")
+                
+                logger.odas_user_info(f"Connected to GUI at {self.gui_host}")
+            except socket.timeout:
+                logger.error("GUI connection timeout")
+                logger.warning("Disabling GUI forwarding...")
+                self.forward_to_gui = False
+                self._close_sockets()
             except Exception as e:
                 logger.error(f"GUI connection error: {str(e)}")
-                print("Disabling GUI forwarding...")
+                logger.warning("Disabling GUI forwarding...")
                 self.forward_to_gui = False
                 self._close_sockets()
 
@@ -176,7 +186,7 @@ class ODASDoASSLProcessor:
                 self.connect()
             except Exception as e:
                 logger.error(f"Failed to reconnect to GUI: {str(e)}")
-                print("Disabling GUI forwarding...")
+                logger.warning("Disabling GUI forwarding...")
                 self.forward_to_gui = False
 
         def forward_data(self, data: bytes, client_type: str) -> None:
@@ -375,15 +385,18 @@ class ODASDoASSLProcessor:
                     logger.error(f"ODAS data handler error: {str(e)}")
                 break
 
-    def start_server(self, port: int) -> socket.socket:
-        """Start a TCP server on the specified port."""
+    def start_server(self, port: int, data_type: str = "unknown") -> socket.socket:
+        """Start a TCP server on the specified port.
+        
+        Args:
+            port: The port number to listen on
+            data_type: The type of data this server will receive ("tracked" or "potential")
+        """
         server_socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind((self.host, port))
         server_socket.listen(1)
-        if not self.initial_connection_made:
-            print(f"Listening for odas data on {self.host}:{port}")
-            self.initial_connection_made = True
+        logger.odas_user_info(f"Listening for {data_type} sources data on {self.host}:{port}")
         return server_socket
 
     def _get_direction(self, x: float, y: float, z: float) -> str:
@@ -413,6 +426,9 @@ class ODASDoASSLProcessor:
         if self.last_num_lines > 0:
             print(f"\033[{self.last_num_lines}A", end='', flush=True)
         
+        # Set text color to green
+        print("\033[32m", end='', flush=True)
+        
         if current_lines == 0:
             # Print "no sources" message
             print("\033[KNo sources tracked")
@@ -426,6 +442,9 @@ class ODASDoASSLProcessor:
                 direction = self._get_direction(x, y, z)
                 print(f"\033[KSource {sid}: ({x:.2f}, {y:.2f}, {z:.2f}) | {direction} | Act:{activity:.2f}")
             self.last_num_lines = current_lines
+            
+        # Reset text color
+        print("\033[0m", end='', flush=True)
 
     def accept_and_handle_data(self, server_socket: socket.socket, client_type: str) -> None:
         """Accept connections and handle ODAS data in a loop.
@@ -513,7 +532,12 @@ class ODASDoASSLProcessor:
                 stderr = self.odas_process.stderr.readline() if self.odas_process.stderr else None
 
                 if stdout:
-                    print(f"ODAS: {stdout.strip()}")
+                    logger.odas_user_info(f"ODAS: {stdout.strip()}")
+                    # Check for connection error and disable GUI forwarding if needed
+                    if "Cannot connect to server" in stdout:
+                        logger.warning("ODAS cannot connect to server")
+                        self.gui_manager.forward_to_gui = False
+                        self.gui_manager._close_sockets()
                 if stderr:
                     logger.error(f"ODAS Error: {stderr.strip()}")
 
@@ -549,9 +573,9 @@ class ODASDoASSLProcessor:
         
         This method initializes and starts all necessary components:
         1. Shows loading animation
-        2. Starts the ODAS process (external audio processing)
-        3. Connects to GUI if enabled
-        4. Starts TCP servers for data reception
+        2. Starts TCP servers for data reception
+        3. Starts the ODAS process (external audio processing)
+        4. Connects to GUI if enabled
         5. Creates and starts worker threads for data handling
         
         The system uses multiple threads:
@@ -565,26 +589,27 @@ class ODASDoASSLProcessor:
             self.lights_handler.odas_loading()
             logger.info("Starting ODAS DoA/SSL processor")
 
+            # Start TCP servers for data reception first
+            # These servers will accept connections from the ODAS process
+            self.tracked_sources_server = self.start_server(self.tracked_sources_port, "tracked")
+            self.potential_sources_server = self.start_server(self.potential_sources_port, "potential")
+            logger.info(f"Started TCP servers on ports {self.tracked_sources_port} and {self.potential_sources_port}")
+
+            # Now start ODAS process
             self.start_odas_process()
             if not self.running:
                 return
 
             if self.gui_manager.forward_to_gui:
                 self.gui_manager.connect()
-
-            # Start TCP servers for data reception
-            # These servers will accept connections from the ODAS process
-            self.tracked_sources_server = self.start_server(self.tracked_sources_port)
-            self.potential_sources_server = self.start_server(self.potential_sources_port)
-            logger.info(f"Started TCP servers on ports {self.tracked_sources_port} and {self.potential_sources_port}")
-
-            # Wait for 2.2 seconds to complete one full loading animation cycle - let servers initialize
-            time.sleep(2.2)
-
+                
+            # Wait for 1.5 seconds to complete one full loading animation cycle - let servers initialize
+            time.sleep(1.5)
+            
             # Switch to direction of arrival animation once everything is initialized
             self.lights_handler.direction_of_arrival()
 
-            print(f"ODAS DoA/SSL Processor started: tracked={self.tracked_sources_port}, "
+            logger.odas_user_info(f"ODAS DoA/SSL Processor started: tracked={self.tracked_sources_port}, "
                            f"potential={self.potential_sources_port}, "
                            f"GUI forwarding={'on' if self.gui_manager.forward_to_gui else 'off'}, "
                            f"debug={'on' if self.debug_mode else 'off'}")
@@ -641,7 +666,7 @@ class ODASDoASSLProcessor:
         
         # Close ODAS process
         self._close_odas_process()
-        print("ODAS server closed successfully")
+        logger.odas_user_info("ODAS server closed successfully")
 
 def main() -> None:
     """Main entry point for the ODAS DoA/SSL processor."""
