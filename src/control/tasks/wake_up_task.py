@@ -43,7 +43,7 @@ class WakeUpTask(ControlTask):
             self.lights_handler.set_brightness(50)
             self.lights_handler.rainbow()
             time.sleep(1.5)
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+            self.hexapod.move_to_position(PredefinedPosition.ZERO)
             self.hexapod.wait_until_motion_complete(self.stop_event)
             logger.debug("Hexapod woke up")
         except Exception as e:
