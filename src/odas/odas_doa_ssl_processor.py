@@ -645,7 +645,7 @@ class ODASDoASSLProcessor:
 
 def main() -> None:
     """Main entry point for the ODAS DoA/SSL processor."""
-    from utils.logging.logging_utils import setup_logging
+    from interface.logging.logging_utils import setup_logging
     
     parser = argparse.ArgumentParser(description='ODAS DoA/SSL Processor for sound source tracking')
     parser.add_argument('--tracked-sources-port', type=int, default=9000,
@@ -671,7 +671,7 @@ def main() -> None:
     parser.add_argument('--log-dir', type=Path, default=Path('logs'),
                       help='Directory to store logs')
     parser.add_argument('--log-config-file', type=Path, 
-                      default=Path(__file__).parent.parent / "utils" / "logging" / "config" / "config.yaml",
+                      default=Path(__file__).parent.parent / "interface" / "logging" / "config" / "config.yaml",
                       help='Path to log configuration file')
     
     args = parser.parse_args()

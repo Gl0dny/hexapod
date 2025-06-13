@@ -10,7 +10,7 @@ import yaml
 if TYPE_CHECKING:
     from typing import Optional
 
-from ..utils import rename_thread
+from utils import rename_thread
 
 def clean_logs(log_dir: Optional[Path] = None) -> None:
     """

@@ -42,7 +42,7 @@ if str(project_root) not in sys.path:
 if str(src_path) not in sys.path:
     sys.path.append(str(src_path))
 
-from utils.logging import setup_logging, clean_logs
+from interface.logging import setup_logging, clean_logs
 
 DEFAULT_HOST = "hexapod"
 DEFAULT_HOSTNAME = "192.168.0.122"
@@ -445,9 +445,9 @@ def main() -> None:
                         help='Type of audio file to play: postfiltered (default), separated, or both')
     parser.add_argument('--log-dir', type=Path, default=Path('logs'),
                         help='Directory to store logs')
-    parser.add_argument('--log-config-file', type=Path, 
-                        default=Path(__file__).parent.parent / "utils" / "logging" / "config" / "config.yaml",
-                        help='Path to log configuration file')
+    parser.add_argument('--log-config-file', type=Path,
+                      default=Path(__file__).parent.parent / "interface" / "logging" / "config" / "config.yaml",
+                      help='Path to log configuration file')
     parser.add_argument('--clean', '-c', action='store_true',
                         help='Clean all logs in the logs directory.')
 
