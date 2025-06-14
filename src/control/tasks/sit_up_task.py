@@ -45,9 +45,10 @@ class SitUpTask(ControlTask):
         logger.info("Starting sit-up motion")
         
         # Parameters for the sit-up motion
-        up_height = 30.0  # mm to raise the body
-        hold_time = 1.0   # seconds to hold each position
-        repetitions = 3   # number of sit-ups to perform
+        up_height = 30.0    # mm to raise the body
+        down_height = 30.0  # mm to lower the body (more than up_height for more pronounced motion)
+        hold_time = 0.5     # seconds to hold each position
+        repetitions = 5     # number of sit-ups to perform
         
         try:
             # Start in a stable position
@@ -66,9 +67,9 @@ class SitUpTask(ControlTask):
                 logger.info("Holding up position")
                 time.sleep(hold_time)
                 
-                # Move down
+                # Move down (lower than the up position)
                 logger.info("Moving body down")
-                self.hexapod.move_body(tz=-up_height)
+                self.hexapod.move_body(tz=-down_height)
                 self.hexapod.wait_until_motion_complete()
                 
                 # Hold down position
