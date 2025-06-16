@@ -5,6 +5,7 @@ from .follow_task import FollowTask
 from .helix_task import HelixTask
 from .idle_stance_task import IdleStanceTask
 from .low_profile_task import LowProfileTask
+from .march_task import MarchTask
 from .move_task import MoveTask
 from .rotate_task import RotateTask
 from .run_sequence_task import RunSequenceTask

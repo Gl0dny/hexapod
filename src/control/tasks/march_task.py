@@ -21,21 +21,21 @@ class MarchTask(ControlTask):
     Executes a series of movements to simulate a marching motion while maintaining light activity.
     Uses TripodGait for stable marching motion.
     """
-    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, duration: float = 10.0, callback: Optional[Callable] = None) -> None:
+    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, duration: Optional[float] = None, callback: Optional[Callable] = None) -> None:
         """
         Initialize the MarchTask.
 
         Args:
             hexapod: The hexapod object to control.
             lights_handler: Manages lights on the hexapod.
-            duration: Duration of marching in seconds (default: 5.0).
+            duration: Duration of marching in seconds (default: 10.0).
             callback: Function to call upon task completion.
         """
         logger.debug("Initializing MarchTask")
         super().__init__(callback)
         self.hexapod = hexapod
         self.lights_handler = lights_handler
-        self.duration = duration
+        self.duration = 10.0 if duration is None else float(duration)
 
     def perform_march(self) -> None:
         """

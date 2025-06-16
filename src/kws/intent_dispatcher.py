@@ -55,7 +55,7 @@ class IntentDispatcher:
             'set_speed': self.handle_set_speed,
             'set_accel': self.handle_set_accel,
             'low_profile_mode': self.handle_low_profile_mode,
-            'march': self.handle_march,
+            # 'march': self.handle_march, #TODO train model for this command
             'upright_mode': self.handle_upright_mode,
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
