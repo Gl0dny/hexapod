@@ -530,9 +530,34 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-
         except Exception as e:
             logger.exception(f"Setting low profile mode failed: {e}")
+    
+    @voice_command
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def march(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, duration: Optional[float] = None) -> None:
+        """
+        Execute the marching task.
+
+        Args:
+            hexapod (Hexapod): The hexapod instance.
+            lights_handler (LightsInteractionHandler): Handles lights activity.
+            duration (Optional[float]): Duration of marching in seconds. If None, uses default duration.
+        """
+        try:
+            logger.user_info("Executing march.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = control.tasks.MarchTask(
+                hexapod, 
+                lights_handler,
+                duration=duration,
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
+        except Exception as e:
+            logger.exception(f"March task failed: {e}")
 
     @voice_command
     @control_task

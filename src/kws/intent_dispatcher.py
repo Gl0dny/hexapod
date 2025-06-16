@@ -55,6 +55,7 @@ class IntentDispatcher:
             'set_speed': self.handle_set_speed,
             'set_accel': self.handle_set_accel,
             'low_profile_mode': self.handle_low_profile_mode,
+            'march': self.handle_march,
             'upright_mode': self.handle_upright_mode,
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
@@ -259,6 +260,23 @@ class IntentDispatcher:
         """
         self.control_interface.set_low_profile_mode()
 
+    @handler
+    def handle_march(self, slots: Dict[str, Any]) -> None:
+        """
+        Handle the 'march' intent.
+        
+        Args:
+            slots (Dict[str, Any]): Additional data for the intent.
+        """
+        try:
+            duration = None
+            if 'march_time' in slots:
+                duration = float(slots['march_time'])
+            self.control_interface.march(duration=duration)
+        except (ValueError, TypeError) as e:
+            logger.exception(f"Invalid duration value: {e}")
+            self.control_interface.march()  # Use default duration
+        
     @handler
     def handle_upright_mode(self, slots: Dict[str, Any]) -> None:
         """
