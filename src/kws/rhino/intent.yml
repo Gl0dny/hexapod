@@ -89,7 +89,7 @@ context:
       - "[Display, Show] (a) rainbow (effect, pattern)"
     sit_up:
       - "(Perform, Do, Make) (some, a set) (of) sit ups"
-    march:
+    march_in_place:
       - "[March, March in place]"
       - "(Start, Begin, Perform) marching"
       - "[March, March in place] (for) $pv.TwoDigitInteger:march_time $time_unit:time_unit"

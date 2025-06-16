@@ -55,7 +55,7 @@ class IntentDispatcher:
             'set_speed': self.handle_set_speed,
             'set_accel': self.handle_set_accel,
             'low_profile_mode': self.handle_low_profile_mode,
-            # 'march': self.handle_march, #TODO train model for this command
+            # 'march_in_place': self.handle_march_in_place, #TODO train model for this command
             'upright_mode': self.handle_upright_mode,
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
@@ -261,9 +261,9 @@ class IntentDispatcher:
         self.control_interface.set_low_profile_mode()
 
     @handler
-    def handle_march(self, slots: Dict[str, Any]) -> None:
+    def handle_march_in_place(self, slots: Dict[str, Any]) -> None:
         """
-        Handle the 'march' intent.
+        Handle the 'march_in_place' intent.
         
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
@@ -272,11 +272,11 @@ class IntentDispatcher:
             duration = None
             if 'march_time' in slots:
                 duration = float(slots['march_time'])
-            self.control_interface.march(duration=duration)
+            self.control_interface.march_in_place(duration=duration)
         except (ValueError, TypeError) as e:
             logger.exception(f"Invalid duration value: {e}")
-            self.control_interface.march()  # Use default duration
-        
+            self.control_interface.march_in_place()  # Use default duration
+
     @handler
     def handle_upright_mode(self, slots: Dict[str, Any]) -> None:
         """
