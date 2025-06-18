@@ -26,9 +26,11 @@ This video demonstrates an autonomous hexapod robot performing advanced auditory
 - Live GUI visualization showing sound source tracking and spatial mapping
 - Terminal debug output displaying active sound sources with coordinates and activity levels
 - Elevation and azimuth time charts showing temporal tracking of sound source positions
+- System monitoring panel showing CPU usage, temperature, memory usage, and IP address
 - Robot view - top-down view of the hexapod responding to acoustic stimuli
 - LED feedback system indicating detected sound sources through visual cues
-- Multi-source tracking - demonstrating the system's ability to track multiple simultaneous sound sources
+- Multi-source tracking - demonstrating the system's ability to track up to 4 simultaneous sound sources
+- Automatic audio stream separation and recording of individual source audio files
 
 This represents a complete autonomous control system where the hexapod can navigate and interact based purely on auditory cues, enabling sophisticated human-robot interaction through voice commands and environmental sound awareness.
 
