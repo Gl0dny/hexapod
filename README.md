@@ -20,6 +20,18 @@ The hardware is designed to accommodate the circular microphone array, ensuring 
 
 [![Real-Time Sound Source Localization: Hexapod Robot with ODAS Audio Processing](./assets/odas_thumbnail.png)](https://www.youtube.com/watch?v=d-cn0CHzEGE)
 
+This video demonstrates an autonomous hexapod robot performing advanced auditory scene analysis in real-time. The complete ODAS (Open embeddeD Audition System) pipeline is showcased, featuring:
+
+- Real-time Direction of Arrival (DoA) estimation using a 6-microphone circular array
+- Live GUI visualization showing sound source tracking and spatial mapping
+- Terminal debug output displaying active sound sources with coordinates and activity levels
+- Elevation and azimuth time charts showing temporal tracking of sound source positions
+- Robot view - top-down view of the hexapod responding to acoustic stimuli
+- LED feedback system indicating detected sound sources through visual cues
+- Multi-source tracking - demonstrating the system's ability to track multiple simultaneous sound sources
+
+This represents a complete autonomous control system where the hexapod can navigate and interact based purely on auditory cues, enabling sophisticated human-robot interaction through voice commands and environmental sound awareness.
+
 <!-- 
 ## Table of Contents
 - [Key Features](#key-features)
