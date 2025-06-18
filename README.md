@@ -14,6 +14,10 @@ The hardware is designed to accommodate the circular microphone array, ensuring 
 ![](./assets/hexapod.jpg)
 
 ![](./assets/hexapod2.jpg)
+
+### Real-Time Sound Source Localization: Hexapod Robot with ODAS Audio Processing
+[![Real-Time Sound Source Localization: Hexapod Robot with ODAS Audio Processing](./assets/odas_thumbnail.webp)](https://www.youtube.com/watch?v=d-cn0CHzEGE)
+
 <!-- 
 ## Table of Contents
 - [Key Features](#key-features)
