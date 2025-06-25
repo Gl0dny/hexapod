@@ -49,7 +49,9 @@ class MarchInPlaceTask(ControlTask):
         
         # Start in a stable position
         self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-        self.hexapod.wait_until_motion_complete()
+        self.hexapod.wait_until_motion_complete(self.stop_event)
+        if self.stop_event.is_set():
+            return
         
         # Configure tripod gait for marching in place
         gait_params = {
@@ -63,11 +65,16 @@ class MarchInPlaceTask(ControlTask):
         # Create and start the tripod gait
         gait = TripodGait(self.hexapod, **gait_params)
         logger.info("Starting tripod gait for marching in place")
-        self.hexapod.gait_generator.start(gait)
+        self.hexapod.gait_generator.start(gait, stop_event=self.stop_event)
         
         # March for specified duration
         logger.info(f"Marching in place for {self.duration} seconds")
-        time.sleep(self.duration)
+        start_time = time.time()
+        while time.time() - start_time < self.duration:
+            if self.stop_event.is_set():
+                logger.info("Marching task interrupted.")
+                break
+            time.sleep(0.1)  # Check stop event every 100ms
         
         # Stop the gait
         logger.info("Stopping marching in place motion")
@@ -76,7 +83,7 @@ class MarchInPlaceTask(ControlTask):
         # Return to home position
         logger.info("Returning to home position")
         self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-        self.hexapod.wait_until_motion_complete()
+        self.hexapod.wait_until_motion_complete(self.stop_event)
 
     @override
     def execute_task(self) -> None:
@@ -93,4 +100,6 @@ class MarchInPlaceTask(ControlTask):
         except Exception as e:
             logger.exception(f"Marching task failed: {e}")
         finally:
+            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            self.hexapod.wait_until_motion_complete(self.stop_event)
             logger.info("MarchTask completed") 

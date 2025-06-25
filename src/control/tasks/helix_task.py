@@ -91,8 +91,7 @@ class HelixTask(ControlTask):
             self._perform_helix()
         except Exception as e:
             logger.exception(f"Error in HelixTask: {e}")
-
         finally:
             logger.info("HelixTask completed")
             self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-            self.hexapod.wait_until_motion_complete()
+            self.hexapod.wait_until_motion_complete(self.stop_event)

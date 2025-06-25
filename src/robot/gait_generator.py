@@ -8,6 +8,8 @@ from dataclasses import dataclass
 import numpy as np
 from abc import ABC, abstractmethod
 
+from utils import rename_thread
+
 logger = logging.getLogger("robot_logger")
 
 if TYPE_CHECKING:
@@ -198,6 +200,7 @@ class GaitGenerator:
         self.thread = None
         self.current_state: Optional[GaitState] = None
         self.current_gait: Optional[BaseGait] = None
+        self.stop_event: Optional[threading.Event] = None
 
     def _check_stability(self) -> bool:
         """Checks if the robot is stable based on IMU readings."""
@@ -243,15 +246,17 @@ class GaitGenerator:
         # Move all legs to their target positions
         self.hexapod.move_all_legs(target_positions)
 
-    def start(self, gait: BaseGait) -> None:
+    def start(self, gait: BaseGait, stop_event: Optional[threading.Event] = None) -> None:
         """
         Starts the gait generation in a separate thread.
 
         Args:
             gait (BaseGait): The gait instance to execute.
+            stop_event (threading.Event, optional): Event to signal stopping the gait.
         """
         if not self.is_running:
             self.is_running = True
+            self.stop_event = stop_event
             self.current_gait = gait
             if isinstance(gait, TripodGait):
                 self.current_state = gait.get_state(GaitPhase.TRIPOD_A)
@@ -260,6 +265,7 @@ class GaitGenerator:
             else:
                 raise ValueError(f"Unknown gait type: {type(gait)}")
             self.thread = threading.Thread(target=self.run_gait)
+            rename_thread(self.thread, f"GaitGenerator-{gait.__class__.__name__}")
             self.thread.start()
 
     def run_gait(self) -> None:
@@ -268,6 +274,11 @@ class GaitGenerator:
         while self.is_running:
             if not self.current_state:
                 print("No current state set, stopping gait")
+                break
+
+            # Check if stop event is set
+            if self.stop_event and self.stop_event.is_set():
+                print("Stop event detected, stopping gait")
                 break
 
             try:
@@ -279,7 +290,16 @@ class GaitGenerator:
                 start_time = time.time()
                 while (time.time() - start_time < self.current_state.dwell_time and
                        self._check_stability()):
+                    # Check stop event during dwell time
+                    if self.stop_event and self.stop_event.is_set():
+                        print("Stop event detected during dwell time")
+                        return
                     time.sleep(0.01)  # Small sleep to prevent CPU hogging
+
+                # Check stop event before transitioning
+                if self.stop_event and self.stop_event.is_set():
+                    print("Stop event detected before state transition")
+                    break
 
                 # Transition to next state
                 next_phases = self.current_gait.gait_graph[self.current_state.phase]
@@ -296,7 +316,10 @@ class GaitGenerator:
         """Stops the gait generation."""
         if self.is_running:
             self.is_running = False
+            if self.stop_event:
+                self.stop_event.set()
             if self.thread:
                 self.thread.join()
             self.current_state = None
             self.current_gait = None
+            self.stop_event = None
