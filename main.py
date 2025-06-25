@@ -66,8 +66,6 @@ def main() -> None:
     
     # Initialize control interface
     control_interface = ControlInterface()
-
-    control_interface.hexapod.move_to_position(PredefinedPosition.UPRIGHT)
         
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')

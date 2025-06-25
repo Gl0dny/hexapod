@@ -84,9 +84,13 @@ class Hexapod:
         
         # Speed setting for the servo in percent. Speed unit - (0.25us/10ms).
         # The speed parameter can be set to a maximum value of 255, corresponding to a change of 63.75 μs every 10 ms.
+        # Default from config: 25% (from hexapod_config.yaml)
+        # This is a percentage value (1-100) that gets converted to Maestro range (1-255) when used
         self.speed: int = config['speed']
         # Acceleration setting for the servo percent. Acceleration units - (0.25us/10ms/80ms).
         # The maximum acceleration setting is 255, allowing the speed to change by 63.75 μs per 10 ms interval every 80 ms.
+        # Default from config: 10% (from hexapod_config.yaml)
+        # This is a percentage value (1-100) that gets converted to Maestro range (1-255) when used
         self.accel: int = config['accel']
 
         self.imu = Imu()
@@ -130,6 +134,9 @@ class Hexapod:
 
         self.gait_generator = GaitGenerator(self)
 
+        self.set_all_servos_speed(self.speed)
+        self.set_all_servos_accel(self.accel)
+
         self.move_to_position(PredefinedPosition.LOW_PROFILE)
         self.wait_until_motion_complete()
         
@@ -147,12 +154,15 @@ class Hexapod:
         self.calibration.calibrate_all_servos(stop_event=stop_event)
         logger.info("Calibration of all servos completed")
 
-    def set_all_servos_speed(self, speed: int = Joint.DEFAULT_SPEED) -> None:
+    def set_all_servos_speed(self, speed: int) -> None:
         """
         Set speed for all servos.
 
         Args:
-            speed (int, optional): The speed to set for all servos.
+            speed (int): The speed to set for all servos.
+                - Range: 1-100 (percentage) or 0 (unlimited)
+                - 0: Unlimited speed (no speed limit)
+                - 1-100: Percentage of maximum speed (1% = slowest, 100% = fastest)
         """
         if speed == 0:
             logger.warning("Setting all servos speed to: Unlimited")
@@ -164,12 +174,15 @@ class Hexapod:
         for channel in used_channels:
             self.controller.set_speed(channel, speed)
 
-    def set_all_servos_accel(self, accel: int = Joint.DEFAULT_ACCEL) -> None:
+    def set_all_servos_accel(self, accel: int) -> None:
         """
         Set acceleration for all servos.
 
         Args:
-            accel (int, optional): The acceleration to set for all servos.
+            accel (int): The acceleration to set for all servos.
+                - Range: 1-100 (percentage) or 0 (unlimited)
+                - 0: Unlimited acceleration (no acceleration limit)
+                - 1-100: Percentage of maximum acceleration (1% = slowest, 100% = fastest)
         """
         if accel == 0:
             logger.warning("Setting all servos acceleration to: Unlimited")
@@ -211,11 +224,9 @@ class Hexapod:
         leg_index: int, 
         x: float, 
         y: float, 
-        z: float, 
-        speed: Optional[int] = None, 
-        accel: Optional[int] = None
+        z: float
     ) -> None:
-        logger.info(f"Moving leg {leg_index} to position x: {x}, y: {y}, z: {z} with speed: {speed} and accel: {accel}")
+        logger.info(f"Moving leg {leg_index} to position x: {x}, y: {y}, z: {z}")
         """
         Move a specific leg to the given (x, y, z) coordinate.
         
@@ -224,15 +235,8 @@ class Hexapod:
             x (float): Target x-coordinate.
             y (float): Target y-coordinate.
             z (float): Target z-coordinate.
-            speed (int, optional): Overrides the default servo speed.
-            accel (int, optional): Overrides the default servo acceleration.
         """
-        if speed is None:
-            speed = self.speed
-        if accel is None:
-            accel = self.accel
-            
-        self.legs[leg_index].move_to(x, y, z, speed, accel)
+        self.legs[leg_index].move_to(x, y, z)
         self.current_leg_positions[leg_index] = (x, y, z)
         coxa_angle, femur_angle, tibia_angle = self.legs[leg_index].compute_inverse_kinematics(x, y, z)
         self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
@@ -240,24 +244,16 @@ class Hexapod:
 
     def move_all_legs(
         self, 
-        positions: List[Tuple[float, float, float]], 
-        speed: Optional[int] = None, 
-        accel: Optional[int] = None
+        positions: List[Tuple[float, float, float]]
     ) -> None:
-        logger.info(f"move_all_legs called with positions: {positions}, speed: {speed}, accel: {accel}")
+        logger.info(f"move_all_legs called with positions: {positions}")
         """
         Move all legs simultaneously to specified positions.
         
         Args:
             positions (List[Tuple[float, float, float]]): List of (x, y, z) tuples for each leg.
-            speed (int, optional): Overrides default servo speed.
-            accel (int, optional): Overrides default servo acceleration.
         """
-        logger.info(f"move_all_legs called with positions: {positions}, speed: {speed}, accel: {accel}")
-        if speed is None:
-            speed = self.speed
-        if accel is None:
-            accel = self.accel
+        logger.info(f"move_all_legs called with positions: {positions}")
         
         for i, pos in enumerate(positions):
             x, y, z = pos
@@ -291,9 +287,6 @@ class Hexapod:
             targets.append((self.legs[i].coxa.channel, coxa_target))
             targets.append((self.legs[i].femur.channel, femur_target))
             targets.append((self.legs[i].tibia.channel, tibia_target))
-        
-        self.set_all_servos_speed(speed)
-        self.set_all_servos_accel(accel)
         
         # Add unused channels with 0
         unused_channels = [ch for ch in range(self.CONTROLLER_CHANNELS) if ch not in (self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map)]
@@ -372,11 +365,9 @@ class Hexapod:
         leg_index: int,
         coxa_angle: float,
         femur_angle: float,
-        tibia_angle: float,
-        speed: Optional[int] = None,
-        accel: Optional[int] = None
+        tibia_angle: float
     ) -> None:
-        logger.info(f"Moving leg {leg_index} to angles coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle} with speed: {speed} and accel: {accel}")
+        logger.info(f"Moving leg {leg_index} to angles coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
         """
         Move a specific leg to the given joint angles.
         
@@ -385,15 +376,8 @@ class Hexapod:
             coxa_angle (float): Target angle for the coxa joint.
             femur_angle (float): Target angle for the femur joint.
             tibia_angle (float): Target angle for the tibia joint.
-            speed (int, optional): Overrides the default servo speed.
-            accel (int, optional): Overrides the default servo acceleration.
         """
-        if speed is None:
-            speed = self.speed
-        if accel is None:
-            accel = self.accel
-
-        self.legs[leg_index].move_to_angles(coxa_angle, femur_angle, tibia_angle, speed, accel)
+        self.legs[leg_index].move_to_angles(coxa_angle, femur_angle, tibia_angle)
         self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
         x, y, z = self.legs[leg_index].compute_forward_kinematics(coxa_angle, femur_angle, tibia_angle)
         self.current_leg_positions[leg_index] = (x, y, z)
@@ -401,24 +385,16 @@ class Hexapod:
         
     def move_all_legs_angles(
         self, 
-        angles_list: List[Tuple[float, float, float]], 
-        speed: Optional[int] = None, 
-        accel: Optional[int] = None
+        angles_list: List[Tuple[float, float, float]]
     ) -> None:
-        logger.info(f"move_all_legs_angles called with angles_list: {angles_list}, speed: {speed}, accel: {accel}")
+        logger.info(f"move_all_legs_angles called with angles_list: {angles_list}")
         """
         Move all legs' angles simultaneously.
         
         Args:
             angles_list (List[Tuple[float, float, float]]): List of (coxa_angle, femur_angle, tibia_angle) tuples for each leg.
-            speed (int, optional): Overrides default servo speed.
-            accel (int, optional): Overrides default servo acceleration.
         """
-        logger.info(f"move_all_legs_angles called with angles_list: {angles_list}, speed: {speed}, accel: {accel}")
-        if speed is None:
-            speed = self.speed
-        if accel is None:
-            accel = self.accel
+        logger.info(f"move_all_legs_angles called with angles_list: {angles_list}")
         
         for i, angles in enumerate(angles_list):
             c_angle, f_angle, t_angle = angles
@@ -451,9 +427,6 @@ class Hexapod:
             targets.append((self.legs[i].femur.channel, femur_target))
             targets.append((self.legs[i].tibia.channel, tibia_target))
         
-        self.set_all_servos_speed(speed)
-        self.set_all_servos_accel(accel)
-        
         # Add unused channels with 0
         unused_channels = [ch for ch in range(self.CONTROLLER_CHANNELS) if ch not in (self.coxa_channel_map + self.femur_channel_map + self.tibia_channel_map)]
         for channel in unused_channels:
@@ -466,6 +439,62 @@ class Hexapod:
         self.current_leg_angles = angles_list
         self._sync_positions_from_angles()
         logger.info("All legs moved to new angles")
+
+    def wait_until_motion_complete(
+        self, 
+        stop_event: Optional[threading.Event] = None
+    ) -> None:
+        logger.info("Waiting until motion is complete")
+        """
+        Waits up to 1 second for the robot to start moving. This short wait is required
+        due to the Maestro controller's response delay over UART. Then remains waiting
+        until all servos have stopped or a stop event is set.
+
+        Args:
+            stop_event (threading.Event, optional): Event to signal stopping the wait.
+        """
+        start_time = time.time()
+        # Wait for at most <motion_timeout> second to see if the robot starts moving
+        motion_timeout = 1
+        while (time.time() - start_time < motion_timeout) and not (stop_event and stop_event.is_set()):
+            if self._get_moving_state():
+                break
+            if stop_event:
+                stop_event.wait(timeout=0.2)
+
+        logger.info("Motion started")
+
+        if stop_event and stop_event.is_set():
+            return
+        # Wait until the robot stops the motion
+        while not (stop_event.is_set() if stop_event else False):
+            if not self._get_moving_state():
+                break
+            if stop_event:
+                stop_event.wait(timeout=0.2)
+        logger.info("Motion complete")
+
+    def move_to_angles_position(self, position_name: PredefinedAnglePosition) -> None:
+        logger.info(f"Setting all legs to angles position '{position_name.value}'")
+        """
+        Move the hexapod to a predefined angle position.
+        
+        Args:
+            position_name (PredefinedAnglePosition): Enum member representing the predefined angle position.
+        """
+        logger.info(f"Setting all legs to angles position '{position_name.value}'")
+        angles = self.predefined_angle_positions.get(position_name.value)
+        if angles:
+            try:
+                self.move_all_legs_angles(angles)
+            except ValueError as e:
+                # Chain the exception with move_to_angles_position context
+                context_msg = f"move_to_angles_position('{position_name.value}')"
+                raise ValueError(f"{str(e)} (called from: {context_msg})") from e
+            logger.info(f"All legs set to angles position '{position_name.value}'")
+        else:
+            available = list(self.predefined_angle_positions.keys())
+            logger.error(f"Unknown angles position '{position_name.value}'. Available angle positions: {available}")
 
     def _sync_positions_from_angles(self) -> None:
         """
@@ -503,29 +532,7 @@ class Hexapod:
         logger.debug(f"Positions: {self.current_leg_positions}")
         logger.debug(f"Angles: {self.current_leg_angles}")
 
-    def move_to_angles_position(self, position_name: PredefinedAnglePosition) -> None:
-        logger.info(f"Setting all legs to angles position '{position_name.value}'")
-        """
-        Move the hexapod to a predefined angle position.
-        
-        Args:
-            position_name (PredefinedAnglePosition): Enum member representing the predefined angle position.
-        """
-        logger.info(f"Setting all legs to angles position '{position_name.value}'")
-        angles = self.predefined_angle_positions.get(position_name.value)
-        if angles:
-            try:
-                self.move_all_legs_angles(angles)
-            except ValueError as e:
-                # Chain the exception with move_to_angles_position context
-                context_msg = f"move_to_angles_position('{position_name.value}')"
-                raise ValueError(f"{str(e)} (called from: {context_msg})") from e
-            logger.info(f"All legs set to angles position '{position_name.value}'")
-        else:
-            available = list(self.predefined_angle_positions.keys())
-            logger.error(f"Unknown angles position '{position_name.value}'. Available angle positions: {available}")
-
-    def get_moving_state(self) -> bool:
+    def _get_moving_state(self) -> bool:
         logger.debug("Querying moving state from Maestro controller")
         """
         Returns the moving state of the hexapod by querying the Maestro controller.
@@ -539,40 +546,6 @@ class Hexapod:
             return True
         else:
             return False
-
-    def wait_until_motion_complete(
-        self, 
-        stop_event: Optional[threading.Event] = None
-    ) -> None:
-        logger.info("Waiting until motion is complete")
-        """
-        Waits up to 1 second for the robot to start moving. This short wait is required
-        due to the Maestro controller's response delay over UART. Then remains waiting
-        until all servos have stopped or a stop event is set.
-
-        Args:
-            stop_event (threading.Event, optional): Event to signal stopping the wait.
-        """
-        start_time = time.time()
-        # Wait for at most <motion_timeout> second to see if the robot starts moving
-        motion_timeout = 1
-        while (time.time() - start_time < motion_timeout) and not (stop_event and stop_event.is_set()):
-            if self.get_moving_state():
-                break
-            if stop_event:
-                stop_event.wait(timeout=0.2)
-
-        logger.info("Motion started")
-
-        if stop_event and stop_event.is_set():
-            return
-        # Wait until the robot stops the motion
-        while not (stop_event.is_set() if stop_event else False):
-            if not self.get_moving_state():
-                break
-            if stop_event:
-                stop_event.wait(timeout=0.2)
-        logger.info("Motion complete")
 
     def _compute_body_inverse_kinematics(
         self, 

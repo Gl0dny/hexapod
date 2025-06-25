@@ -37,7 +37,7 @@ class MarchInPlaceTask(ControlTask):
         self.lights_handler = lights_handler
         self.duration = 10.0 if duration is None else float(duration)
 
-    def perform_march(self) -> None:
+    def _perform_march(self) -> None:
         """
         Performs the marching in place motion using TripodGait.
         The motion consists of:
@@ -88,7 +88,8 @@ class MarchInPlaceTask(ControlTask):
         logger.info("MarchTask started")
         try:
             logger.info("Performing marching routine.")
-            self.perform_march()
+            self.lights_handler.think()
+            self._perform_march()
         except Exception as e:
             logger.exception(f"Marching task failed: {e}")
         finally:

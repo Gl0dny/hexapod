@@ -286,8 +286,6 @@ class Leg:
         x: float,
         y: float,
         z: float,
-        speed: Optional[int] = None,
-        accel: Optional[int] = None,
         check_custom_limits: bool = True
     ) -> None:
         """
@@ -297,16 +295,9 @@ class Leg:
             x (float): Target X coordinate.
             y (float): Target Y coordinate.
             z (float): Target Z coordinate.
-            speed (int, optional): Speed setting for servo movement.
-            accel (int, optional): Acceleration setting for servo movement.
             check_custom_limits (bool, optional): Whether to check custom angle limits. Defaults to True.
         """
-        logger.debug(f"Moving to x: {x}, y: {y}, z: {z} with speed: {speed}, accel: {accel}")
-
-        if speed is None:
-            speed = Joint.DEFAULT_SPEED
-        if accel is None:
-            accel = Joint.DEFAULT_ACCEL
+        logger.debug(f"Moving to x: {x}, y: {y}, z: {z} with speed/accel set at hexapod level")
 
         coxa_angle, femur_angle, tibia_angle = self.compute_inverse_kinematics(x, y, z)
         
@@ -315,9 +306,9 @@ class Leg:
         self._validate_angle(self.femur, femur_angle, check_custom_limits)
         self._validate_angle(self.tibia, tibia_angle, check_custom_limits)
 
-        self.coxa.set_angle(coxa_angle, speed, accel)
-        self.femur.set_angle(femur_angle, speed, accel)
-        self.tibia.set_angle(tibia_angle, speed, accel)
+        self.coxa.set_angle(coxa_angle, check_custom_limits)
+        self.femur.set_angle(femur_angle, check_custom_limits)
+        self.tibia.set_angle(tibia_angle, check_custom_limits)
         logger.debug(f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
 
     def move_to_angles(
@@ -325,8 +316,6 @@ class Leg:
         coxa_angle: float,
         femur_angle: float,
         tibia_angle: float,
-        speed: Optional[int] = None,
-        accel: Optional[int] = None,
         check_custom_limits: bool = True
     ) -> None:
         """
@@ -336,21 +325,14 @@ class Leg:
             coxa_angle (float): Target angle for the coxa joint in degrees.
             femur_angle (float): Target angle for the femur joint in degrees.
             tibia_angle (float): Target angle for the tibia joint in degrees.
-            speed (int, optional): Speed setting for servo movement.
-            accel (int, optional): Acceleration setting for servo movement.
             check_custom_limits (bool, optional): Whether to check custom angle limits. Defaults to True.
         """
-        if speed is None:
-            speed = Joint.DEFAULT_SPEED
-        if accel is None:
-            accel = Joint.DEFAULT_ACCEL
-        
         # Validate each joint's angle using the helper method
         self._validate_angle(self.coxa, coxa_angle, check_custom_limits)
         self._validate_angle(self.femur, femur_angle, check_custom_limits)
         self._validate_angle(self.tibia, tibia_angle, check_custom_limits)
 
-        self.coxa.set_angle(coxa_angle, speed, accel)
-        self.femur.set_angle(femur_angle, speed, accel)
-        self.tibia.set_angle(tibia_angle, speed, accel)
+        self.coxa.set_angle(coxa_angle, check_custom_limits)
+        self.femur.set_angle(femur_angle, check_custom_limits)
+        self.tibia.set_angle(tibia_angle, check_custom_limits)
         logger.debug(f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")

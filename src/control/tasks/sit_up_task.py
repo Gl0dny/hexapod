@@ -33,7 +33,7 @@ class SitUpTask(ControlTask):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
-    def perform_sit_up(self) -> None:
+    def _perform_sit_up(self) -> None:
         """
         Performs the sit-up motion by moving the body up and down along the Z-axis.
         The motion consists of:
@@ -54,19 +54,27 @@ class SitUpTask(ControlTask):
         
         # Start in a stable position and store reference
         self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-        self.hexapod.wait_until_motion_complete()
+        self.hexapod.wait_until_motion_complete(self.stop_event)
+        if self.stop_event.is_set():
+            return
         
         # Store the reference position (low profile)
         reference_positions = self.hexapod.current_leg_positions.copy()
         logger.info(f"Reference positions stored: {reference_positions}")
         
         for rep in range(repetitions):
+            if self.stop_event.is_set():
+                logger.info("Sit-up task interrupted.")
+                return
+                
             logger.info(f"Performing sit-up repetition {rep + 1}/{repetitions}")
             
             # Move up relative to reference position
             logger.info("Moving body up")
             self.hexapod.move_body(tz=up_height)
-            self.hexapod.wait_until_motion_complete()
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+            if self.stop_event.is_set():
+                return
                 
             # Hold up position
             logger.info("Holding up position")
@@ -77,7 +85,9 @@ class SitUpTask(ControlTask):
             total_down_movement = -(up_height + down_height)
             logger.info("Moving body down")
             self.hexapod.move_body(tz=total_down_movement)
-            self.hexapod.wait_until_motion_complete()
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+            if self.stop_event.is_set():
+                return
             
             # Hold down position
             logger.info("Holding down position")
@@ -88,11 +98,9 @@ class SitUpTask(ControlTask):
             return_to_reference = down_height
             logger.info("Returning to reference position")
             self.hexapod.move_body(tz=return_to_reference)
-            self.hexapod.wait_until_motion_complete()
-            
-            # Update lights to indicate progress
-            # if self.lights_handler:
-            #     self.lights_handler.update_progress((rep + 1) / repetitions)
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+            if self.stop_event.is_set():
+                return
 
     @override
     def execute_task(self) -> None:
@@ -104,10 +112,11 @@ class SitUpTask(ControlTask):
         logger.info("SitUpTask started")
         try:
             logger.info("Performing sit-up routine.")
-            self.perform_sit_up()
+            self.lights_handler.think()
+            self._perform_sit_up()
         except Exception as e:
             logger.exception(f"Sit-up task failed: {e}")
         finally:
             self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-            self.hexapod.wait_until_motion_complete()
+            self.hexapod.wait_until_motion_complete(self.stop_event)
             logger.info("SitUpTask completed")
