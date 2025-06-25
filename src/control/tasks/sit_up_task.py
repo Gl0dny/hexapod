@@ -41,58 +41,58 @@ class SitUpTask(ControlTask):
         2. Holding the position briefly
         3. Moving down (lowering the body)
         4. Holding the position briefly
+        
+        All movements are calculated relative to the starting reference position (low profile).
         """
         logger.info("Starting sit-up motion")
         
         # Parameters for the sit-up motion
-        up_height = 30.0    # mm to raise the body
-        down_height = 30.0  # mm to lower the body (more than up_height for more pronounced motion)
+        up_height = 50.0    # mm to raise the body above reference
+        down_height = 0.0  # mm to lower the body below reference
         hold_time = 0.5     # seconds to hold each position
         repetitions = 5     # number of sit-ups to perform
         
-        try:
-            # Start in a stable position
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+        # Start in a stable position and store reference
+        self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.hexapod.wait_until_motion_complete()
+        
+        # Store the reference position (low profile)
+        reference_positions = self.hexapod.current_leg_positions.copy()
+        logger.info(f"Reference positions stored: {reference_positions}")
+        
+        for rep in range(repetitions):
+            logger.info(f"Performing sit-up repetition {rep + 1}/{repetitions}")
+            
+            # Move up relative to reference position
+            logger.info("Moving body up")
+            self.hexapod.move_body(tz=up_height)
+            self.hexapod.wait_until_motion_complete()
+                
+            # Hold up position
+            logger.info("Holding up position")
+            time.sleep(hold_time)
+            
+            # Move down relative to reference position
+            # Calculate the total movement needed: from up_height to -down_height
+            total_down_movement = -(up_height + down_height)
+            logger.info("Moving body down")
+            self.hexapod.move_body(tz=total_down_movement)
             self.hexapod.wait_until_motion_complete()
             
-            for rep in range(repetitions):
-                logger.info(f"Performing sit-up repetition {rep + 1}/{repetitions}")
-                
-                # Move up
-                logger.info("Moving body up")
-                self.hexapod.move_body(tz=up_height)
-                self.hexapod.wait_until_motion_complete()
-                
-                # Hold up position
-                logger.info("Holding up position")
-                time.sleep(hold_time)
-                
-                # Move down (lower than the up position)
-                logger.info("Moving body down")
-                self.hexapod.move_body(tz=-down_height)
-                self.hexapod.wait_until_motion_complete()
-                
-                # Hold down position
-                logger.info("Holding down position")
-                time.sleep(hold_time)
-                
-                # Update lights to indicate progress
-                # if self.lights_handler:
-                #     self.lights_handler.update_progress((rep + 1) / repetitions)
+            # Hold down position
+            logger.info("Holding down position")
+            time.sleep(hold_time)
             
-            # Return to home position
-            logger.info("Returning to home position")
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+            # Return to reference position
+            # Calculate the movement needed: from -down_height back to 0 (reference)
+            return_to_reference = down_height
+            logger.info("Returning to reference position")
+            self.hexapod.move_body(tz=return_to_reference)
             self.hexapod.wait_until_motion_complete()
             
-        except Exception as e:
-            logger.error(f"Error during sit-up motion: {e}")
-            # Attempt to return to home position in case of error
-            try:
-                self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-            except:
-                pass
-            raise
+            # Update lights to indicate progress
+            # if self.lights_handler:
+            #     self.lights_handler.update_progress((rep + 1) / repetitions)
 
     @override
     def execute_task(self) -> None:
@@ -108,4 +108,6 @@ class SitUpTask(ControlTask):
         except Exception as e:
             logger.exception(f"Sit-up task failed: {e}")
         finally:
+            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            self.hexapod.wait_until_motion_complete()
             logger.info("SitUpTask completed")

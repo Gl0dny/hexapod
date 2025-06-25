@@ -182,10 +182,15 @@ class Hexapod:
             self.controller.set_acceleration(channel, accel)
 
     def deactivate_all_servos(self) -> None:
+        logger.info("Moving to LOW_PROFILE position before deactivating servos")
+        """
+        First moves the hexapod to LOW_PROFILE position, then sets all servos to 0 to deactivate them.
+        """
+        # First move to LOW_PROFILE position
+        self.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.wait_until_motion_complete()
+        
         logger.info("Deactivating all servos")
-        """
-        Sets all servos to 0 to deactivate them.
-        """
         targets = []
         for leg in self.legs:
             targets.append((leg.coxa_params['channel'], 0))
@@ -337,7 +342,13 @@ class Hexapod:
             for (current_x, current_y, current_z), (delta_x, delta_y, delta_z) in zip(self.current_leg_positions, local_deltas)
         ]
         
-        self.move_all_legs(target_positions)
+        try:
+            self.move_all_legs(target_positions)
+        except ValueError as e:
+            # Chain the exception with move_body context
+            context_msg = f"move_body(tx={tx}, ty={ty}, tz={tz}, roll={roll}, pitch={pitch}, yaw={yaw})"
+            raise ValueError(f"{str(e)} (called from: {context_msg})") from e
+        
         self._sync_angles_from_positions()
 
     def move_to_position(self, position_name: PredefinedPosition) -> None:
@@ -503,7 +514,12 @@ class Hexapod:
         logger.info(f"Setting all legs to angles position '{position_name.value}'")
         angles = self.predefined_angle_positions.get(position_name.value)
         if angles:
-            self.move_all_legs_angles(angles)
+            try:
+                self.move_all_legs_angles(angles)
+            except ValueError as e:
+                # Chain the exception with move_to_angles_position context
+                context_msg = f"move_to_angles_position('{position_name.value}')"
+                raise ValueError(f"{str(e)} (called from: {context_msg})") from e
             logger.info(f"All legs set to angles position '{position_name.value}'")
         else:
             available = list(self.predefined_angle_positions.keys())

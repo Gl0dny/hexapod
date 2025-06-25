@@ -47,47 +47,36 @@ class MarchInPlaceTask(ControlTask):
         """
         logger.info("Starting marching in place motion")
         
-        try:
-            # Start in a stable position
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-            self.hexapod.wait_until_motion_complete()
-            
-            # Configure tripod gait for marching in place
-            gait_params = {
-                'swing_distance': 0.0,      # No forward movement
-                'swing_height': 30.0,       # Lift legs 30mm
-                'stance_distance': 0.0,     # No backward movement
-                'dwell_time': 1.0,         # One second per step
-                'stability_threshold': 0.2  # Standard stability threshold
-            }
-            
-            # Create and start the tripod gait
-            gait = TripodGait(self.hexapod, **gait_params)
-            logger.info("Starting tripod gait for marching in place")
-            self.hexapod.gait_generator.start(gait)
-            
-            # March for specified duration
-            logger.info(f"Marching in place for {self.duration} seconds")
-            time.sleep(self.duration)
-            
-            # Stop the gait
-            logger.info("Stopping marching in place motion")
-            self.hexapod.gait_generator.stop()
-            
-            # Return to home position
-            logger.info("Returning to home position")
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-            self.hexapod.wait_until_motion_complete()
-            
-        except Exception as e:
-            logger.error(f"Error during marching in place motion: {e}")
-            # Attempt to stop gait and return to home position in case of error
-            try:
-                self.hexapod.gait_generator.stop()
-                self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-            except:
-                pass
-            raise
+        # Start in a stable position
+        self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.hexapod.wait_until_motion_complete()
+        
+        # Configure tripod gait for marching in place
+        gait_params = {
+            'swing_distance': 0.0,      # No forward movement
+            'swing_height': 30.0,       # Lift legs 30mm
+            'stance_distance': 0.0,     # No backward movement
+            'dwell_time': 1.0,         # One second per step
+            'stability_threshold': 0.2  # Standard stability threshold
+        }
+        
+        # Create and start the tripod gait
+        gait = TripodGait(self.hexapod, **gait_params)
+        logger.info("Starting tripod gait for marching in place")
+        self.hexapod.gait_generator.start(gait)
+        
+        # March for specified duration
+        logger.info(f"Marching in place for {self.duration} seconds")
+        time.sleep(self.duration)
+        
+        # Stop the gait
+        logger.info("Stopping marching in place motion")
+        self.hexapod.gait_generator.stop()
+        
+        # Return to home position
+        logger.info("Returning to home position")
+        self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.hexapod.wait_until_motion_complete()
 
     @override
     def execute_task(self) -> None:
