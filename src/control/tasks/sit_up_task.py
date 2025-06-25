@@ -49,7 +49,7 @@ class SitUpTask(ControlTask):
         # Parameters for the sit-up motion
         up_height = 50.0    # mm to raise the body above reference
         down_height = 0.0  # mm to lower the body below reference
-        hold_time = 0.5     # seconds to hold each position
+        hold_time = 0.8     # seconds to hold each position
         repetitions = 5     # number of sit-ups to perform
         
         # Start in a stable position and store reference
@@ -72,7 +72,7 @@ class SitUpTask(ControlTask):
             # Move up relative to reference position
             logger.info("Moving body up")
             self.hexapod.move_body(tz=up_height)
-            self.hexapod.wait_until_motion_complete(self.stop_event)
+            # self.hexapod.wait_until_motion_complete(self.stop_event)
             if self.stop_event.is_set():
                 return
                 
@@ -85,7 +85,7 @@ class SitUpTask(ControlTask):
             total_down_movement = -(up_height + down_height)
             logger.info("Moving body down")
             self.hexapod.move_body(tz=total_down_movement)
-            self.hexapod.wait_until_motion_complete(self.stop_event)
+            # self.hexapod.wait_until_motion_complete(self.stop_event)
             if self.stop_event.is_set():
                 return
             
@@ -98,7 +98,7 @@ class SitUpTask(ControlTask):
             return_to_reference = down_height
             logger.info("Returning to reference position")
             self.hexapod.move_body(tz=return_to_reference)
-            self.hexapod.wait_until_motion_complete(self.stop_event)
+            # self.hexapod.wait_until_motion_complete(self.stop_event)
             if self.stop_event.is_set():
                 return
 
