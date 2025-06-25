@@ -22,7 +22,7 @@ def clean_logs(log_dir: Optional[Path] = None) -> None:
     if log_dir is None:
         log_dir = Path(__file__).resolve().parent.parent.parent.parent
     
-    log_patterns = ['*.log', '*.log.jsonl']
+    log_patterns = ['*.log', '*.log.*', '*.log.jsonl', '*.log.json']
     for pattern in log_patterns:
         for log_file in log_dir.rglob(pattern):
             log_file.unlink()
