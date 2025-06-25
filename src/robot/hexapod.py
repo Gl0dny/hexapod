@@ -20,12 +20,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger("robot_logger")
 
 class PredefinedAnglePosition(Enum):
-    HOME = 'home'
     LOW_PROFILE = 'low_profile'
-    UPRIGHT_MODE = 'upright_mode'
+    UPRIGHT = 'upright'
 
 class PredefinedPosition(Enum):
-    ZERO = 'zero'
+    LOW_PROFILE = 'low_profile'
+    UPRIGHT = 'upright'
 
 class Hexapod:
     """
@@ -77,8 +77,8 @@ class Hexapod:
         self.hexagon_side_length: float = config['hexagon_side_length']
         
         # Initialize hexagon angles
-        self.compute_hexagon_angles: Callable[[], List[int]] = lambda: [i * 60 for i in range(6)]
-        self.leg_angles: List[int] = np.radians(self.compute_hexagon_angles()).tolist()
+        self._compute_hexagon_angles: Callable[[], List[int]] = lambda: [i * 60 for i in range(6)]
+        self.leg_angles: List[int] = np.radians(self._compute_hexagon_angles()).tolist()
 
         self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
         
@@ -123,13 +123,16 @@ class Hexapod:
         self.calibration.load_calibration()
 
         self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_positions']
-
         self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_angle_positions']
 
-        self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['home'])
-        self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['zero'])
+        self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['low_profile'])
+        self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['low_profile'])
 
         self.gait_generator = GaitGenerator(self)
+
+        self.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.wait_until_motion_complete()
+        
         logger.info("Hexapod initialized successfully")
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
@@ -226,6 +229,8 @@ class Hexapod:
             
         self.legs[leg_index].move_to(x, y, z, speed, accel)
         self.current_leg_positions[leg_index] = (x, y, z)
+        coxa_angle, femur_angle, tibia_angle = self.legs[leg_index].compute_inverse_kinematics(x, y, z)
+        self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
         logger.info(f"Leg {leg_index} moved to position x: {x}, y: {y}, z: {z}")
 
     def move_all_legs(
@@ -295,7 +300,45 @@ class Hexapod:
         logger.debug(f"set_multiple_targets called with targets: {targets}")
         self.controller.set_multiple_targets(targets)
         self.current_leg_positions = positions
+        self._sync_angles_from_positions()
         logger.info("All legs moved to new positions")
+
+    def move_body(
+        self,
+        tx: float = 0.0,
+        ty: float = 0.0,
+        tz: float = 0.0,
+        roll: float = 0.0,
+        pitch: float = 0.0, 
+        yaw: float = 0.0
+        ):
+        """
+        Compute body inverse kinematics using provided translation and rotation parameters,
+        transform the computed deltas to leg frames, and move all legs to new target positions.
+        
+        Args:
+            tx (float): Translation along the x-axis in mm.
+            ty (float): Translation along the y-axis in mm.
+            tz (float): Translation along the z-axis in mm.
+            roll (float): Rotation around the x-axis in degrees.
+            pitch (float): Rotation around the y-axis in degrees.
+            yaw (float): Rotation around the z-axis in degrees.
+        """
+        logger.debug(f"Moving body: tx={tx}, ty={ty}, tz={tz}, roll={roll}, pitch={pitch}, yaw={yaw}")
+        global_deltas = self._compute_body_inverse_kinematics(tx, ty, tz, roll, pitch, yaw)
+        local_deltas = self._transform_body_to_leg_frames(global_deltas)
+        
+        target_positions = [
+            (
+                current_x + delta_x,
+                current_y + delta_y,
+                current_z + delta_z
+            )
+            for (current_x, current_y, current_z), (delta_x, delta_y, delta_z) in zip(self.current_leg_positions, local_deltas)
+        ]
+        
+        self.move_all_legs(target_positions)
+        self._sync_angles_from_positions()
 
     def move_to_position(self, position_name: PredefinedPosition) -> None:
         """
@@ -341,6 +384,8 @@ class Hexapod:
 
         self.legs[leg_index].move_to_angles(coxa_angle, femur_angle, tibia_angle, speed, accel)
         self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
+        x, y, z = self.legs[leg_index].compute_forward_kinematics(coxa_angle, femur_angle, tibia_angle)
+        self.current_leg_positions[leg_index] = (x, y, z)
         logger.info(f"Leg {leg_index} moved to angles coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
         
     def move_all_legs_angles(
@@ -408,7 +453,44 @@ class Hexapod:
         logger.debug(f"set_multiple_targets called with targets: {targets}")
         self.controller.set_multiple_targets(targets)
         self.current_leg_angles = angles_list
+        self._sync_positions_from_angles()
         logger.info("All legs moved to new angles")
+
+    def _sync_positions_from_angles(self) -> None:
+        """
+        Synchronize the current_leg_positions with current_leg_angles by computing
+        forward kinematics from the current angles.
+        """
+        logger.debug("Before sync (angles -> positions):")
+        logger.debug(f"Positions: {self.current_leg_positions}")
+        logger.debug(f"Angles: {self.current_leg_angles}")
+            
+        for i, leg in enumerate(self.legs):
+            coxa_angle, femur_angle, tibia_angle = self.current_leg_angles[i]
+            x, y, z = leg.compute_forward_kinematics(coxa_angle, femur_angle, tibia_angle)
+            self.current_leg_positions[i] = (x, y, z)
+            
+        logger.debug("After sync (angles -> positions):")
+        logger.debug(f"Positions: {self.current_leg_positions}")
+        logger.debug(f"Angles: {self.current_leg_angles}")
+
+    def _sync_angles_from_positions(self) -> None:
+        """
+        Synchronize the current_leg_angles with current_leg_positions by computing
+        inverse kinematics from the current positions.
+        """
+        logger.debug("Before sync (positions -> angles):")
+        logger.debug(f"Positions: {self.current_leg_positions}")
+        logger.debug(f"Angles: {self.current_leg_angles}")
+            
+        for i, leg in enumerate(self.legs):
+            x, y, z = self.current_leg_positions[i]
+            coxa_angle, femur_angle, tibia_angle = leg.compute_inverse_kinematics(x, y, z)
+            self.current_leg_angles[i] = (coxa_angle, femur_angle, tibia_angle)
+            
+        logger.debug("After sync (positions -> angles):")
+        logger.debug(f"Positions: {self.current_leg_positions}")
+        logger.debug(f"Angles: {self.current_leg_angles}")
 
     def move_to_angles_position(self, position_name: PredefinedAnglePosition) -> None:
         logger.info(f"Setting all legs to angles position '{position_name.value}'")
@@ -476,7 +558,7 @@ class Hexapod:
                 stop_event.wait(timeout=0.2)
         logger.info("Motion complete")
 
-    def compute_body_inverse_kinematics(
+    def _compute_body_inverse_kinematics(
         self, 
         tx: float = 0.0, 
         ty: float = 0.0, 
@@ -523,7 +605,7 @@ class Hexapod:
         logger.debug(f"Computed body IK deltas: {deltas}")
         return deltas
 
-    def transform_body_to_leg_frames(
+    def _transform_body_to_leg_frames(
         self, 
         body_frame_deltas: np.ndarray
     ) -> np.ndarray:
@@ -556,45 +638,10 @@ class Hexapod:
         
         return deltas
 
-    def move_body(
-        self,
-        tx: float = 0.0,
-        ty: float = 0.0,
-        tz: float = 0.0,
-        roll: float = 0.0,
-        pitch: float = 0.0, 
-        yaw: float = 0.0
-        ):
-        """
-        Compute body inverse kinematics using provided translation and rotation parameters,
-        transform the computed deltas to leg frames, and move all legs to new target positions.
-        
-        Args:
-            tx (float): Translation along the x-axis in mm.
-            ty (float): Translation along the y-axis in mm.
-            tz (float): Translation along the z-axis in mm.
-            roll (float): Rotation around the x-axis in degrees.
-            pitch (float): Rotation around the y-axis in degrees.
-            yaw (float): Rotation around the z-axis in degrees.
-        """
-        logger.debug(f"Moving body: tx={tx}, ty={ty}, tz={tz}, roll={roll}, pitch={pitch}, yaw={yaw}")
-        global_deltas = self.compute_body_inverse_kinematics(tx, ty, tz, roll, pitch, yaw)
-        local_deltas = self.transform_body_to_leg_frames(global_deltas)
-        target_positions = [
-            (
-                current_x + delta_x,
-                current_y + delta_y,
-                current_z + delta_z
-            )
-            for (current_x, current_y, current_z), (delta_x, delta_y, delta_z) in zip(self.current_leg_positions, local_deltas)
-        ]
-        logger.debug(f"Moving body to target positions: {target_positions}")
-        self.move_all_legs(target_positions)
-
 if __name__ == '__main__':
     hexapod = Hexapod()
     # hexapod.calibrate_all_servos()
-    hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+    hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
     # hexapod.controller.go_home()
     # hexapod.deactivate_all_servos()
 
