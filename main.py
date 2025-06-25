@@ -116,6 +116,8 @@ def main() -> None:
                     logger.user_info("Stopping system...")
                     voice_control.pause()
                     control_interface.lights_handler.off()
+                    control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+                    time.sleep(0.5)
                     control_interface.hexapod.deactivate_all_servos()
             
             time.sleep(0.1)  # Small delay to prevent CPU overuse
@@ -135,6 +137,9 @@ def main() -> None:
         control_interface.lights_handler.off()
         logger.debug("Shutdown tasks completed")
     finally:
+        time.sleep(1)
+        control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        time.sleep(0.5)
         control_interface.hexapod.deactivate_all_servos()
         control_interface.button_handler.cleanup()
         logger.user_info('Exiting...')

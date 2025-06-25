@@ -195,14 +195,9 @@ class Hexapod:
             self.controller.set_acceleration(channel, accel)
 
     def deactivate_all_servos(self) -> None:
-        logger.info("Moving to LOW_PROFILE position before deactivating servos")
         """
-        First moves the hexapod to LOW_PROFILE position, then sets all servos to 0 to deactivate them.
+        Sets all servos to 0 to deactivate them.
         """
-        # First move to LOW_PROFILE position
-        self.move_to_position(PredefinedPosition.LOW_PROFILE)
-        self.wait_until_motion_complete()
-        
         logger.info("Deactivating all servos")
         targets = []
         for leg in self.legs:
