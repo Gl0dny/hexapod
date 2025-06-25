@@ -36,7 +36,7 @@ class IdleStanceTask(ControlTask):
         logger.info("IdleStanceTask started")
         try:
             self.lights_handler.think()
-            self.hexapod.move_to_position(PredefinedPosition.ZERO)
+            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
             self.hexapod.wait_until_motion_complete(self.stop_event)
             logger.debug("Hexapod set to home position")
 

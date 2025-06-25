@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, override
 import logging
 
 from control.tasks import ControlTask
-from robot import PredefinedPosition, PredefinedAnglePosition
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
@@ -40,9 +39,8 @@ class SleepTask(ControlTask):
         logger.info("SleepTask started")
         try:
             self.lights_handler.set_brightness(5)
-            self.lights_handler.set_single_color(ColorRGB.GRAY)
-            self.hexapod.wait_until_motion_complete()
-            self.hexapod.deactivate_all_servos(self.stop_event)
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+            self.hexapod.deactivate_all_servos()
             logger.debug("Hexapod is now sleeping")
         except Exception as e:
             logger.exception(f"Error in Sleep task: {e}")

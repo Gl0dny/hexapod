@@ -2,6 +2,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging
 
+from utils import map_range
+
 if TYPE_CHECKING:
     from typing import Optional
     from maestro import MaestroUART
@@ -67,31 +69,30 @@ class Joint:
             ValueError: If the angle is outside the allowed limits.
         """
         logger.debug(f"Validating angle: {angle}°, Check custom limits: {check_custom_limits}")
-        if not check_custom_limits:
-            return
-
+        
+        # Always check default limits
         if not (self.angle_min <= angle <= self.angle_max):
             logger.error(f"{self} angle {angle}° is out of bounds ({self.angle_min}° to {self.angle_max}°).")
             raise ValueError(f"{self} angle {angle}° is out of bounds ({self.angle_min}° to {self.angle_max}°).")
         
-        if self.angle_limit_min is not None and angle < self.angle_limit_min:
-            logger.error(f"{self} angle {angle}° is below custom limit ({self.angle_limit_min}°).")
-            raise ValueError(f"{self} angle {angle}° is below custom limit ({self.angle_limit_min}°).")
-        if self.angle_limit_max is not None and angle > self.angle_limit_max:
-            logger.error(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
-            raise ValueError(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
+        # Only check custom limits if check_custom_limits=True
+        if check_custom_limits:
+            if self.angle_limit_min is not None and angle < self.angle_limit_min:
+                logger.error(f"{self} angle {angle}° is below custom limit ({self.angle_limit_min}°).")
+                raise ValueError(f"{self} angle {angle}° is below custom limit ({self.angle_limit_min}°).")
+            if self.angle_limit_max is not None and angle > self.angle_limit_max:
+                logger.error(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
+                raise ValueError(f"{self} angle {angle}° is above custom limit ({self.angle_limit_max}°).")
 
-    def set_angle(self, angle: float, speed: int = DEFAULT_SPEED, accel: int = DEFAULT_ACCEL, check_custom_limits: bool = True) -> None:
+    def set_angle(self, angle: float, check_custom_limits: bool = True) -> None:
         """
         Set the joint to a specific angle.
 
         Args:
             angle (float): Target angle in degrees.
-            speed (int): Speed setting for the servo.
-            accel (int): Acceleration setting for the servo.
             check_custom_limits (bool): Whether to enforce angle limits.
         """
-        logger.info(f"Setting angle to {angle}° with speed={speed} and accel={accel}. Invert: {self.invert}")
+        logger.info(f"Setting angle to {angle}° with speed/accel set at hexapod level. Invert: {self.invert}")
         if self.invert:
             angle = -angle
             logger.debug(f"Inverted angle: {angle}°")
@@ -100,9 +101,6 @@ class Joint:
 
         target = self.angle_to_servo_target(angle)
         logger.debug(f"Calculated servo target: {target}")
-
-        self.controller.set_speed(self.channel, speed)
-        self.controller.set_acceleration(self.channel, accel)
 
         self.controller.set_target(self.channel, target)
         logger.info(f"Angle set to {angle}°, Servo target set to {target}.")
@@ -117,9 +115,7 @@ class Joint:
         Returns:
             int: Servo target value in quarter-microseconds.
         """
-        angle_range = self.angle_max - self.angle_min
-        servo_range = self.servo_max - self.servo_min
-        target = self.servo_min + servo_range * ((angle - self.angle_min) / angle_range)
+        target = map_range(angle, self.angle_min, self.angle_max, self.servo_min, self.servo_max)
         logger.debug(f"Mapping angle {angle}° to servo target {int(target)}")
         return int(target)
 

@@ -8,9 +8,6 @@ context:
     shut_down:
       - "[Shut down, Power off] (now, immediately)"
       - "[Turn off, Deactivate] [the system, the robot]"
-    emergency_stop:
-      - "[Emergency stop, Stop everything] (now, immediately)"
-      - "[Abort, Cancel] [all actions, current operations, operations, activities] (now, immediately)"
     wake_up:
       - "[Activate, Wake up]"
     sleep:
@@ -77,6 +74,11 @@ context:
       - "[Locate, Identify, Track] sound sources (in the area)"
       - "[Analyze, Scan] (the) environment for sound sources"
       - "[Sound source localization, Sound source tracking, Sound source analysis]"
+    stream_odas_audio:
+      - "(Start, Begin, Run, Launch) (the) $odas_stream_type:odas_stream_type (ODAS) (audio) [stream, streaming]"
+      - "Stream (the) $odas_stream_type:odas_stream_type (ODAS) (audio)"
+      - "(Start, Begin, Run, Launch) (the) (ODAS) (audio) [stream, streaming]"
+      - "Stream (the) (ODAS) (audio)"
     police:
       - "(Activate, Switch to) police (mode)"
       - "(Turn on, Enable) police lights"
@@ -87,6 +89,11 @@ context:
       - "[Display, Show] (a) rainbow (effect, pattern)"
     sit_up:
       - "(Perform, Do, Make) (some, a set) (of) sit ups"
+    march_in_place:
+      - "[March, March in place]"
+      - "(Start, Begin, Perform) marching"
+      - "[March, March in place] (for) $pv.TwoDigitInteger:march_time $time_unit:time_unit"
+      - "(Start, Begin, Perform) marching (for) $pv.TwoDigitInteger:march_time $time_unit:time_unit"
     dance:
       - Dance
     helix:
@@ -152,4 +159,7 @@ context:
       - three hundred sixty
     sequence_name:
       - pass
+    odas_stream_type:
+      - post filtered
+      - separated
   macros: {}

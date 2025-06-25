@@ -22,8 +22,8 @@ wheels/
 .python2/
 
 # Log files
-*.log
-*.log.jsonl
+*.log*
+*.log.jsonl*
 *.coverage
 tests/reports/
 *.csv
@@ -33,7 +33,6 @@ tests/reports/
 
 # venv
 hexapod_venv/
-python3.11/
 python3.12/
 
 # Audio

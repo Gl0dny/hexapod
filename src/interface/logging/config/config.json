@@ -67,6 +67,12 @@
             "formatter": "simple",
             "stream": "ext://sys.stdout"
         },
+        "odas_user_info_stdout": {
+            "class": "logging.StreamHandler",
+            "level": "ODAS_USER_INFO",
+            "formatter": "simple",
+            "stream": "ext://sys.stdout"
+        },
         "stderr": {
             "class": "logging.StreamHandler",
             "level": "WARNING",
@@ -159,6 +165,7 @@
             "level": "DEBUG",
             "handlers": [
                 "stdout",
+                "odas_user_info_stdout",
                 "main_logger",
                 "control_logger",
                 "imu_logger",

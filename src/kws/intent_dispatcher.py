@@ -44,7 +44,6 @@ class IntentDispatcher:
             'help': self.handle_help,
             'system_status': self.handle_system_status,
             'shut_down': self.handle_shut_down,
-            'emergency_stop': self.handle_emergency_stop,
             'wake_up': self.handle_wake_up,
             'sleep': self.handle_sleep,
             'calibrate': self.handle_calibrate,
@@ -56,13 +55,15 @@ class IntentDispatcher:
             'set_speed': self.handle_set_speed,
             'set_accel': self.handle_set_accel,
             'low_profile_mode': self.handle_low_profile_mode,
+            # 'march_in_place': self.handle_march_in_place, #TODO train model for this command
             'upright_mode': self.handle_upright_mode,
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
             'stop': self.handle_stop,
             'rotate': self.handle_rotate,
             'follow': self.handle_follow,
-            'sound_source_analysis': self.handle_sound_source_localization,
+            'sound_source_localization': self.handle_sound_source_localization,
+            'stream_odas_audio': self.handle_stream_odas_audio,
             'police': self.handle_police,
             'rainbow': self.handle_rainbow,
             'sit_up': self.handle_sit_up,
@@ -121,16 +122,6 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         self.control_interface.shut_down()
-
-    @handler
-    def handle_emergency_stop(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'emergency_stop' intent.
-        
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        self.control_interface.emergency_stop()
 
     @handler
     def handle_wake_up(self, slots: Dict[str, Any]) -> None:
@@ -270,6 +261,23 @@ class IntentDispatcher:
         self.control_interface.set_low_profile_mode()
 
     @handler
+    def handle_march_in_place(self, slots: Dict[str, Any]) -> None:
+        """
+        Handle the 'march_in_place' intent.
+        
+        Args:
+            slots (Dict[str, Any]): Additional data for the intent.
+        """
+        try:
+            duration = None
+            if 'march_time' in slots:
+                duration = float(slots['march_time'])
+            self.control_interface.march_in_place(duration=duration)
+        except (ValueError, TypeError) as e:
+            logger.exception(f"Invalid duration value: {e}")
+            self.control_interface.march_in_place()  # Use default duration
+
+    @handler
     def handle_upright_mode(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'upright_mode' intent.
@@ -342,6 +350,25 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         self.control_interface.sound_source_localization()
+
+    @handler
+    def handle_stream_odas_audio(self, slots: Dict[str, Any]) -> None:
+        """
+        Handle the stream_odas_audio intent.
+
+        Args:
+            slots (Dict[str, Any]): Additional data for the intent.
+            
+        If odas_stream_type is provided, use it; otherwise use default (separated).
+        """
+        try:
+            stream_type = slots.get("odas_stream_type", "separated")
+            # Convert "post filtered" to "postfiltered" to match the expected format
+            if stream_type == "post filtered":
+                stream_type = "postfiltered"
+            self.control_interface.stream_odas_audio(stream_type=stream_type)
+        except Exception as e:
+            logger.exception(f"Error handling stream_odas_audio intent: {e}")
 
     @handler
     def handle_police(self, slots: Dict[str, Any]) -> None:

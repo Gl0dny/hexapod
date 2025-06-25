@@ -3,7 +3,7 @@ hexagon_side_length: 137.0        # Length of one side of the hexagon in mm ( di
 
 # Controller settings
 controller:
-  port: "/dev/ttyS0"       # Serial port for Maestro UART
+  port: "/dev/ttyAMA0"       # Serial port for Maestro UART
   baudrate: 9600           # Baud rate for communication
 
 # Servo settings
@@ -56,31 +56,31 @@ leg_to_led:
 
 # Predefined leg positions
 predefined_positions:
-  zero:
+  upright :
     - [-22.5, 0.0, 0.0]
     - [-22.5, 0.0, 0.0]
     - [-22.5, 0.0, 0.0]
     - [-22.5, 0.0, 0.0]
     - [-22.5, 0.0, 0.0]
     - [-22.5, 0.0, 0.0]
+  low_profile:
+    - [-22.5, -9.49, 30.11]
+    - [-22.5, -9.49, 30.11]
+    - [-22.5, -9.49, 30.11]
+    - [-22.5, -9.49, 30.11]
+    - [-22.5, -9.49, 30.11]
+    - [-22.5, -9.49, 30.11]
 
 # Predefined angle positions for legs
 predefined_angle_positions:
-  home:
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
+  upright:
+    - [0.0, 0.0, 0.0]
+    - [0.0, 0.0, 0.0]
+    - [0.0, 0.0, 0.0]
+    - [0.0, 0.0, 0.0]
+    - [0.0, 0.0, 0.0]
+    - [0.0, 0.0, 0.0]
   low_profile:
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-    - [0.0, 35, -35]
-  upright_mode:
     - [0.0, 35, -35]
     - [0.0, 35, -35]
     - [0.0, 35, -35]

@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
-from robot.hexapod import Hexapod, PredefinedPosition
+from robot.hexapod import Hexapod, PredefinedPosition, PredefinedAnglePosition
 from robot.gait_generator import GaitGenerator, TripodGait, WaveGait
 
 def main():
@@ -23,7 +23,7 @@ def main():
                       help='Height to lift leg during swing phase (mm)')
     parser.add_argument('--stance-distance', type=float, default=0.0,
                       help='Distance to move backward during stance phase (mm)')
-    parser.add_argument('--dwell-time', type=float, default=None,
+    parser.add_argument('--dwell-time', type=float, default=1.0,
                       help='Time to spend in each phase (seconds)')
     parser.add_argument('--stability-threshold', type=float, default=0.2,
                       help='Maximum allowed IMU deviation for stability check')
@@ -98,6 +98,8 @@ def main():
     finally:
         # Deactivate all servos
         print("Deactivating servos...")
+        hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+        hexapod.wait_until_motion_complete()
         hexapod.deactivate_all_servos()
 
 if __name__ == "__main__":

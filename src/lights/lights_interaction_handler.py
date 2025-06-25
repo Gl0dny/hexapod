@@ -286,14 +286,14 @@ class LightsInteractionHandler:
         )
 
     @animation
-    def odas_loading(self, interval: float = 2.2/12) -> None:
+    def odas_loading(self, interval: float = 1.5/12) -> None:
         """
         Start the ODAS loading animation using WheelFillAnimation with teal color.
-        The animation completes one full circle in 2.2 seconds.
+        The animation completes one full circle in 1.5 seconds.
 
         Args:
-            interval (float): The interval between filling LEDs. Default is 2.2/12 seconds
-                to complete one full circle in 2.2 seconds (12 LEDs).
+            interval (float): The interval between filling LEDs. Default is 1.5/12 seconds
+                to complete one full circle in 1.5 seconds (12 LEDs).
         """
         self.off()
         self.animation = lights.animations.WheelFillAnimation(

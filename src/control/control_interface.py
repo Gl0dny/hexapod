@@ -43,7 +43,7 @@ class ControlInterface:
         }
         
         odas_data_config = {
-            'base_logs_dir': Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl",
+            'odas_logs_dir': Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl",
             'odas_data_dir': Path(__file__).parent.parent.parent / "data" / "audio" / "odas"
         }
         
@@ -303,29 +303,6 @@ class ControlInterface:
     @control_task
     @inject_lights_handler
     @inject_hexapod
-    def emergency_stop(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
-        """
-        Initiate an emergency stop to halt all activities.
-
-        Args:
-            hexapod (Hexapod): The hexapod instance.
-            lights_handler (LightsInteractionHandler): Handles lights activity.
-        """
-        try:
-            if self.control_task:
-                self.control_task.stop_task()
-            self.control_task = control.tasks.EmergencyStopTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.control_task)
-            )
-        except Exception as e:
-            logger.exception(f"Emergency stop failed: {e}")
-
-    @voice_command
-    @control_task
-    @inject_lights_handler
-    @inject_hexapod
     def wake_up(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
         Activate the robot from a sleep state.
@@ -500,10 +477,12 @@ class ControlInterface:
         """
         logger.debug(f"Setting brightness to {brightness_percentage}%.")
         lights_handler.set_brightness(brightness_percentage)
+        lights_handler.listen_wakeword()
 
     @voice_command
+    @inject_lights_handler
     @inject_hexapod
-    def set_speed(self, hexapod: Hexapod, speed_percentage: float) -> None:
+    def set_speed(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, speed_percentage: float) -> None:
         """
         Set the speed of all servos.
 
@@ -513,10 +492,12 @@ class ControlInterface:
         """
         logger.debug(f"Setting speed to {speed_percentage}%.")
         hexapod.set_all_servos_speed(speed_percentage)
+        lights_handler.listen_wakeword()
    
     @voice_command 
+    @inject_lights_handler
     @inject_hexapod
-    def set_accel(self, hexapod: Hexapod, accel_percentage: float) -> None:
+    def set_accel(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, accel_percentage: float) -> None:
         """
         Set the acceleration of all servos.
 
@@ -526,6 +507,7 @@ class ControlInterface:
         """
         logger.debug(f"Setting acceleration to {accel_percentage}%.")
         hexapod.set_all_servos_accel(accel_percentage)
+        lights_handler.listen_wakeword()
 
     @voice_command
     @control_task
@@ -548,9 +530,34 @@ class ControlInterface:
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.control_task)
             )
-
         except Exception as e:
             logger.exception(f"Setting low profile mode failed: {e}")
+    
+    @voice_command
+    @control_task
+    @inject_lights_handler
+    @inject_hexapod
+    def march_in_place(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, duration: Optional[float] = None) -> None:
+        """
+        Execute the marching in place task.
+
+        Args:
+            hexapod (Hexapod): The hexapod instance.
+            lights_handler (LightsInteractionHandler): Handles lights activity.
+            duration (Optional[float]): Duration of marching in place in seconds. If None, uses default duration.
+        """
+        try:
+            logger.user_info("Executing march in place.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = control.tasks.MarchInPlaceTask(
+                hexapod, 
+                lights_handler,
+                duration=duration,
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
+        except Exception as e:
+            logger.exception(f"March in place task failed: {e}")
 
     @voice_command
     @control_task
@@ -731,6 +738,36 @@ class ControlInterface:
             logger.user_info("Sound source localization started.")
         except Exception as e:
             logger.exception(f"Sound source localization task failed: {e}")
+
+    @voice_command
+    @control_task
+    @inject_odas
+    @inject_lights_handler
+    @inject_hexapod
+    def stream_odas_audio(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor, stream_type: str = "separated") -> None:
+        """
+        Initiate the ODAS audio streaming task. First runs sound source localization to ensure ODAS is properly initialized.
+
+        Args:
+            hexapod (Hexapod): The hexapod instance.
+            lights_handler (LightsInteractionHandler): Handles lights activity.
+            odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
+            stream_type (str): Type of audio stream to play (default: "separated").
+        """
+        try:
+            logger.user_info("Starting ODAS audio streaming.")
+            if self.control_task:
+                self.control_task.stop_task()
+            self.control_task = control.tasks.StreamODASAudioTask(
+                hexapod=hexapod, 
+                lights_handler=lights_handler,
+                odas_processor=odas_processor,
+                external_control_paused_event=self.external_control_paused_event,
+                stream_type=stream_type,
+                callback=lambda: self._notify_task_completion(self.control_task)
+            )
+        except Exception as e:
+            logger.exception(f"ODAS audio streaming task failed: {e}")
 
     @voice_command
     @inject_lights_handler

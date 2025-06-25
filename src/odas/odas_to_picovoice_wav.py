@@ -5,8 +5,21 @@ import wave
 import numpy as np
 import time
 from pathlib import Path
-from odas.odas_audio_processor import ODASAudioProcessor
 import tempfile
+import sys
+
+if __name__ == "__main__":
+    script_path = Path(__file__).resolve()
+    project_root = script_path.parent.parent.parent
+    src_path = project_root / "src"
+
+    # If running as a script, add project root and src path to sys.path
+    if str(project_root) not in sys.path:
+        sys.path.append(str(project_root))
+    if str(src_path) not in sys.path:
+        sys.path.append(str(src_path))
+        
+from odas import ODASAudioProcessor
 
 def convert_odas_to_wav(input_file: Path, output_file: Path, sample_rate: int = 44100, channels: int = 4, selected_channel: int = 0):
     """
@@ -22,7 +35,7 @@ def convert_odas_to_wav(input_file: Path, output_file: Path, sample_rate: int = 
     # Create a temporary directory for ODASAudioProcessor
     with tempfile.TemporaryDirectory() as temp_dir:
         odas_input = ODASAudioProcessor(
-            odas_dir=temp_dir,
+            odas_dir=Path(temp_dir),
             sample_rate=sample_rate,
             channels=channels,
             selected_channel=selected_channel
