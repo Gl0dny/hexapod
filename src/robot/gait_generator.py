@@ -157,7 +157,7 @@ class Vector3D:
     3D vector for representing positions and movements in 3D space.
     
     This class handles 3D coordinates for leg positions, including height (Z-axis)
-    for ground clearance and leg lift calculations.
+    for stance height and leg lift calculations.
     
     Attributes:
         x (float): X-component of the vector
@@ -230,58 +230,6 @@ class Vector3D:
         return (self.x, self.y, self.z)
 
 @dataclass
-class LegPath:
-    """
-    Represents a path for a leg movement with multiple waypoints.
-    
-    This class manages the smooth trajectory a leg follows from its current position
-    to its target position. For swing legs, this typically includes lift, travel, and
-    lower phases for natural movement.
-    
-    Attributes:
-        waypoints (List[Vector3D]): List of 3D positions the leg will move through
-        current_waypoint_index (int): Index of the current waypoint being executed
-    """
-    waypoints: List[Vector3D]
-    current_waypoint_index: int = 0
-    
-    def add_waypoint(self, waypoint: Vector3D) -> None:
-        """
-        Add a waypoint to the path.
-        
-        Args:
-            waypoint (Vector3D): 3D position to add to the path
-        """
-        self.waypoints.append(waypoint)
-    
-    def get_current_target(self) -> Vector3D:
-        """
-        Get the current target waypoint.
-        
-        Returns:
-            Vector3D: Current waypoint, or zero vector if no waypoints exist
-        """
-        if self.waypoints:
-            return self.waypoints[self.current_waypoint_index]
-        return Vector3D(0, 0, 0)
-    
-    def advance_to_next_waypoint(self) -> bool:
-        """
-        Advance to the next waypoint in the path.
-        
-        Returns:
-            bool: True if there are more waypoints, False if at the end
-        """
-        if self.current_waypoint_index < len(self.waypoints) - 1:
-            self.current_waypoint_index += 1
-            return True
-        return False
-    
-    def reset(self) -> None:
-        """Reset the path to start from the beginning."""
-        self.current_waypoint_index = 0
-
-@dataclass
 class GaitState:
     """
     Represents a state in the gait state machine.
@@ -317,6 +265,58 @@ class BaseGait(ABC):
     - Three-phase path planning: Lift → Travel → Lower for swing legs
     - Vector mathematics: Clean mathematical operations for all calculations
     """
+    
+    @dataclass
+    class LegPath:
+        """
+        Represents a path for a leg movement with multiple waypoints.
+        
+        This class manages the smooth trajectory a leg follows from its current position
+        to its target position. For swing legs, this typically includes lift, travel, and
+        lower phases for natural movement.
+        
+        Attributes:
+            waypoints (List[Vector3D]): List of 3D positions the leg will move through
+            current_waypoint_index (int): Index of the current waypoint being executed
+        """
+        waypoints: List[Vector3D]
+        current_waypoint_index: int = 0
+        
+        def add_waypoint(self, waypoint: Vector3D) -> None:
+            """
+            Add a waypoint to the path.
+            
+            Args:
+                waypoint (Vector3D): 3D position to add to the path
+            """
+            self.waypoints.append(waypoint)
+        
+        def get_current_target(self) -> Vector3D:
+            """
+            Get the current target waypoint.
+            
+            Returns:
+                Vector3D: Current waypoint, or zero vector if no waypoints exist
+            """
+            if self.waypoints:
+                return self.waypoints[self.current_waypoint_index]
+            return Vector3D(0, 0, 0)
+        
+        def advance_to_next_waypoint(self) -> bool:
+            """
+            Advance to the next waypoint in the path.
+            
+            Returns:
+                bool: True if there are more waypoints, False if at the end
+            """
+            if self.current_waypoint_index < len(self.waypoints) - 1:
+                self.current_waypoint_index += 1
+                return True
+            return False
+        
+        def reset(self) -> None:
+            """Reset the path to start from the beginning."""
+            self.current_waypoint_index = 0
     
     # Direction mapping for consistent movement vectors
     # Using 1/√2 ≈ 0.707 for diagonal directions to maintain unit magnitude
@@ -379,7 +379,7 @@ class BaseGait(ABC):
         self.leg_mount_angles = [i * 60 for i in range(6)]  # Regular hexagon
         
         # Leg paths for three-phase movement - one path per leg
-        self.leg_paths: List[LegPath] = [LegPath([]) for _ in range(6)]
+        self.leg_paths: List[self.LegPath] = [self.LegPath([]) for _ in range(6)]
         
         self._setup_gait_graph()
 
@@ -459,10 +459,10 @@ class BaseGait(ABC):
             Swing legs project from center outward in movement direction
             Stance legs project from current position in opposite direction
         """
-        # If no movement input, maintain current position with proper ground clearance
+        # If no movement input, maintain current position with proper stance height
         if self.direction_input.magnitude() == 0 and self.rotation_input == 0:
             current_pos = Vector3D(*self.hexapod.current_leg_positions[leg_index])
-            current_pos.z = -self.stance_height  # Adjust for ground clearance
+            current_pos.z = -self.stance_height  # Adjust for stance height
             return current_pos
         
         # Calculate projection direction and origin
@@ -491,7 +491,7 @@ class BaseGait(ABC):
         # Project target onto circle
         target_2d = self.project_point_to_circle(self.step_radius, projection_origin, projection_direction)
         
-        # Convert to 3D with proper ground clearance
+        # Convert to 3D with proper stance height
         target_3d = Vector3D(target_2d.x, target_2d.y, -self.stance_height)
         
         return target_3d
@@ -516,7 +516,7 @@ class BaseGait(ABC):
             is_swing (bool): True if leg is in swing phase, False if in stance phase
         """
         current_pos = Vector3D(*self.hexapod.current_leg_positions[leg_index])
-        path = LegPath([])
+        path = self.LegPath([])
         
         if is_swing:
             # Calculate three-phase path for swing legs
@@ -524,26 +524,26 @@ class BaseGait(ABC):
             
             # Calculate lift parameters based on incline ratio
             missing_height = target.z + self.leg_lift_distance - current_pos.z
-            distance_cur_to_lift_xy = abs(missing_height) / self.leg_lift_incline
-            distance_target_to_lower_xy = self.leg_lift_distance / self.leg_lift_incline
-            distance_cur_to_target_xy = current_to_target.xy_plane().magnitude()
+            distance_from_current_to_lift_xy = abs(missing_height) / self.leg_lift_incline
+            distance_from_target_to_lower_xy = self.leg_lift_distance / self.leg_lift_incline
+            distance_from_current_to_target_xy = current_to_target.xy_plane().magnitude()
             
             # Determine number of waypoints needed based on distance
             num_waypoints = 0
             step_height = self.leg_lift_distance
             
-            if (distance_cur_to_lift_xy + distance_target_to_lower_xy < distance_cur_to_target_xy and 
+            if (distance_from_current_to_lift_xy + distance_from_target_to_lower_xy < distance_from_current_to_target_xy and 
                 abs(missing_height) > 2):
                 # Long distance: need both lift and travel waypoints
                 num_waypoints = 2
             elif missing_height < 2:
                 # Short distance: adjust step height
                 num_waypoints = 1
-                step_height = self.leg_lift_distance - ((distance_cur_to_lift_xy + distance_target_to_lower_xy - distance_cur_to_target_xy) / 2) * self.leg_lift_incline
+                step_height = self.leg_lift_distance - ((distance_from_current_to_lift_xy + distance_from_target_to_lower_xy - distance_from_current_to_target_xy) / 2) * self.leg_lift_incline
             else:
                 # Medium distance: single travel waypoint
                 num_waypoints = 1
-                step_height = distance_cur_to_target_xy * self.leg_lift_incline
+                step_height = distance_from_current_to_target_xy * self.leg_lift_incline
             
             # Create waypoints for three-phase movement
             path.add_waypoint(current_pos)  # Phase 1: Start position
@@ -895,6 +895,12 @@ class GaitGenerator:
         targeting and moves them to their new positions. For swing legs, this
         includes the three-phase path planning (lift → travel → lower).
         
+        All legs in the same phase (swing or stance) move simultaneously,
+        regardless of how many legs are in each phase. This works for any gait pattern:
+        - Tripod gait: 3 swing + 3 stance legs move in groups
+        - Wave gait: 1 swing + 5 stance legs move in groups
+        - Custom gaits: Any number of legs in each phase
+        
         Args:
             state (GaitState): The current gait state to execute
         """
@@ -922,23 +928,93 @@ class GaitGenerator:
             stance_paths[leg_idx] = self.current_gait.leg_paths[leg_idx]
             print(f"Leg {leg_idx} stance path has {len(stance_paths[leg_idx].waypoints)} waypoints")
         
-        # Execute swing movements through waypoints
-        print("\nExecuting swing movements:")
-        for leg_idx in state.swing_legs:
-            try:
-                self._execute_waypoint_movement(leg_idx, swing_paths[leg_idx].waypoints, "swing")
-            except Exception as e:
-                print(f"Error during swing movement for leg {leg_idx}: {e}")
-                # Continue with other legs even if one fails
+        # Execute all swing movements simultaneously through waypoints
+        if state.swing_legs:
+            print(f"\nExecuting swing movements ({len(state.swing_legs)} legs simultaneously):")
+            self._execute_group_waypoint_movement(state.swing_legs, swing_paths, "swing")
         
-        # Execute stance movements through waypoints
-        print("\nExecuting stance movements:")
-        for leg_idx in state.stance_legs:
+        # Execute all stance movements simultaneously through waypoints
+        if state.stance_legs:
+            print(f"\nExecuting stance movements ({len(state.stance_legs)} legs simultaneously):")
+            self._execute_group_waypoint_movement(state.stance_legs, stance_paths, "stance")
+
+    def _execute_group_waypoint_movement(self, leg_indices: List[int], paths: Dict[int, BaseGait.LegPath], description: str) -> None:
+        """
+        Execute movement through waypoints for a group of legs simultaneously.
+        
+        This method moves multiple legs through their waypoints at the same time,
+        using move_all_legs for true simultaneous movement. Each leg follows its
+        own path independently, and legs that finish their path early stay at
+        their final position.
+        
+        Args:
+            leg_indices (List[int]): List of leg indices to move
+            paths (Dict[int, BaseGait.LegPath]): Dictionary mapping leg indices to their paths
+            description (str): Description of the movement for logging
+        """
+        print(f"Executing {description} movement for legs {leg_indices} simultaneously")
+        
+        # Find the maximum number of waypoints across all legs
+        max_waypoints = max(len(paths[leg_idx].waypoints) for leg_idx in leg_indices)
+        print(f"Maximum waypoints across all legs: {max_waypoints}")
+        
+        # Track which legs have completed their paths
+        completed_legs = set()
+        
+        # Move through waypoints simultaneously
+        for waypoint_idx in range(max_waypoints):
+            print(f"  Waypoint {waypoint_idx + 1}/{max_waypoints} for all legs")
+            
+            # Prepare target positions for all legs at this waypoint
+            all_positions = list(self.hexapod.current_leg_positions)  # Start with current positions
+            
+            for leg_idx in leg_indices:
+                path = paths[leg_idx]
+                
+                if leg_idx in completed_legs:
+                    # This leg has completed its path, keep it at final position
+                    final_waypoint = path.waypoints[-1]
+                    all_positions[leg_idx] = (final_waypoint.x, final_waypoint.y, final_waypoint.z)
+                    print(f"    Leg {leg_idx}: {final_waypoint.to_tuple()} (completed, staying at final position)")
+                    
+                elif waypoint_idx < len(path.waypoints):
+                    # This leg has more waypoints to go
+                    waypoint = path.waypoints[waypoint_idx]
+                    all_positions[leg_idx] = (waypoint.x, waypoint.y, waypoint.z)
+                    print(f"    Leg {leg_idx}: {waypoint.to_tuple()}")
+                    
+                    # Check if this is the final waypoint for this leg
+                    if waypoint_idx == len(path.waypoints) - 1:
+                        completed_legs.add(leg_idx)
+                        print(f"    Leg {leg_idx} completed its path")
+                        
+                else:
+                    # This leg has fewer waypoints, use its final position
+                    final_waypoint = path.waypoints[-1]
+                    all_positions[leg_idx] = (final_waypoint.x, final_waypoint.y, final_waypoint.z)
+                    print(f"    Leg {leg_idx}: {final_waypoint.to_tuple()} (final position)")
+                    completed_legs.add(leg_idx)
+                    print(f"    Leg {leg_idx} completed its path")
+            
             try:
-                self._execute_waypoint_movement(leg_idx, stance_paths[leg_idx].waypoints, "stance")
+                # Move all legs to their target positions simultaneously
+                self.hexapod.move_all_legs(all_positions)
+                
+                # Wait for all movements to complete
+                self.hexapod.wait_until_motion_complete()
+                time.sleep(0.5)  # Delay between waypoints
+                
+                print(f"    All legs moved successfully to waypoint {waypoint_idx + 1}")
+                
             except Exception as e:
-                print(f"Error during stance movement for leg {leg_idx}: {e}")
-                # Continue with other legs even if one fails
+                print(f"    Error moving legs to waypoint {waypoint_idx + 1}: {e}")
+                print(f"    Attempting to return to safe position...")
+                from robot.hexapod import PredefinedPosition
+                self.hexapod.move_to_position(PredefinedPosition.UPRIGHT)
+                self.hexapod.wait_until_motion_complete()
+                raise e
+        
+        print(f"  Completed {description} movement for legs {leg_indices}")
 
     def start(self, gait: BaseGait, stop_event: Optional[threading.Event] = None) -> None:
         """
