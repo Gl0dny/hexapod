@@ -896,10 +896,7 @@ class GaitGenerator:
         includes the three-phase path planning (lift → travel → lower).
         
         All legs in the same phase (swing or stance) move simultaneously,
-        regardless of how many legs are in each phase. This works for any gait pattern:
-        - Tripod gait: 3 swing + 3 stance legs move in groups
-        - Wave gait: 1 swing + 5 stance legs move in groups
-        - Custom gaits: Any number of legs in each phase
+        regardless of how many legs are in each phase.
         
         Args:
             state (GaitState): The current gait state to execute
