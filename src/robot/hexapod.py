@@ -10,7 +10,7 @@ import yaml
 import numpy as np
 
 from maestro import MaestroUART
-from robot import Leg, Joint, Calibration, GaitGenerator
+from robot import Leg, Calibration, GaitGenerator
 from imu import Imu
 from utils import map_range, homogeneous_transformation_matrix
 
@@ -132,7 +132,7 @@ class Hexapod:
         self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['low_profile'])
         self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['low_profile'])
 
-        self.gait_generator = GaitGenerator(self)
+        self.gait_generator = GaitGenerator(self) #TODO: Optional IMU-based gait generator
 
         self.set_all_servos_speed(self.speed)
         self.set_all_servos_accel(self.accel)
