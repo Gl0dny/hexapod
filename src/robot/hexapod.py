@@ -541,86 +541,116 @@ class Hexapod:
             return True
         else:
             return False
-
     def _compute_body_inverse_kinematics(
-        self, 
-        tx: float = 0.0, 
-        ty: float = 0.0, 
-        tz: float = 0.0,
-        roll: float = 0.0, 
-        pitch: float = 0.0, 
-        yaw: float = 0.0
-    ) -> np.ndarray:
+            self,
+            tx: float = 0.0,
+            ty: float = 0.0,
+            tz: float = 0.0,
+            roll: float = 0.0,
+            pitch: float = 0.0,
+            yaw: float = 0.0,
+        ) -> np.ndarray:
         """
-        Calculate leg position deltas using homogeneous transformations.
+        Compute how far each foot must move in body coordinates so that the
+        feet remain fixed in the world while the body undergoes the commanded
+        translation and rotation.
 
-        Args:
-            tx (float): Translation along the x-axis in mm.
-            ty (float): Translation along the y-axis in mm.
-            tz (float): Translation along the z-axis in mm.
-            roll (float): Rotation around the x-axis in degrees.
-            pitch (float): Rotation around the y-axis in degrees.
-            yaw (float): Rotation around the z-axis in degrees.
+        -------------------------------------------------------------------------
+        Reference frame used in this project  (RIGHT-HANDED, “robot frame”)
+        -------------------------------------------------------------------------
+        • +X points to the robot’s RIGHT side
+        • +Y points FORWARD (in front of the robot)
+        • +Z points UP
 
-        Returns:
-            np.ndarray: 6x3 array of (Δx, Δy, Δz) for each leg.
+            (This is ⟲ 90 ° about +Z compared with the aerospace/ROS convention
+            where +X is forward and +Y is left.)
+
+        Euler angles – after the swap below – therefore mean:
+        -----------------------------------------------------
+            roll  (about +X)  ➜ right side down / left side up  (“bank”)
+            pitch (about +Y)  ➜ nose down / nose up             (“tilt”)
+            yaw   (about +Z)  ➜ clockwise = right turn (viewed from above)
+
+        If you port algorithms from ROS or aviation texts remember that their
+        ‘roll’ and ‘pitch’ will appear swapped in this frame.
+        -------------------------------------------------------------------------
+        Args
+        ----
+        tx, ty, tz : float
+            Desired body translation in millimetres.
+        roll, pitch, yaw : float
+            Desired body rotation in degrees.
+
+        Returns
+        -------
+        np.ndarray  (6 × 3)
+            Δx, Δy, Δz that each leg tip must travel in its own local frame.
         """
 
-        # Calculate initial end effector positions
-        leg_angles = self.leg_angles
+        #     Initial nominal foot positions in the body frame
         initial_positions = np.array([
-            [
-                self.end_effector_radius * np.cos(theta),
-                self.end_effector_radius * np.sin(theta),
-                -self.tibia_params["length"]  # Tibia points downward
-            ] for theta in leg_angles
+            [self.end_effector_radius * np.cos(th),
+            self.end_effector_radius * np.sin(th),
+            -self.tibia_params["length"]]          # tibia points downwards
+            for th in self.leg_angles
         ])
 
-        # Create homogeneous transformation matrix
-        T = homogeneous_transformation_matrix(tx, ty, -tz, roll, pitch, yaw)
-        
-        # Apply transformation
+        #     Build BODY→WORLD transform.
+        #
+        #     We still call our helper with arguments in the order
+        #        (roll, pitch, yaw) = (about X, about Y, about Z)
+        #     but – critically – we now feed pitch first, roll second
+        #     so that the names match the intuitive behaviour.
+        #
+        #     We negate translation because we are computing how the FEET must move
+        #     in the body frame to make the BODY appear to translate in world space.
+        Tb_w = homogeneous_transformation_matrix(
+            -tx, -ty, -tz,          # inverse translation
+            pitch, -roll, yaw        # << swapped arguments, negated roll
+        )
+
+        #     Efficiently apply the inverse rotation and inverse translation
+        #     in a single matrix multiplication (homogeneous row-vectors).
         homogenous_pos = np.hstack((initial_positions, np.ones((6, 1))))
-        transformed = (homogenous_pos @ T.T)[:, :3]
-    
+        transformed = (homogenous_pos @ Tb_w.T)[:, :3]
         # Calculate deltas relative to initial positions
         deltas = transformed - initial_positions
         deltas = np.round(deltas, 2)
-        logger.debug(f"Computed body IK deltas: {deltas}")
+        logger.debug(f"Computed body-frame IK deltas: {deltas}")
         return deltas
 
     def _transform_body_to_leg_frames(
-        self, 
-        body_frame_deltas: np.ndarray
-    ) -> np.ndarray:
-        """
-        Transform deltas from body reference frame to each leg's local frame.
-        Each leg's local frame is rotated -90° relative to its mounting angle.
+            self, 
+            body_frame_deltas: np.ndarray
+        ) -> np.ndarray:
+            """
+            Transform deltas from body reference frame to each leg's local frame.
+            Each leg's local frame is rotated -90° relative to its mounting angle.
 
-        Args:
-            body_frame_deltas (np.ndarray): Deltas in the body reference frame.
+            Args:
+                body_frame_deltas (np.ndarray): Deltas in the body reference frame.
 
-        Returns:
-            np.ndarray: Deltas in each leg's local frame.
-        """
-        
-        # Initialize array for leg frame deltas
-        leg_frame_deltas = np.zeros_like(body_frame_deltas)
-        
-        for i, leg_angle_rad in enumerate(self.leg_angles):
-            # Create rotation matrix for leg's local frame (-90° relative to mounting angle)
-            rotation_matrix_leg_frame = np.array([
-                [np.sin(leg_angle_rad), -np.cos(leg_angle_rad), 0],  # X-axis: perpendicular to mounting angle
-                [np.cos(leg_angle_rad), np.sin(leg_angle_rad), 0],   # Y-axis: along mounting angle
-                [0, 0, 1]                                             # Z-axis: unchanged
-            ])
+            Returns:
+                np.ndarray: Deltas in each leg's local frame.
+            """
             
-            # Transform delta to leg frame
-            leg_frame_deltas[i] = rotation_matrix_leg_frame @ body_frame_deltas[i]
-            deltas = np.round(leg_frame_deltas, 2)
-            logger.debug(f"Computed local body:leg frame IK deltas: {deltas}")
-        
-        return deltas
+            # Initialize array for leg frame deltas
+            leg_frame_deltas = np.zeros_like(body_frame_deltas)
+            
+            for i, leg_angle_rad in enumerate(self.leg_angles):
+                # Create rotation matrix for leg's local frame (-90° relative to mounting angle)
+                rotation_matrix_leg_frame = np.array([
+                    [np.sin(leg_angle_rad), -np.cos(leg_angle_rad), 0],  # X-axis: perpendicular to mounting angle
+                    [np.cos(leg_angle_rad), np.sin(leg_angle_rad), 0],   # Y-axis: along mounting angle
+                    [0, 0, 1]                                             # Z-axis: unchanged
+                ])
+                
+                # Transform delta to leg frame
+                leg_frame_deltas[i] = rotation_matrix_leg_frame @ body_frame_deltas[i]
+                deltas = np.round(leg_frame_deltas, 2)
+                logger.debug(f"Computed local body:leg frame IK deltas: {deltas}")
+            
+            return deltas
 
 if __name__ == '__main__':
     hexapod = Hexapod()

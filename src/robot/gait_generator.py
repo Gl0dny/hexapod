@@ -944,6 +944,46 @@ class GaitGenerator:
         own path independently, and legs that finish their path early stay at
         their final position.
         
+        Maximum Waypoints Concept:
+        This method implements the core "maximum waypoints" synchronization system
+        that ensures smooth, coordinated movement even when legs have different
+        path complexities. The system handles legs with 2-4 waypoints based on:
+        
+        Waypoint Counts by Leg Type:
+        - **Stance legs**: Always 2 waypoints (start → target)
+        - **Swing legs**: 2-4 waypoints depending on distance:
+          * Short distance: 2 waypoints (start → target)
+          * Medium distance: 3 waypoints (start → travel → target)
+          * Long distance: 4 waypoints (start → lift → travel → target)
+        
+        Implementation Strategy:
+        1. Find Maximum Waypoints: Determines the leg with the most waypoints
+           in the group (typically 2-4 waypoints per leg)
+        
+        2. Synchronized Execution: All legs move through waypoints simultaneously,
+           with legs that have fewer waypoints completing early and staying at their
+           final position while longer paths continue
+        
+        3. Path Completion Tracking: Tracks which legs have completed their paths
+           and maintains them at their final waypoint position
+        
+        4. Simultaneous Movement: Uses move_all_legs() to move all legs at once,
+           ensuring coordinated movement and preventing stability issues
+        
+        Example with Mixed Path Lengths:
+        - Leg 1: 2 waypoints (stance leg)
+        - Leg 3: 4 waypoints (long swing path)  
+        - Leg 5: 3 waypoints (medium swing path)
+        
+        Execution:
+        - Waypoint 1: All legs move to their first waypoint
+        - Waypoint 2: Leg 1 reaches final position, Legs 3&5 continue
+        - Waypoint 3: Leg 5 reaches final position, Leg 3 continues
+        - Waypoint 4: Leg 3 reaches final position, all complete
+        
+        This approach ensures smooth, coordinated movement while accommodating
+        different path complexities for different leg types and distances.
+        
         Args:
             leg_indices (List[int]): List of leg indices to move
             paths (Dict[int, BaseGait.LegPath]): Dictionary mapping leg indices to their paths
