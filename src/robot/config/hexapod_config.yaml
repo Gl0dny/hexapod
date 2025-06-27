@@ -3,7 +3,7 @@ hexagon_side_length: 137.0        # Length of one side of the hexagon in mm ( di
 
 # Controller settings
 controller:
-  port: "/dev/ttyAMA0"       # Serial port for Maestro UART
+  port: "/dev/ttyAMA0"       # Serial port for Maestro UART (hardware UART - Bluetooth disabled)
   baudrate: 9600           # Baud rate for communication
 
 # Servo settings

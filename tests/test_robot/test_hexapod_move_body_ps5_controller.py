@@ -63,7 +63,6 @@ class PS5DualSenseMappings:
     BUTTON_R3 = 11       # R3
     BUTTON_PS5 = 12      # PS5 (avoid in robot control)
     BUTTON_TOUCHPAD = 13 # Touchpad
-    BUTTON_MUTE = 14     # Mute
     
     # Button names for easy reference
     BUTTON_NAMES = {
@@ -80,8 +79,7 @@ class PS5DualSenseMappings:
         BUTTON_L3: "L3",
         BUTTON_R3: "R3",
         BUTTON_PS5: "PS5",
-        BUTTON_TOUCHPAD: "Touchpad",
-        BUTTON_MUTE: "Mute"
+        BUTTON_TOUCHPAD: "Touchpad"
     }
     
     # Axis names for easy reference
@@ -255,8 +253,7 @@ class PS5ControllerHexapodController:
             'l3': self.controller.get_button(PS5DualSenseMappings.BUTTON_L3),
             'r3': self.controller.get_button(PS5DualSenseMappings.BUTTON_R3),
             'ps5': self.controller.get_button(PS5DualSenseMappings.BUTTON_PS5),
-            'touchpad': self.controller.get_button(PS5DualSenseMappings.BUTTON_TOUCHPAD),
-            'mute': self.controller.get_button(PS5DualSenseMappings.BUTTON_MUTE),
+            'touchpad': self.controller.get_button(PS5DualSenseMappings.BUTTON_TOUCHPAD)
         }
         
         return buttons
@@ -290,7 +287,6 @@ class PS5ControllerHexapodController:
         print("  Options         - Additional function")
         print("  PS5             - Exit program")
         print("  Touchpad        - Additional function")
-        print("  Mute            - Additional function")
         print()
         print("Special Features:")
         print("  - Analog sticks provide continuous movement")
@@ -381,8 +377,6 @@ class PS5ControllerHexapodController:
             self.exit_program()
         if self._check_button_press('touchpad'):
             pass  # Touchpad pressed (no action)
-        if self._check_button_press('mute'):
-            pass  # Mute button pressed (no action)
     
     def exit_program(self):
         """Exit the program."""
