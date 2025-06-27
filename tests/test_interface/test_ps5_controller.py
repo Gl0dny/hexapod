@@ -174,18 +174,38 @@ def check_system_controllers():
             print("  NOTE: USB subsystem might be disabled")
             print("  NOTE: Check /boot/config.txt for USB-related overlays")
     
-    # Check Bluetooth devices
+    # Check Bluetooth devices - look for CONNECTED devices only
     print("\nBluetooth devices:")
     stdout, stderr, returncode = run_command_safely(['bluetoothctl', 'devices'], timeout=3)
     if returncode == 0:
         bt_devices = stdout
-        found_controller = False
+        found_connected_controller = False
+        found_paired_controller = False
+        
         for line in bt_devices.split('\n'):
             if any(keyword in line.lower() for keyword in ['sony', 'dualsense', 'wireless controller', 'gamepad']):
-                print(f"  Found: {line}")
-                found_controller = True
-        if not found_controller:
+                # Extract MAC address
+                parts = line.split()
+                if len(parts) >= 2:
+                    mac_address = parts[1]
+                    
+                    # Check if this device is connected
+                    info_stdout, info_stderr, info_returncode = run_command_safely(
+                        ['bluetoothctl', 'info', mac_address], timeout=2
+                    )
+                    
+                    if info_returncode == 0 and 'Connected: yes' in info_stdout:
+                        print(f"  CONNECTED: {line}")
+                        found_connected_controller = True
+                    else:
+                        print(f"  PAIRED (not connected): {line}")
+                        found_paired_controller = True
+        
+        if not found_connected_controller and not found_paired_controller:
             print("  No game controllers found in Bluetooth devices")
+        elif not found_connected_controller and found_paired_controller:
+            print("  NOTE: Found paired controllers but none are connected")
+            print("  NOTE: Use 'bluetoothctl connect [MAC_ADDRESS]' to connect")
     else:
         print(f"  Could not check Bluetooth devices: {stderr}")
         if "No such file or directory" in stderr or "Connection refused" in stderr:
