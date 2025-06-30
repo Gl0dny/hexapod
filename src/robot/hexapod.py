@@ -126,11 +126,19 @@ class Hexapod:
         self.calibration: Calibration = Calibration(self, calibration_data_path=calibration_data_path)
         self.calibration.load_calibration()
 
-        self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_positions']
-        self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = config['predefined_angle_positions']
+        # Create deep copies of predefined positions to prevent modification of original config
+        self.predefined_positions: Dict[str, List[Tuple[float, float, float]]] = {
+            key: [tuple(pos) for pos in value] 
+            for key, value in config['predefined_positions'].items()
+        }
+        self.predefined_angle_positions: Dict[str, List[Tuple[float, float, float]]] = {
+            key: [tuple(pos) for pos in value] 
+            for key, value in config['predefined_angle_positions'].items()
+        }
 
-        self.current_leg_angles: List[Tuple[float, float, float]] = list(self.predefined_angle_positions['low_profile'])
-        self.current_leg_positions: List[Tuple[float, float, float]] = list(self.predefined_positions['low_profile'])
+        # Create deep copies to avoid modifying the original predefined positions
+        self.current_leg_angles: List[Tuple[float, float, float]] = [tuple(pos) for pos in self.predefined_angle_positions['low_profile']]
+        self.current_leg_positions: List[Tuple[float, float, float]] = [tuple(pos) for pos in self.predefined_positions['low_profile']]
 
         self.gait_generator = GaitGenerator(self) #TODO: Optional IMU-based gait generator
 
@@ -237,11 +245,35 @@ class Hexapod:
         self.current_leg_angles[leg_index] = (coxa_angle, femur_angle, tibia_angle)
         logger.info(f"Leg {leg_index} moved to position x: {x}, y: {y}, z: {z}")
 
+    def _validate_angles(
+        self, 
+        angles_list: List[Tuple[float, float, float]], 
+        method_name: str = "movement"
+    ) -> None:
+        """
+        Validate that all angles are within the servo limits.
+        
+        Args:
+            angles_list (List[Tuple[float, float, float]]): List of (coxa_angle, femur_angle, tibia_angle) tuples for each leg.
+            method_name (str): Name of the calling method for error context.
+            
+        Raises:
+            ValueError: If any angle is out of limits.
+        """
+        for i, (coxa_angle, femur_angle, tibia_angle) in enumerate(angles_list):
+            if not (self.coxa_params['angle_min'] <= coxa_angle <= self.coxa_params['angle_max']):
+                raise ValueError(f"Coxa angle {coxa_angle}° for leg {i} is out of limits ({self.coxa_params['angle_min']}° to {self.coxa_params['angle_max']}°) in {method_name}.")
+            
+            if not (self.femur_params['angle_min'] <= femur_angle <= self.femur_params['angle_max']):
+                raise ValueError(f"Femur angle {femur_angle}° for leg {i} is out of limits ({self.femur_params['angle_min']}° to {self.femur_params['angle_max']}°) in {method_name}.")
+            
+            if not (self.tibia_params['angle_min'] <= tibia_angle <= self.tibia_params['angle_max']):
+                raise ValueError(f"Tibia angle {tibia_angle}° for leg {i} is out of limits ({self.tibia_params['angle_min']}° to {self.tibia_params['angle_max']}°) in {method_name}.")
+
     def move_all_legs(
         self, 
         positions: List[Tuple[float, float, float]]
     ) -> None:
-        logger.info(f"move_all_legs called with positions: {positions}")
         """
         Move all legs simultaneously to specified positions.
         
@@ -250,24 +282,19 @@ class Hexapod:
         """
         logger.info(f"move_all_legs called with positions: {positions}")
         
+        # Calculate all angles first to avoid duplicate computation
+        angles_list = []
         for i, pos in enumerate(positions):
             x, y, z = pos
             coxa_angle, femur_angle, tibia_angle = self.legs[i].compute_inverse_kinematics(x, y, z)
-            
-            if not (self.coxa_params['angle_min'] <= coxa_angle <= self.coxa_params['angle_max']):
-                raise ValueError(f"Coxa angle {coxa_angle}° for leg {i} is out of limits ({self.coxa_params['angle_min']}° to {self.coxa_params['angle_max']}°).")
-            
-            if not (self.femur_params['angle_min'] <= femur_angle <= self.femur_params['angle_max']):
-                raise ValueError(f"Femur angle {femur_angle}° for leg {i} is out of limits ({self.femur_params['angle_min']}° to {self.femur_params['angle_max']}°).")
-            
-            if not (self.tibia_params['angle_min'] <= tibia_angle <= self.tibia_params['angle_max']):
-                raise ValueError(f"Tibia angle {tibia_angle}° for leg {i} is out of limits ({self.tibia_params['angle_min']}° to {self.tibia_params['angle_max']}°).")
+            angles_list.append((coxa_angle, femur_angle, tibia_angle))
         
+        # Validate angles using centralized method
+        self._validate_angles(angles_list, "move_all_legs")
+        
+        # Generate servo targets using pre-calculated angles
         targets = []
-        for i, pos in enumerate(positions):
-            x, y, z = pos
-            coxa_angle, femur_angle, tibia_angle = self.legs[i].compute_inverse_kinematics(x, y, z)
-            
+        for i, (coxa_angle, femur_angle, tibia_angle) in enumerate(angles_list):
             # Invert angles if required
             if self.legs[i].coxa.invert:
                 coxa_angle *= -1
@@ -292,7 +319,9 @@ class Hexapod:
         targets = sorted(targets, key=lambda x: x[0])
         logger.debug(f"set_multiple_targets called with targets: {targets}")
         self.controller.set_multiple_targets(targets)
-        self.current_leg_positions = positions
+
+        # Create a deep copy of positions to avoid modifying the original
+        self.current_leg_positions = [tuple(pos) for pos in positions]
         self._sync_angles_from_positions()
         logger.info("All legs moved to new positions")
 
@@ -349,7 +378,12 @@ class Hexapod:
         logger.info(f"Setting all legs to position '{position_name.value}'")
         positions = self.predefined_positions.get(position_name.value)
         if positions:
-            self.move_all_legs(positions)
+            try:
+                self.move_all_legs(positions)
+            except ValueError as e:
+                # Chain the exception with move_to_position context
+                context_msg = f"move_to_position('{position_name.value}')"
+                raise ValueError(f"{str(e)} (called from: {context_msg})") from e
             logger.info(f"All legs set to position '{position_name.value}'")
         else:
             available = list(self.predefined_positions.keys())
@@ -382,7 +416,6 @@ class Hexapod:
         self, 
         angles_list: List[Tuple[float, float, float]]
     ) -> None:
-        logger.info(f"move_all_legs_angles called with angles_list: {angles_list}")
         """
         Move all legs' angles simultaneously.
         
@@ -391,33 +424,23 @@ class Hexapod:
         """
         logger.info(f"move_all_legs_angles called with angles_list: {angles_list}")
         
-        for i, angles in enumerate(angles_list):
-            c_angle, f_angle, t_angle = angles
-            
-            if not (self.coxa_params['angle_min'] <= c_angle <= self.coxa_params['angle_max']):
-                raise ValueError(f"Coxa angle {c_angle}° for leg {i} is out of limits ({self.coxa_params['angle_min']}° to {self.coxa_params['angle_max']}°).")
-            
-            if not (self.femur_params['angle_min'] <= f_angle <= self.femur_params['angle_max']):
-                raise ValueError(f"Femur angle {f_angle}° for leg {i} is out of limits ({self.femur_params['angle_min']}° to {self.femur_params['angle_max']}°).")
-            
-            if not (self.tibia_params['angle_min'] <= t_angle <= self.tibia_params['angle_max']):
-                raise ValueError(f"Tibia angle {t_angle}° for leg {i} is out of limits ({self.tibia_params['angle_min']}° to {self.tibia_params['angle_max']}°).")
+        # Validate angles using centralized method
+        self._validate_angles(angles_list, "move_all_legs_angles")
         
+        # Generate servo targets using pre-calculated angles
         targets = []
-        for i, angles in enumerate(angles_list):
-            c_angle, f_angle, t_angle = angles
-            
+        for i, (coxa_angle, femur_angle, tibia_angle) in enumerate(angles_list):
             # Invert angles if required
             if self.legs[i].coxa.invert:
-                c_angle *= -1
+                coxa_angle *= -1
             if self.legs[i].femur.invert:
-                f_angle *= -1
+                femur_angle *= -1
             if self.legs[i].tibia.invert:
-                t_angle *= -1
+                tibia_angle *= -1
 
-            coxa_target = self.legs[i].coxa.angle_to_servo_target(c_angle)
-            femur_target = self.legs[i].femur.angle_to_servo_target(f_angle)
-            tibia_target = self.legs[i].tibia.angle_to_servo_target(t_angle)
+            coxa_target = self.legs[i].coxa.angle_to_servo_target(coxa_angle)
+            femur_target = self.legs[i].femur.angle_to_servo_target(femur_angle)
+            tibia_target = self.legs[i].tibia.angle_to_servo_target(tibia_angle)
             targets.append((self.legs[i].coxa.channel, coxa_target))
             targets.append((self.legs[i].femur.channel, femur_target))
             targets.append((self.legs[i].tibia.channel, tibia_target))
@@ -470,7 +493,6 @@ class Hexapod:
         logger.info("Motion complete")
 
     def move_to_angles_position(self, position_name: PredefinedAnglePosition) -> None:
-        logger.info(f"Setting all legs to angles position '{position_name.value}'")
         """
         Move the hexapod to a predefined angle position.
         
@@ -556,9 +578,9 @@ class Hexapod:
         translation and rotation.
 
         -------------------------------------------------------------------------
-        Reference frame used in this project  (RIGHT-HANDED, “robot frame”)
+        Reference frame used in this project  (RIGHT-HANDED, "robot frame")
         -------------------------------------------------------------------------
-        • +X points to the robot’s RIGHT side
+        • +X points to the robot's RIGHT side
         • +Y points FORWARD (in front of the robot)
         • +Z points UP
 
@@ -567,12 +589,12 @@ class Hexapod:
 
         Euler angles – after the swap below – therefore mean:
         -----------------------------------------------------
-            roll  (about +X)  ➜ right side down / left side up  (“bank”)
-            pitch (about +Y)  ➜ nose down / nose up             (“tilt”)
+            roll  (about +X)  ➜ right side down / left side up  ("bank")
+            pitch (about +Y)  ➜ nose down / nose up             ("tilt")
             yaw   (about +Z)  ➜ clockwise = right turn (viewed from above)
 
         If you port algorithms from ROS or aviation texts remember that their
-        ‘roll’ and ‘pitch’ will appear swapped in this frame.
+        'roll' and 'pitch' will appear swapped in this frame.
         -------------------------------------------------------------------------
         Args
         ----
@@ -651,23 +673,3 @@ class Hexapod:
                 logger.debug(f"Computed local body:leg frame IK deltas: {deltas}")
             
             return deltas
-
-if __name__ == '__main__':
-    hexapod = Hexapod()
-    # hexapod.calibrate_all_servos()
-    hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-    # hexapod.controller.go_home()
-    # hexapod.deactivate_all_servos()
-
-    # while True:
-    #     ax, ay, az = hexapod.imu.get_acceleration()
-    #     gx, gy, gz = hexapod.imu.get_gyroscope()
-    #     mag_x, mag_y, mag_z = hexapod.imu.get_magnetometer()
-    #     temp = hexapod.imu.get_temperature()
-
-    #     logger.info(f"""
-    # Accel: {ax:05.2f} {ay:05.2f} {az:05.2f}
-    # Gyro:  {gx:05.2f} {gy:05.2f} {gz:05.2f}
-    # Mag:   {mag_x:05.2f} {mag_y:05.2f} {mag_z:05.2f}
-    # Temp:  {temp:05.2f}""")
-    #     time.sleep(1)

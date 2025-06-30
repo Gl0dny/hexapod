@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, override
 import logging
+import time
 
 from control.tasks import ControlTask
 from robot import PredefinedPosition, PredefinedAnglePosition

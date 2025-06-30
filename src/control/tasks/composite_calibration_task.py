@@ -155,4 +155,5 @@ class RunCalibrationTask(ControlTask):
         
         finally:
             logger.info("RunCalibrationTask completed")
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+            self.hexapod.move_to_position(PredefinedAnglePosition.LOW_PROFILE)
+            self.hexapod.wait_until_motion_complete(stop_event=self.stop_event)

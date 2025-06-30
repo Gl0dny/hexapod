@@ -6,7 +6,6 @@ import threading
 import time
 from pathlib import Path
 
-from interface import NonBlockingConsoleInputHandler
 from utils import rename_thread
 from robot import Joint
 
@@ -53,13 +52,15 @@ class Calibration:
         Args:
             stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
         """
-        from robot import PredefinedAnglePosition
+        from robot import PredefinedPosition, PredefinedAnglePosition
+        from interface import NonBlockingConsoleInputHandler
         
         self.input_handler = NonBlockingConsoleInputHandler()
         rename_thread(self.input_handler, "CalibrationInputHandler")
         self.input_handler.start()
 
-        self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+        self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.hexapod.wait_until_motion_complete(stop_event=stop_event)
 
         logger.debug("Starting calibration of all servos.")
         logger.debug(f"Calibration status: {self.status}")
@@ -112,11 +113,15 @@ class Calibration:
                     )
                     logger.debug(f"Set Leg {i} to calibration position.")
                 
-                self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+                self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+                self.hexapod.wait_until_motion_complete(stop_event=stop_event)
                 self.status[i] = "calibrated"
                 logger.debug(f"Calibration status: {self.status}")
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            self.hexapod.wait_until_motion_complete(stop_event=stop_event)
             self._save_calibration()
+        except KeyboardInterrupt:
+            logger.warning("Calibration interrupted by user (Ctrl+C)")
         except Exception as e:
             logger.exception(f"Error during calibration: {e}")
         finally:
@@ -124,6 +129,8 @@ class Calibration:
             if self.input_handler:
                 self.input_handler.shutdown()
                 self.input_handler = None
+            self.hexapod.move_to_position(PredefinedAnglePosition.LOW_PROFILE)
+            self.hexapod.wait_until_motion_complete(stop_event=stop_event)
 
     def get_calibration_status(self) -> dict:
         """
