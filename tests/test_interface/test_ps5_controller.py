@@ -23,7 +23,6 @@ warnings.filterwarnings("ignore", message=".*pygame.*")
 
 try:
     import pygame
-    PYGAME_AVAILABLE = True
 except ImportError:
     print("pygame not available. Install with: pip install pygame")
     sys.exit(1)
