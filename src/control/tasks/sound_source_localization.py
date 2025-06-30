@@ -20,7 +20,14 @@ class SoundSourceLocalizationTask(ControlTask):
 
     Processes incoming sound data to determine source directions and updates lights based on analysis.
     """
-    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor, external_control_paused_event: threading.Event, callback: Optional[Callable] = None) -> None:
+    def __init__(
+            self, 
+            hexapod: Hexapod, 
+            lights_handler: LightsInteractionHandler, 
+            odas_processor: ODASDoASSLProcessor, 
+            external_control_paused_event: threading.Event, 
+            callback: Optional[Callable] = None
+            ) -> None:
         """
         Initialize the SoundSourceLocalizationTask.
 
@@ -37,6 +44,7 @@ class SoundSourceLocalizationTask(ControlTask):
         self.lights_handler = lights_handler
         self.odas_processor = odas_processor
         self.external_control_paused_event = external_control_paused_event
+        self.odas_processor.stop_event = self.stop_event
 
     @override
     def execute_task(self) -> None:

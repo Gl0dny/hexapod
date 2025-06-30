@@ -16,7 +16,7 @@ from kws import VoiceControl
 from control import ControlInterface
 from lights import ColorRGB
 from robot import PredefinedAnglePosition, PredefinedPosition
-from utils import setup_logging, clean_logs
+from interface import setup_logging, clean_logs
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -36,7 +36,7 @@ def parse_arguments() -> argparse.Namespace:
                         help='Index of the audio input device (default: autoselect)')
     parser.add_argument('--log-dir', type=Path, default=Path('logs'),
                         help='Directory to store logs')
-    parser.add_argument('--log-config-file', type=Path, default=Path('src/utils/logging/config/config.yaml'),
+    parser.add_argument('--log-config-file', type=Path, default=Path('src/interface/logging/config/config.yaml'),
                         help='Path to log configuration file')
     parser.add_argument('--clean', '-c', action='store_true',
                         help='Clean all logs in the logs directory.')
@@ -66,9 +66,7 @@ def main() -> None:
     
     # Initialize control interface
     control_interface = ControlInterface()
-    
-    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
-    
+        
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
     
@@ -101,7 +99,7 @@ def main() -> None:
             #     voice_control.pause()
             #     time.sleep(1)
             #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
-            #     control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+            #     control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
             #     break
             # time.sleep(1)
             action, is_running = control_interface.button_handler.check_button()
@@ -112,13 +110,13 @@ def main() -> None:
             elif action == 'toggle':
                 if is_running:
                     logger.user_info("Starting system...")
-                    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+                    control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
                     voice_control.unpause()
                 else:
                     logger.user_info("Stopping system...")
                     voice_control.pause()
                     control_interface.lights_handler.off()
-                    control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+                    control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
                     time.sleep(0.5)
                     control_interface.hexapod.deactivate_all_servos()
             
@@ -140,7 +138,7 @@ def main() -> None:
         logger.debug("Shutdown tasks completed")
     finally:
         time.sleep(1)
-        control_interface.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+        control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         time.sleep(0.5)
         control_interface.hexapod.deactivate_all_servos()
         control_interface.button_handler.cleanup()

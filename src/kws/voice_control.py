@@ -184,8 +184,13 @@ class VoiceControl(threading.Thread):
             task (ControlTask): The task that has completed.
         """
         logger.user_info(f"Voice control task {task.__class__.__name__} has been completed.")
-        self.control_interface.lights_handler.listen_wakeword()
-        logger.user_info("Listening for wake word...")
+        
+        # Only set lights to listen for wake word if the voice control thread is still running
+        if not self.stop_event.is_set():
+            self.control_interface.lights_handler.listen_wakeword()
+            logger.user_info("Listening for wake word...")
+        else:
+            logger.debug("Voice control thread is stopping, canceling the callback for wakeword listening (control task completed)")
 
     def run(self) -> None:
         """

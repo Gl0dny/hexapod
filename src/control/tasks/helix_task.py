@@ -39,35 +39,59 @@ class HelixTask(ControlTask):
             'helix_maximum': helix_max_positions,
         }
 
+    def _perform_helix(self) -> None:
+        """
+        Performs the helix maneuver by moving to helix_minimum and then to helix_maximum positions.
+        The motion consists of:
+        1. Moving to helix_maximum position
+        2. Moving to helix_minimum position
+        3. Repeating the cycle
+        
+        This creates a twisting motion that resembles a helix pattern.
+        """
+        logger.info("Starting helix maneuver")
+        
+        # Parameters for the helix motion
+        repetitions = 2  # number of helix cycles to perform
+        
+        for rep in range(repetitions):
+            if self.stop_event.is_set():
+                logger.info("Helix task interrupted.")
+                return
+                
+            logger.info(f"Performing helix repetition {rep + 1}/{repetitions}")
+
+            logger.debug("Helix maneuver: Moving to 'helix_maximum'")
+            self.hexapod.move_all_legs_angles(self.helix_positions['helix_maximum'])
+
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+            if self.stop_event.is_set():
+                return
+
+            logger.debug("Helix maneuver: Moving to 'helix_minimum'")
+            self.hexapod.move_all_legs_angles(self.helix_positions['helix_minimum'])
+
+            self.hexapod.wait_until_motion_complete(self.stop_event)
+            if self.stop_event.is_set():
+                return
+
+        logger.debug("Helix maneuver: Finished.")
+
     @override
     def execute_task(self) -> None:
         """
-        Performs a helix maneuver by moving to helix_minimum and then to helix_maximum positions.
+        Performs the helix routine.
+
+        Executes the predefined helix movements and updates lights to indicate activity.
         """
+        logger.info("HelixTask started")
         try:
+            logger.info("Performing helix routine.")
             self.lights_handler.think()
-
-            for _ in range(2):
-
-                logger.debug("Helix maneuver: Moving to 'helix_maximum'")
-                self.hexapod.move_all_legs_angles(self.helix_positions['helix_maximum'])
-
-                self.hexapod.wait_until_motion_complete(self.stop_event)
-                if self.stop_event.is_set():
-                    return
-
-                logger.debug("Helix maneuver: Moving to 'helix_minimum'")
-                self.hexapod.move_all_legs_angles(self.helix_positions['helix_minimum'])
-
-                self.hexapod.wait_until_motion_complete(self.stop_event)
-                if self.stop_event.is_set():
-                    return
-
-            logger.debug("Helix maneuver: Finished.")
-
+            self._perform_helix()
         except Exception as e:
             logger.exception(f"Error in HelixTask: {e}")
-
         finally:
             logger.info("HelixTask completed")
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            self.hexapod.wait_until_motion_complete(self.stop_event)

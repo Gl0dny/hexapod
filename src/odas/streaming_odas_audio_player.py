@@ -42,7 +42,7 @@ if str(project_root) not in sys.path:
 if str(src_path) not in sys.path:
     sys.path.append(str(src_path))
 
-from utils.logging import setup_logging, clean_logs
+from interface.logging import setup_logging, clean_logs
 
 DEFAULT_HOST = "hexapod"
 DEFAULT_HOSTNAME = "192.168.0.122"
@@ -326,12 +326,12 @@ class StreamingODASAudioPlayer:
                 except:
                     pass
 
-    def monitor_files(self, file_type: AudioFileType = 'postfiltered') -> None:
+    def monitor_files(self, file_type: AudioFileType = 'separated') -> None:
         """
         Monitor and stream audio from ODAS based on the specified file type.
         
         Args:
-            file_type: Type of audio file to monitor ('postfiltered', 'separated', or 'both')
+            file_type: Type of audio file to monitor ('postfiltered' or 'separated')
         """
         logger.user_info(f"Starting to monitor ODAS audio streams (type: {file_type})")
         
@@ -342,29 +342,14 @@ class StreamingODASAudioPlayer:
             logger.critical(f"Failed to establish SSH connection: {str(e)}")
             return
         
-        threads = []
-        
-        if file_type in ['postfiltered', 'both']:
-            postfiltered_thread = threading.Thread(
-                target=self.stream_audio,
-                args=('postfiltered',),
-                daemon=True
-            )
-            threads.append(postfiltered_thread)
-            postfiltered_thread.start()
-        
-        if file_type in ['separated', 'both']:
-            separated_thread = threading.Thread(
-                target=self.stream_audio,
-                args=('separated',),
-                daemon=True
-            )
-            threads.append(separated_thread)
-            separated_thread.start()
-        
-        # Wait for all threads to complete
-        for thread in threads:
-            thread.join()
+        # Create and start streaming thread
+        stream_thread = threading.Thread(
+            target=self.stream_audio,
+            args=(file_type,),
+            daemon=True
+        )
+        stream_thread.start()
+        stream_thread.join()
 
     def cleanup(self) -> None:
         """Clean up resources and terminate running processes."""
@@ -441,13 +426,13 @@ def main() -> None:
                         help=f'Buffer size for audio processing (default: {DEFAULT_BUFFER_SIZE})')
     parser.add_argument('--check-interval', type=float, default=DEFAULT_CHECK_INTERVAL,
                         help=f'Interval in seconds to check for new audio data (default: {DEFAULT_CHECK_INTERVAL})')
-    parser.add_argument('--file-type', type=str, choices=['postfiltered', 'separated', 'both'], default='postfiltered',
-                        help='Type of audio file to play: postfiltered (default), separated, or both')
+    parser.add_argument('--file-type', type=str, choices=['postfiltered', 'separated'], default='separated',
+                        help='Type of audio file to play: separated (default) or postfiltered')
     parser.add_argument('--log-dir', type=Path, default=Path('logs'),
                         help='Directory to store logs')
-    parser.add_argument('--log-config-file', type=Path, 
-                        default=Path(__file__).parent.parent / "utils" / "logging" / "config" / "config.yaml",
-                        help='Path to log configuration file')
+    parser.add_argument('--log-config-file', type=Path,
+                      default=Path(__file__).parent.parent / "interface" / "logging" / "config" / "config.yaml",
+                      help='Path to log configuration file')
     parser.add_argument('--clean', '-c', action='store_true',
                         help='Clean all logs in the logs directory.')
 

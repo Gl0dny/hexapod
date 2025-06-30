@@ -59,15 +59,35 @@ class CompositeCalibrationTask(ControlTask):
             logger.info("CompositeCalibrationTask completed")
 
     @override
-    def stop_task(self) -> None:
+    def stop_task(self, timeout: Optional[float] = None) -> None:
         """
         Stop both the RunCalibrationTask and MonitorCalibrationStatusTask, then perform superclass cleanup.
 
+        Args:
+            timeout (Optional[float]): Maximum time to wait for tasks to stop in seconds.
+                                     If None, wait indefinitely.
+
         Ensures that both calibration and monitoring tasks are properly terminated before cleaning up.
         """
-        self.run_calibration_task.stop_task()
-        self.monitor_calibration_task.stop_task()
-        super().stop_task()
+        logger.info("Stopping composite calibration task")
+        try:
+            # Stop child tasks
+            self.run_calibration_task.stop_task()
+            self.monitor_calibration_task.stop_task()
+
+            # Wait for tasks to complete if timeout is specified
+            if timeout is not None:
+                self.run_calibration_task.join(timeout=timeout)
+                self.monitor_calibration_task.join(timeout=timeout)
+            else:
+                self.run_calibration_task.join()
+                self.monitor_calibration_task.join()
+
+            # Perform superclass cleanup
+            super().stop_task()
+        except Exception as e:
+            logger.exception(f"Error stopping composite calibration task: {e}")
+            raise
 
 class MonitorCalibrationStatusTask(ControlTask):
     """
