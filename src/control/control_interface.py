@@ -513,30 +513,6 @@ class ControlInterface:
     @control_task
     @inject_lights_handler
     @inject_hexapod
-    def set_low_profile_mode(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
-        """
-        Initiate low-profile mode in a separate thread.
-
-        Args:
-            hexapod (Hexapod): The hexapod instance.
-            lights_handler (LightsInteractionHandler): Handles lights activity.
-        """
-        try:
-            logger.user_info("Setting robot to low profile mode.")
-            if self.control_task:
-                self.control_task.stop_task()
-            self.control_task = control.tasks.LowProfileTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.control_task)
-            )
-        except Exception as e:
-            logger.exception(f"Setting low profile mode failed: {e}")
-    
-    @voice_command
-    @control_task
-    @inject_lights_handler
-    @inject_hexapod
     def march_in_place(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, duration: Optional[float] = None) -> None:
         """
         Execute the marching in place task.
@@ -558,31 +534,6 @@ class ControlInterface:
             )
         except Exception as e:
             logger.exception(f"March in place task failed: {e}")
-
-    @voice_command
-    @control_task
-    @inject_lights_handler
-    @inject_hexapod
-    def set_upright_mode(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
-        """
-        Initiate upright mode in a separate thread.
-
-        Args:
-            hexapod (Hexapod): The hexapod instance.
-            lights_handler (LightsInteractionHandler): Handles lights activity.
-        """
-        try:
-            logger.user_info("Setting robot to upright mode.")
-            if self.control_task:
-                self.control_task.stop_task()
-            self.control_task = control.tasks.UprightModeTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.control_task)
-            )
-            
-        except Exception as e:
-            logger.exception(f"Setting upright mode failed: {e}")
 
     @voice_command
     @control_task

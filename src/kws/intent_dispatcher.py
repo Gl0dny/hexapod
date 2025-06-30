@@ -54,9 +54,7 @@ class IntentDispatcher:
             'set_brightness': self.handle_set_brightness,
             'set_speed': self.handle_set_speed,
             'set_accel': self.handle_set_accel,
-            'low_profile_mode': self.handle_low_profile_mode,
             # 'march_in_place': self.handle_march_in_place, #TODO train model for this command
-            'upright_mode': self.handle_upright_mode,
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
             'stop': self.handle_stop,
@@ -251,16 +249,6 @@ class IntentDispatcher:
             logger.exception(f"Invalid accel_percentage value: {accel_percentage}.")
 
     @handler
-    def handle_low_profile_mode(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'low_profile_mode' intent.
-        
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        self.control_interface.set_low_profile_mode()
-
-    @handler
     def handle_march_in_place(self, slots: Dict[str, Any]) -> None:
         """
         Handle the 'march_in_place' intent.
@@ -276,16 +264,6 @@ class IntentDispatcher:
         except (ValueError, TypeError) as e:
             logger.exception(f"Invalid duration value: {e}")
             self.control_interface.march_in_place()  # Use default duration
-
-    @handler
-    def handle_upright_mode(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'upright_mode' intent.
-        
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        self.control_interface.set_upright_mode()
 
     @handler
     def handle_idle_stance(self, slots: Dict[str, Any]) -> None:
