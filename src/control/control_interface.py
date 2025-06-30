@@ -11,7 +11,7 @@ from pathlib import Path
 from lights import LightsInteractionHandler, ColorRGB
 from robot import Hexapod
 import control.tasks
-from interface import InputHandler
+from interface import NonBlockingConsoleInputHandler
 from utils import rename_thread
 from odas import ODASDoASSLProcessor
 from utils import ButtonHandler
@@ -231,7 +231,7 @@ class ControlInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            input_handler = InputHandler()
+            input_handler = NonBlockingConsoleInputHandler()
             rename_thread(input_handler, "ShutdownInputHandler")
             input_handler.start()
 
@@ -258,13 +258,13 @@ class ControlInterface:
             logger.exception("Exception occurred in shut_down: %s", e)
             raise
     
-    def _shutdown_monitor(self, shutdown_timer: threading.Timer, input_handler: InputHandler) -> None:
+    def _shutdown_monitor(self, shutdown_timer: threading.Timer, input_handler: NonBlockingConsoleInputHandler) -> None:
         """
-        Monitor the shutdown process to allow for cancellation based on user input.
-
+        Monitors for shutdown input and handles the shutdown process.
+        
         Args:
-            shutdown_timer (threading.Timer): Timer for the scheduled shutdown.
-            input_handler (InputHandler): Handles user input in a thread-safe manner.
+            shutdown_timer (threading.Timer): Timer for automatic shutdown.
+            input_handler (NonBlockingConsoleInputHandler): Handles user input in a thread-safe manner.
         """
         try:
             while shutdown_timer.is_alive():

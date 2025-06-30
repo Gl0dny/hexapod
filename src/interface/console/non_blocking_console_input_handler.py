@@ -11,9 +11,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("interface_logger")
 
-class InputHandler(threading.Thread):
+class NonBlockingConsoleInputHandler(threading.Thread):
     """
-    Handles user input by running a listener in a separate thread.
+    Handles non-blocking console user input by running a listener in a separate thread.
     
     Inherits from `threading.Thread` to allow non-blocking input listening.
     
@@ -25,32 +25,32 @@ class InputHandler(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
         """
-        Initializes the InputHandler thread and sets up the input queue.
+        Initializes the NonBlockingConsoleInputHandler thread and sets up the input queue.
         """
         self.input_queue = queue.Queue()
         self.stop_input_listener = False
-        logger.debug("InputHandler initialized successfully.")
+        logger.debug("NonBlockingConsoleInputHandler initialized successfully.")
     
     def start(self):
         """
         Starts the input listener thread by invoking the parent `Thread` start method.
         """
         super().start()
-        logger.debug("Input listener thread started.")
+        logger.debug("Non-blocking console input listener thread started.")
 
     def run(self):
         """
         Overrides the `run` method of `threading.Thread` to continuously listen for user input 
         and enqueue it.
         """
-        logger.debug("Input listener thread running.")
+        logger.debug("Non-blocking console input listener thread running.")
         while not self.stop_input_listener:
             dr, dw, de = select.select([sys.stdin], [], [], 0.1)
             if dr:
                 user_input = sys.stdin.readline().strip()
                 logger.debug(f"Received user input: {user_input}")
                 self.input_queue.put(user_input)
-        logger.debug("Input listener thread stopping.")
+        logger.debug("Non-blocking console input listener thread stopping.")
 
     def get_input(self, timeout: float = 0.1) -> Optional[str]:
         """
@@ -75,4 +75,4 @@ class InputHandler(threading.Thread):
         """
         self.stop_input_listener = True
         self.join()
-        logger.debug("Input listener thread shut down.")
+        logger.debug("Non-blocking console input listener thread shut down.")

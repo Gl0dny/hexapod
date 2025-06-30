@@ -6,7 +6,7 @@ import threading
 import time
 from pathlib import Path
 
-from interface import InputHandler
+from interface import NonBlockingConsoleInputHandler
 from utils import rename_thread
 from robot import Joint
 
@@ -55,7 +55,7 @@ class Calibration:
         """
         from robot import PredefinedAnglePosition
         
-        self.input_handler = InputHandler()
+        self.input_handler = NonBlockingConsoleInputHandler()
         rename_thread(self.input_handler, "CalibrationInputHandler")
         self.input_handler.start()
 

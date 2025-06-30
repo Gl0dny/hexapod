@@ -29,8 +29,8 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 # Import base classes and mappings
-from interface import InputMapping, PS5DualSenseMappings
-from interface import ManualHexapodController
+from interface.controllers.base_manual_controller import ManualHexapodController
+from interface.input_mappings import InputMapping, PS5DualSenseMappings
 
 try:
     import pygame
