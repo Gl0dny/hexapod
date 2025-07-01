@@ -193,6 +193,18 @@ class Vector2D:
         """
         return Vector2D(-self.x, -self.y)
     
+    def dot(self, other: Vector2D) -> float:
+        """
+        Calculate the dot product with another vector.
+        
+        Args:
+            other (Vector2D): The other vector to dot with
+            
+        Returns:
+            float: Dot product value
+        """
+        return self.x * other.x + self.y * other.y
+    
     def rotate(self, angle_degrees: float) -> Vector2D:
         """
         Rotate the vector by the given angle in degrees.
@@ -233,7 +245,7 @@ class Vector2D:
         Returns:
             float: Angle between vectors in degrees (0-180)
         """
-        dot_product = v1.x * v2.x + v1.y * v2.y
+        dot_product = v1.dot(v2)
         mag1 = v1.magnitude()
         mag2 = v2.magnitude()
         

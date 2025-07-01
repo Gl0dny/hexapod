@@ -232,8 +232,17 @@ class BaseGait(ABC):
         length_c = point.magnitude()
         angle_beta = 180 - Vector2D.angle_between_vectors(direction, point)
         
+        # Handle edge case where angle_beta is 0° or 180° (sin = 0)
+        if abs(angle_beta) < 0.1 or abs(angle_beta - 180) < 0.1:
+            # Direction and point are collinear, use simple projection
+            return direction.normalized() * radius
+        
         # Calculate missing angles using law of sines
         sin_gamma = (length_c * math.sin(math.radians(angle_beta))) / radius
+        
+        # Clamp sin_gamma to valid range [-1, 1] to prevent math domain error
+        sin_gamma = max(-1.0, min(1.0, sin_gamma))
+        
         angle_gamma = math.degrees(math.asin(sin_gamma))
         angle_alpha = 180 - angle_beta - angle_gamma
         
@@ -253,16 +262,17 @@ class BaseGait(ABC):
         3. The leg's mounting angle in the hexagon
         4. Circle projection onto the workspace boundary
         
+        For translation movement:
+        - Each leg projects the global movement direction into its local coordinate system
+        - The projection accounts for the leg's mounting angle relative to robot's forward direction
+        - Swing legs move in the projected direction, stance legs move in opposite direction
+        
         Args:
             leg_index (int): Index of the leg (0-5)
             is_swing (bool): True if leg is in swing phase, False if in stance phase
             
         Returns:
             Vector3D: Target position in 3D space
-            
-        Note:
-            Swing legs project from center outward in movement direction
-            Stance legs project from current position in opposite direction
         """
         # If no movement input, maintain current position with proper stance height
         if self.direction_input.magnitude() == 0 and self.rotation_input == 0:
@@ -270,48 +280,81 @@ class BaseGait(ABC):
             current_pos.z = -self.stance_height  # Adjust for stance height
             return current_pos
         
+        # Get the leg's mounting angle (in degrees)
+        leg_angle_deg = self.leg_mount_angles[leg_index]
+        leg_angle_rad = math.radians(leg_angle_deg)
+        
         # Calculate projection direction and origin
         projection_direction = Vector2D(0, 0)
         projection_origin = Vector2D(0, 0)
         
-        # Add rotation projection based on leg mounting angle
-        rotation_projection = Vector2D(0, 0)
         if self.rotation_input != 0:
-            # For rotation, each leg moves in the same relative direction
-            # Use unit direction and scale the step radius instead
+            # Handle rotation movement
+            # For rotation, all legs move in the same relative direction regardless of mounting angle
             if self.rotation_input > 0:  # Clockwise rotation
                 rotation_projection = Vector2D(1, 0)  # Right in local coordinate system
             else:  # Counterclockwise rotation
                 rotation_projection = Vector2D(-1, 0)   # Left in local coordinate system
-        
-        if is_swing:
-            # Swing legs: project from center in movement direction
-            projection_direction = self.direction_input + rotation_projection
-            projection_origin = Vector2D(0, 0)
-        else:
-            # Stance legs: project from current position in opposite direction
-            projection_direction = self.direction_input.inverse() + rotation_projection.inverse()
-            current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
-            projection_origin = current_pos_2d
-        
-        # For rotation, use relative movements instead of absolute projections
-        if self.rotation_input != 0:
-            # Calculate relative movement based on rotation speed
-            movement_distance = self.step_radius * abs(self.rotation_input)
             
             if is_swing:
-                # Swing legs: move from center outward (absolute positioning)
-                target_2d = projection_direction.normalized() * movement_distance
+                # Swing legs: project from center in rotation direction
+                projection_direction = rotation_projection
+                projection_origin = Vector2D(0, 0)
             else:
-                # Stance legs: move from center outward in opposite direction (absolute positioning)
-                target_2d = projection_direction.normalized() * movement_distance
+                # Stance legs: project from current position in opposite rotation direction
+                projection_direction = rotation_projection.inverse()
+                current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
+                projection_origin = current_pos_2d
         else:
-            # For non-rotation movement, use circle projection
-            # Scale step radius based on rotation speed for proportional movement
+            # Handle translation movement
+            # Project the global movement direction into the leg's local coordinate system
+            global_direction = self.direction_input
+            
+            # Transform global direction to leg's local coordinate system
+            # The leg's local Y-axis is at leg_angle_deg relative to robot's global Y-axis
+            # We need to project the global direction onto the leg's local axes
+            
+            # Calculate the leg's local coordinate system
+            # Local Y-axis of the leg (pointing outward from robot center)
+            leg_local_y = Vector2D(math.cos(leg_angle_rad), math.sin(leg_angle_rad))
+            
+            # Local X-axis of the leg (perpendicular to local Y, pointing to the right of local Y)
+            # This is calculated as rotating local Y by 90° clockwise
+            leg_local_x = Vector2D(math.sin(leg_angle_rad), -math.cos(leg_angle_rad))
+            
+            # Project global direction onto leg's local axes
+            # This gives us how much the leg should move in its own coordinate system
+            projection_x = global_direction.dot(leg_local_x)
+            projection_y = global_direction.dot(leg_local_y)
+            
+            # Create the projected direction in leg's local coordinate system
+            leg_projected_direction = Vector2D(projection_x, projection_y)
+            
+            if is_swing:
+                # Swing legs: move in the projected direction from center
+                projection_direction = leg_projected_direction
+                projection_origin = Vector2D(0, 0)
+            else:
+                # Stance legs: move in opposite direction from current position
+                projection_direction = leg_projected_direction.inverse()
+                current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
+                projection_origin = current_pos_2d
+        
+        # Calculate target position using circle projection
+        if self.rotation_input != 0:
+            # For rotation, use relative movements
+            movement_distance = self.step_radius * abs(self.rotation_input)
+            target_2d = projection_direction.normalized() * movement_distance
+        else:
+            # For translation, use circle projection
             effective_radius = self.step_radius
             
-            # Project target onto circle
-            target_2d = self.project_point_to_circle(effective_radius, projection_origin, projection_direction)
+            if is_swing:
+                # For swing legs, move outward from center in projected direction
+                target_2d = projection_direction.normalized() * effective_radius
+            else:
+                # For stance legs, use circle projection from current position
+                target_2d = self.project_point_to_circle(effective_radius, projection_origin, projection_direction)
         
         # Convert to 3D with proper stance height
         target_3d = Vector3D(target_2d.x, target_2d.y, -self.stance_height)

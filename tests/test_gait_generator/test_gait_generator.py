@@ -50,68 +50,33 @@ def main():
         # ========================================
         
         # Example: Create tripod gait
-        gait = TripodGait(hexapod, step_radius=30.0, leg_lift_distance=10.0, dwell_time=0.1)
+        # gait = TripodGait(hexapod, step_radius=30.0, leg_lift_distance=10.0, dwell_time=0.1)
+                gait = TripodGait(hexapod, step_radius=22.0, leg_lift_distance=20.0, dwell_time=0.1)
         print("✓ Created TripodGait")
         
         # Example: Set forward movement (+Y direction)
-        # gait.set_direction((0.0, 1.0), rotation=0.0)  # Forward, no rotation
-        # print("✓ Set direction: Forward")
+        gait.set_direction((0.0, 1.0), rotation=0.0)  # Forward, no rotation
+        print("✓ Set direction: Forward")
         
         # Example: Set right movement (+X direction)
         # gait.set_direction((1.0, 0.0), rotation=0.0)  # Right, no rotation
         # print("✓ Set direction: Right")
         
-        # Example: Set clockwise rotation (no translation)
-        gait.set_direction((0.0, 0.0), rotation=0.66)  # No translation, clockwise rotation
-        print("✓ Set direction: Clockwise rotation")
-        
-        # Example: Set counterclockwise rotation (no translation)
-        # gait.set_direction((0.0, 0.0), rotation=-1.0)  # No translation, counterclockwise rotation
-        # print("✓ Set direction: Counterclockwise rotation")
+        # # Example: Set clockwise rotation (no translation)
+        # gait.set_direction((0.0, 0.0), rotation=0.66)  # No translation, clockwise rotation
+        # print("✓ Set direction: Clockwise rotation")
         
         # Example: Start gait movement
         print("Starting gait movement...")
         hexapod.gait_generator.start(gait)
-        time.sleep(15.0)  # Run for 3 seconds
+        time.sleep(30.0)  # Run for 3 seconds
         hexapod.gait_generator.stop()
         print("✓ Stopped gait movement")
         
-        # Example: Complete gait test sequence
-        # from robot.gait_generator import TripodGait
-        # gait = TripodGait(hexapod, step_radius=40.0, leg_lift_distance=30.0, dwell_time=0.5)
-        # 
-        # # Test forward movement
-        # print("Testing forward movement...")
-        # gait.set_direction((0.0, 1.0), rotation=0.0)
-        # hexapod.gait_generator.start(gait)
-        # time.sleep(2.0)
-        # hexapod.gait_generator.stop()
-        # print("✓ Forward movement complete")
-        # 
-        # time.sleep(1.0)  # Pause between tests
-        # 
-        # # Test rotation
-        # print("Testing clockwise rotation...")
-        # gait.set_direction((0.0, 0.0), rotation=1.0)
-        # hexapod.gait_generator.start(gait)
-        # time.sleep(2.0)
-        # hexapod.gait_generator.stop()
-        # print("✓ Rotation complete")
-        
-        # Return to home position
-        print("\nReturning to home position...")
-        # hexapod.move_to_position(PredefinedPosition.ZERO)
-        # hexapod.wait_until_motion_complete()
-        print("✓ Returned to ZERO position")
-        
     except KeyboardInterrupt:
         print("\nReceived keyboard interrupt, stopping...")
-        # hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-        # hexapod.wait_until_motion_complete()
     except Exception as e:
         print(f"\nError: {e}")
-        # hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-        # hexapod.wait_until_motion_complete()
     finally:
         print("Deactivating servos...")
         hexapod.deactivate_all_servos()
