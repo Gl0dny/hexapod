@@ -15,7 +15,10 @@ import os
 import warnings
 from pathlib import Path
 
-# Silence pygame warnings BEFORE importing pygame
+# Silence pygame warnings and welcome message BEFORE importing pygame
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="pygame")
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame")
 warnings.filterwarnings("ignore", message=".*pkg_resources.*")
