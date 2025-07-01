@@ -274,11 +274,19 @@ class BaseGait(ABC):
         Returns:
             Vector3D: Target position in 3D space
         """
-        # If no movement input, maintain current position with proper stance height
+        # If no movement input, handle marching in place
         if self.direction_input.magnitude() == 0 and self.rotation_input == 0:
             current_pos = Vector3D(*self.hexapod.current_leg_positions[leg_index])
-            current_pos.z = -self.stance_height  # Adjust for stance height
-            return current_pos
+            
+            if is_swing:
+                # For swing legs in marching in place: lift up and down
+                # Target is the same X,Y position but lifted by leg_lift_distance
+                target_pos = Vector3D(current_pos.x, current_pos.y, -self.stance_height + self.leg_lift_distance)
+                return target_pos
+            else:
+                # For stance legs: maintain current position with proper stance height
+                current_pos.z = -self.stance_height  # Adjust for stance height
+                return current_pos
         
         # Get the leg's mounting angle (in degrees)
         leg_angle_deg = self.leg_mount_angles[leg_index]
