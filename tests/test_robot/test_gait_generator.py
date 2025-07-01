@@ -13,7 +13,8 @@ from pathlib import Path
 src_path = str(Path(__file__).parent.parent.parent / 'src')
 sys.path.append(src_path)
 
-from robot.hexapod import Hexapod, PredefinedPosition
+from robot import Hexapod, PredefinedPosition
+from gait_generator import TripodGait
 
 def main():
     """Basic hexapod initialization and setup."""
@@ -49,7 +50,6 @@ def main():
         # ========================================
         
         # Example: Create tripod gait
-        from robot.gait_generator import TripodGait
         gait = TripodGait(hexapod, step_radius=30.0, leg_lift_distance=10.0, dwell_time=0.1)
         print("✓ Created TripodGait")
         

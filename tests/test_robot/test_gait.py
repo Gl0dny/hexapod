@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
 from robot.hexapod import Hexapod, PredefinedPosition, PredefinedAnglePosition
-from robot.gait_generator import TripodGait, WaveGait
+from gait_generator import TripodGait, WaveGait
 
 def main():
     # Parse command line arguments
