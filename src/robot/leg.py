@@ -5,7 +5,7 @@ import math
 from robot import Joint
 
 if TYPE_CHECKING:
-    from typing import Optional, Tuple, Dict, Union
+    from typing import Tuple, Dict, Union
     from maestro import MaestroUART
 
 logger = logging.getLogger("robot_logger")
