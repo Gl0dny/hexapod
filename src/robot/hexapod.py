@@ -20,10 +20,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger("robot_logger")
 
 class PredefinedAnglePosition(Enum):
+    ZERO = 'zero'
     LOW_PROFILE = 'low_profile'
     UPRIGHT = 'upright'
 
 class PredefinedPosition(Enum):
+    ZERO = 'zero'
     LOW_PROFILE = 'low_profile'
     UPRIGHT = 'upright'
 
