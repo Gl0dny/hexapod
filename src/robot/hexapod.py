@@ -10,7 +10,8 @@ import yaml
 import numpy as np
 
 from maestro import MaestroUART
-from robot import Leg, Calibration, GaitGenerator
+from robot import Leg, Calibration
+from gait_generator import GaitGenerator
 from imu import Imu
 from utils import map_range, homogeneous_transformation_matrix
 
