@@ -39,7 +39,7 @@ def main():
     try:
         # Move to home position
         print("Moving to home position...")
-        hexapod.move_to_position(PredefinedPosition.ZERO)
+        hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         hexapod.wait_until_motion_complete()
         
         # Create the appropriate gait instance with configured parameters
@@ -82,23 +82,23 @@ def main():
         
         # Move back to home position
         print("Moving back to home position...")
-        hexapod.move_to_position(PredefinedPosition.ZERO)
+        hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         hexapod.wait_until_motion_complete()
         
     except KeyboardInterrupt:
         print("\nReceived keyboard interrupt, stopping...")
         hexapod.gait_generator.stop()
-        hexapod.move_to_position(PredefinedPosition.ZERO)
+        hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         hexapod.wait_until_motion_complete()
     except Exception as e:
         print(f"\nError: {e}")
         hexapod.gait_generator.stop()
-        hexapod.move_to_position(PredefinedPosition.ZERO)
+        hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         hexapod.wait_until_motion_complete()
     finally:
         # Deactivate all servos
         print("Deactivating servos...")
-        hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+        hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         hexapod.wait_until_motion_complete()
         hexapod.deactivate_all_servos()
 
