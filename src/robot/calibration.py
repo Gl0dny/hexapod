@@ -52,7 +52,7 @@ class Calibration:
         Args:
             stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
         """
-        from robot import PredefinedPosition, PredefinedAnglePosition
+        from robot import PredefinedPosition
         from interface import NonBlockingConsoleInputHandler
         
         self.input_handler = NonBlockingConsoleInputHandler()
@@ -129,7 +129,7 @@ class Calibration:
             if self.input_handler:
                 self.input_handler.shutdown()
                 self.input_handler = None
-            self.hexapod.move_to_position(PredefinedAnglePosition.LOW_PROFILE)
+            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
             self.hexapod.wait_until_motion_complete(stop_event=stop_event)
 
     def get_calibration_status(self) -> dict:

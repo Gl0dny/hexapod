@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, override
 import logging
 
 from control.tasks import ControlTask
-from robot import PredefinedPosition, PredefinedAnglePosition
+from robot import PredefinedPosition
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
@@ -36,7 +36,7 @@ class IdleStanceTask(ControlTask):
         logger.info("IdleStanceTask started")
         try:
             self.lights_handler.think()
-            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            self.hexapod.move_to_position(PredefinedPosition.ZERO)
             self.hexapod.wait_until_motion_complete(self.stop_event)
             logger.debug("Hexapod set to home position")
 
