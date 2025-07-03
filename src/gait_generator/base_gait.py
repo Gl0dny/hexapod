@@ -137,7 +137,7 @@ class BaseGait(ABC):
         'diagonal-bl': (-0.707, -0.707),  # Backward-Left
         
         # Stop/neutral
-        'stop': (0.0, 0.0),
+        'neutral': (0.0, 0.0),
     }
     
     def __init__(self, hexapod: Hexapod,

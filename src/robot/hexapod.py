@@ -23,12 +23,12 @@ logger = logging.getLogger("robot_logger")
 class PredefinedAnglePosition(Enum):
     ZERO = 'zero'
     LOW_PROFILE = 'low_profile'
-    UPRIGHT = 'upright'
+    HIGH_PROFILE = 'high_profile'
 
 class PredefinedPosition(Enum):
     ZERO = 'zero'
     LOW_PROFILE = 'low_profile'
-    UPRIGHT = 'upright'
+    HIGH_PROFILE = 'high_profile'
 
 class Hexapod:
     """

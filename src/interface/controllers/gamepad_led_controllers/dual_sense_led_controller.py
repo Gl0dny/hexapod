@@ -37,8 +37,16 @@ class DualSenseLEDController(BaseGamepadLEDController):
                 print("No DualSense devices found. Make sure the controller is connected via USB or Bluetooth")
                 return False
             
-            self.dualsense_controller = self.DualSenseController(microphone_invert_led=True)
-            self.dualsense_controller.activate()
+            self.dualsense_controller = self.DualSenseController(
+                microphone_invert_led=True,
+                microphone_initially_muted=True
+            )
+            
+            # Activate without the microphone not properly initialized workaround warning
+            self.dualsense_controller._core.init()
+            self.dualsense_controller._properties.microphone.set_muted()
+            self.dualsense_controller.wait_until_updated()
+            
             self.is_connected = True
             print("Connected to DualSense controller for LED control")
             
