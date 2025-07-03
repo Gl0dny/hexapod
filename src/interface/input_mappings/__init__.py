@@ -7,9 +7,9 @@ and interfaces used with hexapod controllers.
 """
 
 from .base_input_mapping import InputMapping
-from .gamepad_mappings import PS5DualSenseMappings
+from .dual_sense_mapping import DualSenseMapping
 
 __all__ = [
     'InputMapping',
-    'PS5DualSenseMappings'
+    'DualSenseMapping'
 ]

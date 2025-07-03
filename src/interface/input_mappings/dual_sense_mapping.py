@@ -7,32 +7,37 @@ This module provides input mapping implementations for various gamepad controlle
 
 from .base_input_mapping import InputMapping
 
-class PS5DualSenseMappings(InputMapping):
+class DualSenseMapping(InputMapping):
     """Mappings for PS5 DualSense Controller."""
     
     # Axis mappings
     AXIS_LEFT_X = 0      # Left stick X: -1 (left) to +1 (right)
     AXIS_LEFT_Y = 1      # Left stick Y: -1 (up) to +1 (down) - INVERTED
     AXIS_RIGHT_X = 2     # Right stick X: -1 (left) to +1 (right)
-    AXIS_L2 = 3          # L2 trigger: -1 (not pressed) to +1 (fully pressed)
-    AXIS_R2 = 4          # R2 trigger: -1 (not pressed) to +1 (fully pressed)
-    AXIS_RIGHT_Y = 5     # Right stick Y: -1 (up) to +1 (down) - INVERTED
+    AXIS_RIGHT_Y = 3     # Right stick Y: -1 (up) to +1 (down) - INVERTED
+    AXIS_L2 = 4          # L2 trigger: -1 (not pressed) to +1 (fully pressed)
+    AXIS_R2 = 5          # R2 trigger: -1 (not pressed) to +1 (fully pressed)
     
     # Button mappings
-    BUTTON_SQUARE = 0    # Square
-    BUTTON_X = 1         # X (Cross)
-    BUTTON_CIRCLE = 2    # Circle
+    BUTTON_X = 0         # X (Cross)
+    BUTTON_CIRCLE = 1    # Circle
+    BUTTON_SQUARE = 2    # Square
     BUTTON_TRIANGLE = 3  # Triangle
-    BUTTON_L1 = 4        # L1
-    BUTTON_R1 = 5        # R1
-    BUTTON_L2_DIGITAL = 6  # L2 (digital)
-    BUTTON_R2_DIGITAL = 7  # R2 (digital)
-    BUTTON_CREATE = 8    # Create/Broadcast
-    BUTTON_OPTIONS = 9   # Options
-    BUTTON_L3 = 10       # L3
-    BUTTON_R3 = 11       # R3
-    BUTTON_PS5 = 12      # PS5 (avoid in robot control)
-    BUTTON_TOUCHPAD = 13 # Touchpad
+    BUTTON_CREATE = 4    # Create/Broadcast
+    BUTTON_PS5 = 5      # PS5 (avoid in robot control)
+    BUTTON_OPTIONS = 6   # Options
+    BUTTON_L3 = 7       # L3
+    BUTTON_R3 = 8       # R3
+    BUTTON_L1 = 9        # L1
+    BUTTON_R1 = 10        # R1
+    BUTTON_MUTE = 15     # Mute
+    BUTTON_TOUCHPAD = 16 # Touchpad
+    
+    # D-pad buttons (detected as buttons, not hat)
+    BUTTON_DPAD_UP = 11    # D-pad Up
+    BUTTON_DPAD_DOWN = 12  # D-pad Down
+    BUTTON_DPAD_LEFT = 13  # D-pad Left
+    BUTTON_DPAD_RIGHT = 14 # D-pad Right
     
     def get_axis_mappings(self):
         """Return a dictionary of axis mappings."""
@@ -54,14 +59,17 @@ class PS5DualSenseMappings(InputMapping):
             'triangle': self.BUTTON_TRIANGLE,
             'l1': self.BUTTON_L1,
             'r1': self.BUTTON_R1,
-            'l2_digital': self.BUTTON_L2_DIGITAL,
-            'r2_digital': self.BUTTON_R2_DIGITAL,
             'create': self.BUTTON_CREATE,
             'options': self.BUTTON_OPTIONS,
             'l3': self.BUTTON_L3,
             'r3': self.BUTTON_R3,
             'ps5': self.BUTTON_PS5,
-            'touchpad': self.BUTTON_TOUCHPAD
+            'touchpad': self.BUTTON_TOUCHPAD,
+            'mute': self.BUTTON_MUTE,
+            'dpad_up': self.BUTTON_DPAD_UP,
+            'dpad_down': self.BUTTON_DPAD_DOWN,
+            'dpad_left': self.BUTTON_DPAD_LEFT,
+            'dpad_right': self.BUTTON_DPAD_RIGHT
         }
     
     def get_interface_names(self):
@@ -89,14 +97,17 @@ class PS5DualSenseMappings(InputMapping):
             self.BUTTON_TRIANGLE: "Triangle",
             self.BUTTON_L1: "L1",
             self.BUTTON_R1: "R1",
-            self.BUTTON_L2_DIGITAL: "L2 (digital)",
-            self.BUTTON_R2_DIGITAL: "R2 (digital)",
             self.BUTTON_CREATE: "Create",
             self.BUTTON_OPTIONS: "Options",
             self.BUTTON_L3: "L3",
             self.BUTTON_R3: "R3",
             self.BUTTON_PS5: "PS5",
-            self.BUTTON_TOUCHPAD: "Touchpad"
+            self.BUTTON_TOUCHPAD: "Touchpad",
+            self.BUTTON_MUTE: "Mute",
+            self.BUTTON_DPAD_UP: "D-pad Up",
+            self.BUTTON_DPAD_DOWN: "D-pad Down",
+            self.BUTTON_DPAD_LEFT: "D-pad Left",
+            self.BUTTON_DPAD_RIGHT: "D-pad Right"
         }
         return button_names.get(button_index, f"Unknown Button {button_index}")
     
@@ -122,14 +133,17 @@ class PS5DualSenseMappings(InputMapping):
             self.BUTTON_TRIANGLE: "Triangle",
             self.BUTTON_L1: "L1",
             self.BUTTON_R1: "R1",
-            self.BUTTON_L2_DIGITAL: "L2 (digital)",
-            self.BUTTON_R2_DIGITAL: "R2 (digital)",
             self.BUTTON_CREATE: "Create",
             self.BUTTON_OPTIONS: "Options",
             self.BUTTON_L3: "L3",
             self.BUTTON_R3: "R3",
             self.BUTTON_PS5: "PS5",
-            self.BUTTON_TOUCHPAD: "Touchpad"
+            self.BUTTON_TOUCHPAD: "Touchpad",
+            self.BUTTON_MUTE: "Mute",
+            self.BUTTON_DPAD_UP: "D-pad Up",
+            self.BUTTON_DPAD_DOWN: "D-pad Down",
+            self.BUTTON_DPAD_LEFT: "D-pad Left",
+            self.BUTTON_DPAD_RIGHT: "D-pad Right"
         }.items():
             print(f"  [{button_id}] {name}")
         print("=" * 40) 

@@ -8,9 +8,9 @@ capabilities using various game controllers.
 Usage:
     python gamepad_hexapod_controller.py
 """
-
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import sys
-import time
 import os
 import warnings
 from pathlib import Path
@@ -33,7 +33,9 @@ if str(SRC_DIR) not in sys.path:
 
 # Import base classes and mappings
 from interface.controllers.base_manual_controller import ManualHexapodController
-from interface.input_mappings import InputMapping, PS5DualSenseMappings
+from interface.input_mappings import InputMapping, DualSenseMapping
+from interface.controllers.gamepad_led_controllers.gamepad_led_controller import BaseGamepadLEDController, GamepadLEDColor
+from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
 
 try:
     import pygame
@@ -42,17 +44,27 @@ except ImportError:
     PYGAME_AVAILABLE = False
     print("pygame not available. Install with: pip install pygame")
 
+if TYPE_CHECKING:
+    from typing import Optional
+
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""
     
-    def __init__(self, input_mapping: InputMapping):
-        """Initialize the gamepad controller."""
+    def __init__(self, input_mapping: InputMapping, led_controller: Optional[BaseGamepadLEDController] = None):
+        """
+        Initialize the gamepad controller.
+        
+        Args:
+            input_mapping: The input mapping for the gamepad
+            led_controller: Optional LED controller for visual feedback
+        """
         super().__init__()
         
         if not PYGAME_AVAILABLE:
             raise ImportError("pygame is required for gamepad support")
         
         self.input_mapping = input_mapping
+        self.led_controller = led_controller
         
         # Set display environment for headless systems
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
@@ -75,6 +87,27 @@ class GamepadHexapodController(ManualHexapodController):
         # Button states
         self.button_states = {}
         self.last_button_states = {}
+        
+        # LED state tracking
+        self.current_led_state = None
+        
+        # Initialize LED controller if provided
+        if self.led_controller is not None:
+            if self.led_controller.is_available():
+                # Set initial LED animation based on controller type
+                if "dualsense" in self.gamepad.get_name().lower():
+                    self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)  # Infinite blue pulse
+                    print("Gamepad LED initialized with blue pulse animation")
+                else:
+                    self.led_controller.pulse(GamepadLEDColor.GREEN, duration=2.0, cycles=0)  # Infinite green pulse
+                    print("Gamepad LED initialized with green pulse animation")
+            else:
+                print("Gamepad LED control not available")
+                print("Make sure:")
+                print("1. PS5 DualSense controller is connected")
+                print("2. dualsense-controller library is installed")
+        else:
+            print("Gamepad LED control disabled")
         
         print(f"Gamepad '{self.gamepad.get_name()}' initialized successfully")
     
@@ -161,14 +194,16 @@ class GamepadHexapodController(ManualHexapodController):
             'triangle': self.gamepad.get_button(button_mappings['triangle']),
             'l1': self.gamepad.get_button(button_mappings['l1']),
             'r1': self.gamepad.get_button(button_mappings['r1']),
-            'l2_digital': self.gamepad.get_button(button_mappings['l2_digital']),
-            'r2_digital': self.gamepad.get_button(button_mappings['r2_digital']),
             'create': self.gamepad.get_button(button_mappings['create']),
             'options': self.gamepad.get_button(button_mappings['options']),
             'l3': self.gamepad.get_button(button_mappings['l3']),
             'r3': self.gamepad.get_button(button_mappings['r3']),
             'ps5': self.gamepad.get_button(button_mappings['ps5']),
-            'touchpad': self.gamepad.get_button(button_mappings['touchpad'])
+            'touchpad': self.gamepad.get_button(button_mappings['touchpad']),
+            'dpad_up': self.gamepad.get_button(button_mappings['dpad_up']),
+            'dpad_down': self.gamepad.get_button(button_mappings['dpad_down']),
+            'dpad_left': self.gamepad.get_button(button_mappings['dpad_left']),
+            'dpad_right': self.gamepad.get_button(button_mappings['dpad_right'])
         }
         
         return buttons
@@ -209,6 +244,31 @@ class GamepadHexapodController(ManualHexapodController):
         if self.button_states.get('r1', False):
             yaw = self.YAW_STEP
         
+        # Update LED based on movement activity
+        if self.led_controller and self.led_controller.is_available():
+            # Check if there's any movement
+            movement_magnitude = abs(tx) + abs(ty) + abs(tz) + abs(roll) + abs(pitch) + abs(yaw)
+            
+            # Determine current LED state
+            if movement_magnitude > 0.01:  # Threshold for movement detection
+                new_led_state = 'movement'
+            else:
+                new_led_state = 'idle'
+            
+            # Only change LED if state has changed
+            if new_led_state != self.current_led_state:
+                # Stop any existing animation first
+                self.led_controller.stop_animation()
+                
+                if new_led_state == 'movement':
+                    # Pulse animation for movement
+                    self.led_controller.pulse(GamepadLEDColor.LIME, duration=0.5, cycles=0)  # Infinite pulse
+                else:  # idle
+                    # Pulse animation for idle state
+                    self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)  # Infinite breathing
+                
+                self.current_led_state = new_led_state
+        
         # Update button states for next frame
         self.last_button_states = self.button_states.copy()
         
@@ -240,6 +300,8 @@ class GamepadHexapodController(ManualHexapodController):
         print("  Circle          - Show this help menu")
         print("  L1/R1           - Yaw left/right")
         print("  PS5             - Exit program")
+        print("  D-pad Up/Down   - Additional movement controls")
+        print("  D-pad Left/Right- Additional rotation controls")
         print()
         print("Special Features:")
         print("  - Analog sticks provide continuous movement")
@@ -247,6 +309,14 @@ class GamepadHexapodController(ManualHexapodController):
         print("  - Deadzone prevents drift from stick center")
         print("  - Y-axes are inverted (up=-1, down=+1)")
         print("  - Triggers provide analog Z-axis control")
+        print("  - Gamepad LED changes color based on actions:")
+        print("    * Blue: Idle/Default")
+        print("    * Orange: Movement detected")
+        print("    * Purple: Yaw movement (L1/R1)")
+        print("    * Green: Reset to start position")
+        print("    * Yellow: Show current position")
+        print("    * Cyan: Show help menu")
+        print("    * Red: Exit program")
         print("="*60)
     
     def cleanup(self):
@@ -258,6 +328,15 @@ class GamepadHexapodController(ManualHexapodController):
         except Exception as e:
             print(f"Error during cleanup: {e}")
         
+        # Cleanup LED controller
+        if hasattr(self, 'led_controller') and self.led_controller:
+            try:
+                self.led_controller.turn_off()
+                self.led_controller.cleanup()
+                print("Gamepad LED turned off")
+            except Exception as e:
+                print(f"Error during LED cleanup: {e}")
+        
         # Cleanup pygame
         if PYGAME_AVAILABLE:
             pygame.quit()
@@ -268,11 +347,15 @@ def main():
     try:
         # Choose your input interface mapping here:
         # For PS5 DualSense controller:
-        input_mapping = PS5DualSenseMappings()
-        
+        input_mapping = DualSenseMapping()
         # For other interfaces, create a new mapping class that inherits from InputMapping
+
+        # Optional: Create LED controller for visual feedback
+        led_controller = DualSenseLEDController()  # Create DualSense LED controller
         
-        controller = GamepadHexapodController(input_mapping)
+        
+        # controller = GamepadHexapodController(input_mapping)  # No LED controller
+        controller = GamepadHexapodController(input_mapping, led_controller)  # With LED controller
         controller.run()
     except Exception as e:
         print(f"Movement controller execution failed: {e}")
