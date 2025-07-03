@@ -177,7 +177,6 @@ class BaseGamepadLEDController(ABC):
     
     def _pulse_animation(self, color: GamepadLEDColor, duration: float, cycles: int):
         """Internal method for pulse animation."""
-        import math
         cycle_count = 0
         
         while self.animation_running and (cycles == 0 or cycle_count < cycles):
@@ -226,7 +225,6 @@ class BaseGamepadLEDController(ABC):
     
     def _breathing_animation(self, color: GamepadLEDColor, duration: float, cycles: int):
         """Internal method for breathing animation."""
-        import math
         cycle_count = 0
         
         while self.animation_running and (cycles == 0 or cycle_count < cycles):
