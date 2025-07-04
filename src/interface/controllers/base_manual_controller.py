@@ -24,12 +24,22 @@ class ManualHexapodController(ABC):
     """Abstract base class for all manual hexapod controllers."""
     
     # Movement step parameters (easy to adjust)
-    TRANSLATION_STEP = 10.0  # mm per analog unit
-    ROTATION_STEP = 5.0      # degrees per analog unit (for yaw/pitch)
+    TRANSLATION_STEP = 6.0   # mm per analog unit
     ROLL_STEP = 2.0          # degrees per button press
     PITCH_STEP = 2.0         # degrees per analog unit (if you want to use a different step)
-    YAW_STEP = 2.0           # degrees per analog unit (if you want to use a different step)
-    Z_STEP = 10.0            # mm per analog unit (for up/down)
+    YAW_STEP = 4.0           # degrees per analog unit (if you want to use a different step)
+    Z_STEP = 4.0             # mm per analog unit (for up/down)
+    
+    # Sensitivity constants
+    DEFAULT_TRANSLATION_SENSITIVITY = 0.5
+    DEFAULT_ROTATION_SENSITIVITY = 0.5
+    DEFAULT_GAIT_DIRECTION_SENSITIVITY = 0.5
+    DEFAULT_GAIT_ROTATION_SENSITIVITY = 0.5
+    
+    # Sensitivity adjustment constants
+    SENSITIVITY_ADJUSTMENT_STEP = 0.1
+    MIN_SENSITIVITY = 0.1
+    MAX_SENSITIVITY = 1.0
     
     # Supported modes
     BODY_CONTROL_MODE = "body_control"
@@ -71,7 +81,10 @@ class ManualHexapodController(ABC):
         self.gait_type = TripodGait
         
         # Sensitivity for gait control
-        self.translation_sensitivity = 0.3
+        self.translation_sensitivity = self.DEFAULT_TRANSLATION_SENSITIVITY
+        self.rotation_sensitivity = self.DEFAULT_ROTATION_SENSITIVITY
+        self.gait_direction_sensitivity = self.DEFAULT_GAIT_DIRECTION_SENSITIVITY
+        self.gait_rotation_sensitivity = self.DEFAULT_GAIT_ROTATION_SENSITIVITY
     
     @abstractmethod
     def get_inputs(self):
@@ -202,90 +215,104 @@ class ManualHexapodController(ABC):
         Args:
             inputs (dict): Input values from get_inputs() method
         """
-        def _process_body_control():
-            """Process inputs for body control mode (direct IK movement)."""
-            # Extract movement values
-            tx = inputs.get('tx', 0.0)
-            ty = inputs.get('ty', 0.0)
-            tz = inputs.get('tz', 0.0)
-            roll = inputs.get('roll', 0.0)
-            pitch = inputs.get('pitch', 0.0)
-            yaw = inputs.get('yaw', 0.0)
+        # Handle D-pad sensitivity deltas
+        self._process_sensitivity_deltas(inputs)
+        
+        # Route to appropriate processing based on mode
+        if self.current_mode == self.BODY_CONTROL_MODE:
+            self._process_body_control(inputs)
+        elif self.current_mode == self.GAIT_CONTROL_MODE:
+            self._process_gait_control(inputs)
+        else:
+            print(f"Warning: Unknown mode '{self.current_mode}'")
+    
+    def _process_body_control(self, inputs):
+        """Process inputs for body control mode (direct IK movement)."""
+        # Extract movement values and apply sensitivity
+        tx = inputs.get('tx', 0.0) * self.translation_sensitivity * self.TRANSLATION_STEP
+        ty = inputs.get('ty', 0.0) * self.translation_sensitivity * self.TRANSLATION_STEP
+        tz = inputs.get('tz', 0.0) * self.translation_sensitivity * self.Z_STEP
+        roll = inputs.get('roll', 0.0) * self.rotation_sensitivity * self.ROLL_STEP
+        pitch = inputs.get('pitch', 0.0) * self.rotation_sensitivity * self.PITCH_STEP
+        yaw = inputs.get('yaw', 0.0) * self.rotation_sensitivity * self.YAW_STEP
+        
+        # Apply movement if any input is non-zero
+        if any(abs(val) > 0.01 for val in [tx, ty, tz, roll, pitch, yaw]):
+            try:
+                # Apply movement to hexapod
+                self.hexapod.move_body(tx=tx, ty=ty, tz=tz, roll=roll, pitch=pitch, yaw=yaw)
+
+                # Update current state
+                self.current_tx += tx
+                self.current_ty += ty
+                self.current_tz += tz
+                self.current_roll += roll
+                self.current_pitch += pitch
+                self.current_yaw += yaw
             
-            # Apply movement if any input is non-zero
-            if any(abs(val) > 0.01 for val in [tx, ty, tz, roll, pitch, yaw]):
-                try:
-                    # Apply movement to hexapod
-                    self.hexapod.move_body(tx=tx, ty=ty, tz=tz, roll=roll, pitch=pitch, yaw=yaw)
-
-                    # Update current state
-                    self.current_tx += tx
-                    self.current_ty += ty
-                    self.current_tz += tz
-                    self.current_roll += roll
-                    self.current_pitch += pitch
-                    self.current_yaw += yaw
-                
-                except Exception as e:
-                    print(f"Movement failed: {e}")
-
+            except Exception as e:
+                print(f"Movement failed: {e}")
+    
+    def _process_gait_control(self, inputs):
+        """Process inputs for gait control mode (walking movement)."""
         def _update_gait_direction(direction, rotation=0.0):
             """Update the gait direction and rotation input."""
             if self.current_gait:
                 self.current_gait.set_direction(direction, rotation)
         
-        def _process_gait_control():
-            """Process inputs for gait control mode (walking movement)."""
-            # Extract gait control values
-            direction_x = inputs.get('direction_x', 0.0)
-            direction_y = inputs.get('direction_y', 0.0)
-            rotation = inputs.get('rotation', 0.0)
-            
-            # Determine if we need to switch gait instances based on movement type
-            has_translation = abs(direction_x) > 0.01 or abs(direction_y) > 0.01
-            has_rotation = abs(rotation) > 0.01
-            
-            # Switch gait instance if needed
-            if has_rotation and not has_translation:
-                # Pure rotation - use rotation gait
-                if self.current_gait != self.rotation_gait:
-                    self.current_gait = self.rotation_gait
-                    # Update the gait generator with the new gait instance
-                    if self.is_gait_control_active():
-                        self.gait_generator.stop()
-                        self.gait_generator.start(self.current_gait)
-            elif has_translation:
-                # Has translation (with or without rotation) - use translation gait
-                if self.current_gait != self.translation_gait:
-                    self.current_gait = self.translation_gait
-                    # Update the gait generator with the new gait instance
-                    if self.is_gait_control_active():
-                        self.gait_generator.stop()
-                        self.gait_generator.start(self.current_gait)
-            
-            # Update gait direction and rotation
-            if hasattr(self, 'current_gait') and self.current_gait is not None:
-                # Normalize direction if magnitude is significant
-                if has_translation:
-                    # Normalize direction vector
-                    magnitude = (direction_x**2 + direction_y**2)**0.5
-                    if magnitude > 0:
-                        direction_x /= magnitude
-                        direction_y /= magnitude
-                        # Scale by sensitivity
-                        direction_x *= self.translation_sensitivity
-                        direction_y *= self.translation_sensitivity
-                
-                # Update gait direction and rotation
-                _update_gait_direction((direction_x, direction_y), rotation=rotation)
+        # Extract gait control values and apply sensitivity
+        direction_x = inputs.get('direction_x', 0.0) * self.gait_direction_sensitivity
+        direction_y = inputs.get('direction_y', 0.0) * self.gait_direction_sensitivity
+        rotation = inputs.get('rotation', 0.0) * self.gait_rotation_sensitivity
         
-        # Route to appropriate processing based on mode
-        if self.current_mode == self.BODY_CONTROL_MODE:
-            _process_body_control()
-        elif self.current_mode == self.GAIT_CONTROL_MODE:
-            _process_gait_control()
-        else:
-            print(f"Warning: Unknown mode '{self.current_mode}'")
+        # Determine if we need to switch gait instances based on movement type
+        has_translation = abs(direction_x) > 0.01 or abs(direction_y) > 0.01
+        has_rotation = abs(rotation) > 0.01
+        
+        # Switch gait instance if needed
+        if has_rotation and not has_translation:
+            # Pure rotation - use rotation gait
+            if self.current_gait != self.rotation_gait:
+                self.current_gait = self.rotation_gait
+                # Update the gait generator with the new gait instance
+                if self.is_gait_control_active():
+                    self.gait_generator.stop()
+                    self.gait_generator.start(self.current_gait)
+        elif has_translation:
+            # Has translation (with or without rotation) - use translation gait
+            if self.current_gait != self.translation_gait:
+                self.current_gait = self.translation_gait
+                # Update the gait generator with the new gait instance
+                if self.is_gait_control_active():
+                    self.gait_generator.stop()
+                    self.gait_generator.start(self.current_gait)
+        
+        # Update gait direction and rotation
+        if hasattr(self, 'current_gait') and self.current_gait is not None:
+            # Update gait direction and rotation (no normalization - magnitude affects step size)
+            _update_gait_direction((direction_x, direction_y), rotation=rotation)
+    
+    def _process_sensitivity_deltas(self, inputs):
+        """Process sensitivity adjustments using the inputs dictionary."""
+        sensitivity_deltas = inputs.get('sensitivity_deltas', {})
+        
+        # Apply translation-related sensitivity adjustment
+        if sensitivity_deltas.get('translation_delta', 0.0) != 0.0:
+            if self.current_mode == self.BODY_CONTROL_MODE:
+                self.translation_sensitivity = max(self.MIN_SENSITIVITY, min(self.MAX_SENSITIVITY, self.translation_sensitivity + sensitivity_deltas['translation_delta']))
+                print(f"Translation sensitivity: {self.translation_sensitivity:.2f}")
+            elif self.current_mode == self.GAIT_CONTROL_MODE:
+                self.gait_direction_sensitivity = max(self.MIN_SENSITIVITY, min(self.MAX_SENSITIVITY, self.gait_direction_sensitivity + sensitivity_deltas['translation_delta']))
+                print(f"Gait direction sensitivity: {self.gait_direction_sensitivity:.2f}")
+        
+        # Apply rotation-related sensitivity adjustment
+        if sensitivity_deltas.get('rotation_delta', 0.0) != 0.0:
+            if self.current_mode == self.BODY_CONTROL_MODE:
+                self.rotation_sensitivity = max(self.MIN_SENSITIVITY, min(self.MAX_SENSITIVITY, self.rotation_sensitivity + sensitivity_deltas['rotation_delta']))
+                print(f"Rotation sensitivity: {self.rotation_sensitivity:.2f}")
+            elif self.current_mode == self.GAIT_CONTROL_MODE:
+                self.gait_rotation_sensitivity = max(self.MIN_SENSITIVITY, min(self.MAX_SENSITIVITY, self.gait_rotation_sensitivity + sensitivity_deltas['rotation_delta']))
+                print(f"Gait rotation sensitivity: {self.gait_rotation_sensitivity:.2f}")
 
     def show_gait_status(self):
         """
@@ -399,6 +426,14 @@ class ManualHexapodController(ABC):
         print(f"  Translation: X={self.current_tx:6.1f}, Y={self.current_ty:6.1f}, Z={self.current_tz:6.1f} mm")
         print(f"  Rotation:    Roll={self.current_roll:6.1f}, Pitch={self.current_pitch:6.1f}, Yaw={self.current_yaw:6.1f}°")
 
+    def print_current_sensitivity_levels(self):
+        """Print the current sensitivity levels for the controller."""
+        print("\nCurrent Sensitivity Levels:")
+        print(f"Translation Sensitivity: {self.translation_sensitivity:.2f}")
+        print(f"Rotation Sensitivity: {self.rotation_sensitivity:.2f}")
+        print(f"Gait Direction Sensitivity: {self.gait_direction_sensitivity:.2f}")
+        print(f"Gait Rotation Sensitivity: {self.gait_rotation_sensitivity:.2f}")
+
     def show_current_position(self):
         """
         Display current movement state or gait status depending on mode.
@@ -412,9 +447,12 @@ class ManualHexapodController(ABC):
         if self.current_mode == self.GAIT_CONTROL_MODE:
             # In gait mode, show comprehensive gait status
             self.show_gait_status()
-            return
-        # In body control mode, show position details
-        self.print_current_position_details()
+        else:
+            # In body control mode, show position details
+            self.print_current_position_details()
+        
+        # Always show current sensitivity levels
+        self.print_current_sensitivity_levels()
     
     def run(self):
         """Run the hexapod controller."""
@@ -450,4 +488,4 @@ class ManualHexapodController(ABC):
                 break
         
         # Cleanup
-        self.cleanup() 
+        self.cleanup()

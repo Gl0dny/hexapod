@@ -80,14 +80,15 @@ class GamepadHexapodController(ManualHexapodController):
         if not self.gamepad:
             raise RuntimeError(f"Gamepad not found. This script only supports: {', '.join(input_mapping.get_interface_names())}")
         
-        # Sensitivity and deadzone
-        self.translation_sensitivity = 0.3
-        self.rotation_sensitivity = 0.5
+        # Deadzone for analog sticks (specific to gamepad hardware)
         self.deadzone = 0.1
         
         # Button states
         self.button_states = {}
         self.last_button_states = {}
+        
+        # Analog inputs
+        self.analog_inputs = {}
         
         # LED state tracking
         self.current_led_state = None
@@ -300,7 +301,7 @@ class GamepadHexapodController(ManualHexapodController):
     def get_inputs(self):
         """Get current input values from the gamepad."""
         # Get gamepad inputs
-        analog_inputs = self._get_analog_inputs()
+        self.analog_inputs = self._get_analog_inputs()
         self.button_states = self._get_button_states()
         
         # Handle mode toggle
@@ -308,19 +309,19 @@ class GamepadHexapodController(ManualHexapodController):
             self._toggle_mode()
         
         # Process inputs based on current mode
-        if self.current_mode == "body_control":
-            return self._get_body_control_inputs(analog_inputs)
-        else:  # gait_control
-            return self._get_gait_control_inputs(analog_inputs)
+        if self.current_mode == self.BODY_CONTROL_MODE:
+            return self._get_body_control_inputs()
+        elif self.current_mode == self.GAIT_CONTROL_MODE:
+            return self._get_gait_control_inputs()
     
-    def _get_body_control_inputs(self, analog_inputs):
+    def _get_body_control_inputs(self):
         """Process inputs for body control mode."""
-        # Process analog inputs for movement
-        tx = analog_inputs['left_x'] * self.translation_sensitivity * self.TRANSLATION_STEP
-        ty = -analog_inputs['left_y'] * self.translation_sensitivity * self.TRANSLATION_STEP
-        roll = analog_inputs['right_x'] * self.rotation_sensitivity * self.ROLL_STEP
-        pitch = -analog_inputs['right_y'] * self.rotation_sensitivity * self.ROTATION_STEP
-        tz = (analog_inputs['r2'] - analog_inputs['l2']) * self.translation_sensitivity * self.Z_STEP
+        # Process analog inputs for movement (raw values, sensitivity applied in base class)
+        tx = self.analog_inputs['left_x']
+        ty = -self.analog_inputs['left_y']  # Invert Y axis
+        roll = self.analog_inputs['right_x']
+        pitch = -self.analog_inputs['right_y']  # Invert Y axis
+        tz = (self.analog_inputs['r2'] - self.analog_inputs['l2'])
         yaw = 0.0
         
         # Process button inputs
@@ -335,9 +336,29 @@ class GamepadHexapodController(ManualHexapodController):
         
         # Continuous yaw while holding L1/R1
         if self.button_states.get('l1', False):
-            yaw = -self.YAW_STEP
+            yaw = -1.0  # Raw value, sensitivity applied in base class
         if self.button_states.get('r1', False):
-            yaw = self.YAW_STEP
+            yaw = 1.0   # Raw value, sensitivity applied in base class
+        
+        # Handle D-pad sensitivity adjustments
+        sensitivity_deltas = {
+            'translation_delta': 0.0,
+            'rotation_delta': 0.0
+        }
+        
+        # D-pad left/right: Adjust translation sensitivity (only on press)
+        if self._check_button_press('dpad_left'):
+            sensitivity_deltas['translation_delta'] = -self.SENSITIVITY_ADJUSTMENT_STEP
+        
+        if self._check_button_press('dpad_right'):
+            sensitivity_deltas['translation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
+        
+        # D-pad down/up: Adjust rotation sensitivity (only on press)
+        if self._check_button_press('dpad_down'):
+            sensitivity_deltas['rotation_delta'] = -self.SENSITIVITY_ADJUSTMENT_STEP
+        
+        if self._check_button_press('dpad_up'):
+            sensitivity_deltas['rotation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
         
         # Update LED based on movement activity
         movement_magnitude = abs(tx) + abs(ty) + abs(tz) + abs(roll) + abs(pitch) + abs(yaw)
@@ -352,18 +373,19 @@ class GamepadHexapodController(ManualHexapodController):
             'tz': tz,
             'roll': roll,
             'pitch': pitch,
-            'yaw': yaw
+            'yaw': yaw,
+            'sensitivity_deltas': sensitivity_deltas
         }
     
-    def _get_gait_control_inputs(self, analog_inputs):
+    def _get_gait_control_inputs(self):
         """Process inputs for gait control mode - returns raw input values."""
-        # Process analog inputs for gait control
+        # Process analog inputs for gait control (raw values, sensitivity applied in base class)
         # Left stick controls movement direction
-        direction_x = analog_inputs['left_x']
-        direction_y = -analog_inputs['left_y']  # Invert Y axis
+        direction_x = self.analog_inputs['left_x']
+        direction_y = -self.analog_inputs['left_y']  # Invert Y axis
         
         # Right stick X controls rotation
-        rotation = analog_inputs['right_x'] * self.rotation_sensitivity
+        rotation = self.analog_inputs['right_x']
         
         # Process button inputs
         if self._check_button_press('triangle'):
@@ -376,6 +398,26 @@ class GamepadHexapodController(ManualHexapodController):
         elif self._check_button_press('ps5'):
             self.running = False
         
+        # Handle D-pad sensitivity adjustments
+        sensitivity_deltas = {
+            'translation_delta': 0.0,
+            'rotation_delta': 0.0
+        }
+        
+        # D-pad left/right: Adjust gait direction sensitivity (only on press)
+        if self._check_button_press('dpad_left'):
+            sensitivity_deltas['translation_delta'] = -self.SENSITIVITY_ADJUSTMENT_STEP
+        
+        if self._check_button_press('dpad_right'):
+            sensitivity_deltas['translation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
+        
+        # D-pad down/up: Adjust gait rotation sensitivity (only on press)
+        if self._check_button_press('dpad_down'):
+            sensitivity_deltas['rotation_delta'] = -self.SENSITIVITY_ADJUSTMENT_STEP
+        
+        if self._check_button_press('dpad_up'):
+            sensitivity_deltas['rotation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
+        
         # Update LED based on movement activity
         movement_magnitude = abs(direction_x) + abs(direction_y) + abs(rotation)
         self._update_led_state(movement_magnitude, GamepadLEDColor.INDIGO, GamepadLEDColor.LIME)
@@ -387,9 +429,10 @@ class GamepadHexapodController(ManualHexapodController):
         return {
             'direction_x': direction_x,
             'direction_y': direction_y,
-            'rotation': rotation
+            'rotation': rotation,
+            'sensitivity_deltas': sensitivity_deltas
         }
-    
+
     def print_help(self):
         """Print the help menu."""
         controller_type = type(self.input_mapping).__name__.replace('Mappings', '').replace('_', ' ')
@@ -418,6 +461,11 @@ class GamepadHexapodController(ManualHexapodController):
         print("  Square          - Show current position")
         print("  Circle          - Show this help menu")
         print("  PS5             - Exit program")
+        print()
+        print("SENSITIVITY CONTROLS (D-Pad):")
+        print("  D-Pad Left/Right - Decrease/Increase translation/gait direction sensitivity")
+        print("  D-Pad Down/Up   - Decrease/Increase rotation/gait rotation sensitivity")
+        print("  (Sensitivity type depends on current mode)")
         print()
         print("LED INDICATORS:")
         print("  Blue Pulse      - Body control mode (idle)")

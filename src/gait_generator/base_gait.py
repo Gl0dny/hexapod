@@ -354,15 +354,25 @@ class BaseGait(ABC):
             movement_distance = self.step_radius * abs(self.rotation_input)
             target_2d = projection_direction.normalized() * movement_distance
         else:
-            # For translation, use circle projection
-            effective_radius = self.step_radius
-            
-            if is_swing:
-                # For swing legs, move outward from center in projected direction
-                target_2d = projection_direction.normalized() * effective_radius
+            # For translation, use direction magnitude to scale movement distance (like rotation)
+            direction_magnitude = self.direction_input.magnitude()
+            if direction_magnitude > 0:
+                # Scale the step radius by the direction magnitude (which includes sensitivity)
+                effective_radius = self.step_radius * direction_magnitude
+                
+                if is_swing:
+                    # For swing legs, move outward from center in projected direction
+                    target_2d = projection_direction.normalized() * effective_radius
+                else:
+                    # For stance legs, use circle projection from current position
+                    target_2d = self.project_point_to_circle(effective_radius, projection_origin, projection_direction)
             else:
-                # For stance legs, use circle projection from current position
-                target_2d = self.project_point_to_circle(effective_radius, projection_origin, projection_direction)
+                # No movement - stay at current position
+                if is_swing:
+                    target_2d = Vector2D(0, 0)
+                else:
+                    current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
+                    target_2d = current_pos_2d
         
         # Convert to 3D with proper stance height
         target_3d = Vector3D(target_2d.x, target_2d.y, -self.stance_height)
