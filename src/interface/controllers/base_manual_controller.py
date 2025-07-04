@@ -61,9 +61,17 @@ class ManualHexapodController(ABC):
         # Dual-mode support
         self.current_mode = self.DEFAULT_MODE
 
-        # Gait steering support
-        self.gait = None
+        # Gait steering support - separate instances for translation and rotation
+        self.translation_gait = None
+        self.rotation_gait = None
+        self.current_gait = None  # Points to either translation_gait or rotation_gait
         self.gait_generator = self.hexapod.gait_generator
+        
+        # Gait type for both translation and rotation (must be the same)
+        self.gait_type = TripodGait
+        
+        # Sensitivity for gait control
+        self.translation_sensitivity = 0.3
     
     @abstractmethod
     def get_inputs(self):
@@ -132,15 +140,46 @@ class ManualHexapodController(ABC):
         except Exception as e:
             print(f"Reset failed: {e}")
     
-    def start_gait_control(self, gait_type=None, **kwargs):
-        """Start gait control with the specified gait type (default: TripodGait)."""
-        if self.gait is None or gait_type is not None:
-            if gait_type is None:
-                gait_type = TripodGait
-            self.gait = gait_type(self.hexapod, **kwargs)
+    def start_gait_control(self, gait_type=None, translation_params=None, rotation_params=None):
+        """
+        Start gait control with separate parameters for translation and rotation.
+        
+        Args:
+            gait_type: The gait class to use (default: TripodGait)
+            translation_params: Parameters for translation movement (dict)
+            rotation_params: Parameters for rotation movement (dict)
+        """
+        # Set gait type if provided
+        if gait_type is not None:
+            self.gait_type = gait_type
+        
+        # Default parameters if not provided
+        if translation_params is None:
+            translation_params = {
+                'step_radius': 22.0,
+                'leg_lift_distance': 20.0,
+                'dwell_time': 0.1
+            }
+        
+        if rotation_params is None:
+            rotation_params = {
+                'step_radius': 30.0,
+                'leg_lift_distance': 10.0,
+                'dwell_time': 0.1
+            }
+        
+        # Create separate gait instances for translation and rotation
+        self.translation_gait = self.gait_type(self.hexapod, **translation_params)
+        self.rotation_gait = self.gait_type(self.hexapod, **rotation_params)
+        
+        # Start with translation gait as default
+        self.current_gait = self.translation_gait
+        
         if not self.is_gait_control_active():
-            self.gait_generator.start(self.gait)
+            self.gait_generator.start(self.current_gait)
             print("Gait generation started")
+            print(f"Translation gait: {translation_params}")
+            print(f"Rotation gait: {rotation_params}")
 
     def stop_gait_control(self):
         """Stop gait control if running."""
@@ -192,8 +231,8 @@ class ManualHexapodController(ABC):
 
         def _update_gait_direction(direction, rotation=0.0):
             """Update the gait direction and rotation input."""
-            if self.gait:
-                self.gait.set_direction(direction, rotation)
+            if self.current_gait:
+                self.current_gait.set_direction(direction, rotation)
         
         def _process_gait_control():
             """Process inputs for gait control mode (walking movement)."""
@@ -202,10 +241,32 @@ class ManualHexapodController(ABC):
             direction_y = inputs.get('direction_y', 0.0)
             rotation = inputs.get('rotation', 0.0)
             
+            # Determine if we need to switch gait instances based on movement type
+            has_translation = abs(direction_x) > 0.01 or abs(direction_y) > 0.01
+            has_rotation = abs(rotation) > 0.01
+            
+            # Switch gait instance if needed
+            if has_rotation and not has_translation:
+                # Pure rotation - use rotation gait
+                if self.current_gait != self.rotation_gait:
+                    self.current_gait = self.rotation_gait
+                    # Update the gait generator with the new gait instance
+                    if self.is_gait_control_active():
+                        self.gait_generator.stop()
+                        self.gait_generator.start(self.current_gait)
+            elif has_translation:
+                # Has translation (with or without rotation) - use translation gait
+                if self.current_gait != self.translation_gait:
+                    self.current_gait = self.translation_gait
+                    # Update the gait generator with the new gait instance
+                    if self.is_gait_control_active():
+                        self.gait_generator.stop()
+                        self.gait_generator.start(self.current_gait)
+            
             # Update gait direction and rotation
-            if hasattr(self, 'gait') and self.gait is not None:
+            if hasattr(self, 'current_gait') and self.current_gait is not None:
                 # Normalize direction if magnitude is significant
-                if abs(direction_x) > 0.01 or abs(direction_y) > 0.01:
+                if has_translation:
                     # Normalize direction vector
                     magnitude = (direction_x**2 + direction_y**2)**0.5
                     if magnitude > 0:
@@ -271,12 +332,31 @@ class ManualHexapodController(ABC):
                 return "counterclockwise"
         
         # Check if gait is active
-        if not hasattr(self, 'gait') or self.gait is None:
+        if not hasattr(self, 'current_gait') or self.current_gait is None:
             print("No gait is currently active.")
             return
         
         print("\nGait Control Mode Status:")
-        print(f"- Gait Type: {type(self.gait).__name__}")
+        print(f"- Gait Type: {type(self.current_gait).__name__}")
+        
+        # Display current gait instance info
+        if self.current_gait == self.translation_gait:
+            print("- Current Gait: Translation Gait")
+        elif self.current_gait == self.rotation_gait:
+            print("- Current Gait: Rotation Gait")
+        
+        # Display parameters for both gaits
+        if self.translation_gait:
+            print(f"- Translation Gait Parameters:")
+            print(f"  Step Radius: {getattr(self.translation_gait, 'step_radius', 'N/A')} mm")
+            print(f"  Leg Lift Distance: {getattr(self.translation_gait, 'leg_lift_distance', 'N/A')} mm")
+            print(f"  Dwell Time: {getattr(self.translation_gait, 'dwell_time', 'N/A')}s")
+        
+        if self.rotation_gait:
+            print(f"- Rotation Gait Parameters:")
+            print(f"  Step Radius: {getattr(self.rotation_gait, 'step_radius', 'N/A')} mm")
+            print(f"  Leg Lift Distance: {getattr(self.rotation_gait, 'leg_lift_distance', 'N/A')} mm")
+            print(f"  Dwell Time: {getattr(self.rotation_gait, 'dwell_time', 'N/A')}s")
         
         # Try to get current phase/state information from gait generator
         current_state = getattr(self.gait_generator, 'current_state', None)
@@ -286,11 +366,8 @@ class ManualHexapodController(ABC):
             print(f"- Stance Legs: {getattr(current_state, 'stance_legs', 'N/A')}")
             print(f"- Dwell Time: {getattr(current_state, 'dwell_time', 'N/A')}s")
         
-        # Display gait parameters
-        print(f"- Step Radius: {getattr(self.gait, 'step_radius', 'N/A')} mm")
-        
         # Show current direction with human-readable name
-        direction = getattr(self.gait, 'direction_input', (0.0, 0.0))
+        direction = getattr(self.current_gait, 'direction_input', (0.0, 0.0))
         if hasattr(direction, 'to_tuple'):
             x, y = direction.to_tuple()
         else:
@@ -298,7 +375,7 @@ class ManualHexapodController(ABC):
         direction_name = _get_direction_name((x, y))
         
         # Show current rotation with human-readable name
-        rotation = getattr(self.gait, 'rotation_input', 0.0)
+        rotation = getattr(self.current_gait, 'rotation_input', 0.0)
         rotation_name = _get_rotation_name(rotation)
         
         print(f"- Current Direction: X={x:.2f}, Y={y:.2f} ({direction_name})")

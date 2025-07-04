@@ -36,6 +36,7 @@ from interface.controllers.base_manual_controller import ManualHexapodController
 from interface.input_mappings import InputMapping, DualSenseMapping
 from interface.controllers.gamepad_led_controllers.gamepad_led_controller import BaseGamepadLEDController, GamepadLEDColor
 from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
+from gait_generator import TripodGait
 
 try:
     import pygame
@@ -226,7 +227,24 @@ class GamepadHexapodController(ManualHexapodController):
             print("Left Stick: Movement direction")
             print("Right Stick X: Rotation (clockwise/counterclockwise)")
             print("The hexapod will walk using its gait generator")
-            self.start_gait_control(step_radius=22.0, leg_lift_distance=20.0, dwell_time=0.1)
+            
+            # Start gait control with separate parameters for translation and rotation
+            translation_params = {
+                'step_radius': 22.0,
+                'leg_lift_distance': 20.0,
+                'dwell_time': 0.1
+            }
+            rotation_params = {
+                'step_radius': 30.0,
+                'leg_lift_distance': 10.0,
+                'dwell_time': 0.1
+            }
+            self.start_gait_control(
+                gait_type=TripodGait,
+                translation_params=translation_params,
+                rotation_params=rotation_params
+            )
+            
             # Update LED to indicate gait mode
             if self.led_controller and self.led_controller.is_available():
                 self.led_controller.stop_animation()
@@ -393,6 +411,7 @@ class GamepadHexapodController(ManualHexapodController):
         print("  Left Stick      - Movement direction (forward/backward/left/right/diagonal directions)")
         print("  Right Stick X   - Rotation (clockwise/counterclockwise)")
         print("  The hexapod will walk using its gait generator")
+        print("  Different gait parameters are used for translation vs rotation movements")
         print()
         print("COMMON BUTTON CONTROLS:")
         print("  Triangle        - Reset to start position")
