@@ -198,7 +198,7 @@ class GaitGenerator:
                 logger.error(f"    Error moving legs to waypoint {waypoint_idx + 1}: {e}")
                 logger.error(f"    Attempting to return to safe position...")
                 from robot.hexapod import PredefinedPosition
-                self.hexapod.move_to_position(PredefinedPosition.UPRIGHT)
+                self.hexapod.move_to_position(PredefinedPosition.HIGH_PROFILE)
                 self.hexapod.wait_until_motion_complete()
                 raise e
         

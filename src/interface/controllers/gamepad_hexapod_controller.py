@@ -112,7 +112,7 @@ class GamepadHexapodController(ManualHexapodController):
         
         print(f"Gamepad '{self.gamepad.get_name()}' initialized successfully")
         print(f"Current mode: {self.current_mode}")
-        print("Press OPTIONS button to toggle between body control and gait steering modes")
+        print("Press OPTIONS button to toggle between body control and gait control modes")
     
     def _find_gamepad(self):
         """Find and initialize a gamepad that matches the mapping."""
@@ -218,15 +218,15 @@ class GamepadHexapodController(ManualHexapodController):
         return current and not last
     
     def _toggle_mode(self):
-        """Toggle between body control and gait steering modes using base class set_mode and gait methods."""
+        """Toggle between body control and gait control modes using base class set_mode and gait methods."""
         if self.current_mode == self.BODY_CONTROL_MODE:
-            # Switch to gait steering mode
-            self.set_mode(self.GAIT_STEERING_MODE)
-            print(f"\n=== SWITCHED TO GAIT STEERING MODE ===")
+            # Switch to gait control mode
+            self.set_mode(self.GAIT_CONTROL_MODE)
+            print(f"\n=== SWITCHED TO GAIT CONTROL MODE ===")
             print("Left Stick: Movement direction")
             print("Right Stick X: Rotation (clockwise/counterclockwise)")
             print("The hexapod will walk using its gait generator")
-            self.start_gait_steering(step_radius=22.0, leg_lift_distance=20.0, dwell_time=0.1)
+            self.start_gait_control(step_radius=22.0, leg_lift_distance=20.0, dwell_time=0.1)
             # Update LED to indicate gait mode
             if self.led_controller and self.led_controller.is_available():
                 self.led_controller.stop_animation()
@@ -240,12 +240,44 @@ class GamepadHexapodController(ManualHexapodController):
             print("Left Stick: Body translation")
             print("Right Stick: Body rotation")
             print("The hexapod will move its body using inverse kinematics")
-            self.stop_gait_steering()
+            self.stop_gait_control()
             # Update LED to indicate body control mode
             if self.led_controller and self.led_controller.is_available():
                 self.led_controller.stop_animation()
                 self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)
                 self.current_led_state = 'body_mode'
+    
+    def _update_led_state(self, movement_magnitude, idle_color, movement_color):
+        """
+        Update LED state based on movement magnitude.
+        
+        Args:
+            movement_magnitude (float): Magnitude of movement input
+            idle_color (GamepadLEDColor): Color for idle state
+            movement_color (GamepadLEDColor): Color for movement state
+        """
+        if not (self.led_controller and self.led_controller.is_available()):
+            return
+        
+        # Determine current LED state
+        if movement_magnitude > 0.01:  # Threshold for movement detection
+            new_led_state = 'movement'
+        else:
+            new_led_state = 'idle'
+        
+        # Only change LED if state has changed
+        if new_led_state != self.current_led_state:
+            # Stop any existing animation first
+            self.led_controller.stop_animation()
+            
+            if new_led_state == 'movement':
+                # Pulse animation for movement
+                self.led_controller.pulse(movement_color, duration=0.8, cycles=0)
+            else:  # idle
+                # Pulse animation for idle state
+                self.led_controller.pulse(idle_color, duration=2.0, cycles=0)
+            
+            self.current_led_state = new_led_state
     
     def get_inputs(self):
         """Get current input values from the gamepad."""
@@ -260,8 +292,8 @@ class GamepadHexapodController(ManualHexapodController):
         # Process inputs based on current mode
         if self.current_mode == "body_control":
             return self._get_body_control_inputs(analog_inputs)
-        else:  # gait_steering
-            return self._get_gait_steering_inputs(analog_inputs)
+        else:  # gait_control
+            return self._get_gait_control_inputs(analog_inputs)
     
     def _get_body_control_inputs(self, analog_inputs):
         """Process inputs for body control mode."""
@@ -275,7 +307,7 @@ class GamepadHexapodController(ManualHexapodController):
         
         # Process button inputs
         if self._check_button_press('triangle'):
-            self.reset_to_start()
+            self.reset_position()
         elif self._check_button_press('square'):
             self.show_current_position()
         elif self._check_button_press('circle'):
@@ -290,29 +322,8 @@ class GamepadHexapodController(ManualHexapodController):
             yaw = self.YAW_STEP
         
         # Update LED based on movement activity
-        if self.led_controller and self.led_controller.is_available():
-            # Check if there's any movement
-            movement_magnitude = abs(tx) + abs(ty) + abs(tz) + abs(roll) + abs(pitch) + abs(yaw)
-            
-            # Determine current LED state
-            if movement_magnitude > 0.01:  # Threshold for movement detection
-                new_led_state = 'movement'
-            else:
-                new_led_state = 'idle'
-            
-            # Only change LED if state has changed
-            if new_led_state != self.current_led_state:
-                # Stop any existing animation first
-                self.led_controller.stop_animation()
-                
-                if new_led_state == 'movement':
-                    # Pulse animation for movement
-                    self.led_controller.pulse(GamepadLEDColor.LIME, duration=0.8, cycles=0)  # Infinite pulse
-                else:  # idle
-                    # Pulse animation for idle state
-                    self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)  # Infinite pulse
-                
-                self.current_led_state = new_led_state
+        movement_magnitude = abs(tx) + abs(ty) + abs(tz) + abs(roll) + abs(pitch) + abs(yaw)
+        self._update_led_state(movement_magnitude, GamepadLEDColor.BLUE, GamepadLEDColor.LIME)
         
         # Update button states for next frame
         self.last_button_states = self.button_states.copy()
@@ -326,57 +337,39 @@ class GamepadHexapodController(ManualHexapodController):
             'yaw': yaw
         }
     
-    def _get_gait_steering_inputs(self, analog_inputs):
-        """Process inputs for gait steering mode using base class gait methods."""
+    def _get_gait_control_inputs(self, analog_inputs):
+        """Process inputs for gait control mode - returns raw input values."""
+        # Process analog inputs for gait control
         # Left stick controls movement direction
         direction_x = analog_inputs['left_x']
         direction_y = -analog_inputs['left_y']  # Invert Y axis
+        
         # Right stick X controls rotation
         rotation = analog_inputs['right_x'] * self.rotation_sensitivity
+        
         # Process button inputs
         if self._check_button_press('triangle'):
             # Stop movement and return to home position
-            self.update_gait_direction((0.0, 0.0), rotation=0.0)
-            self.reset_to_start()
+            self.reset_position()
         elif self._check_button_press('square'):
             self.show_current_position()
         elif self._check_button_press('circle'):
             self.print_help()
         elif self._check_button_press('ps5'):
             self.running = False
-        # Update gait direction and rotation
-        if abs(direction_x) > 0.01 or abs(direction_y) > 0.01:
-            # Normalize direction vector
-            magnitude = (direction_x**2 + direction_y**2)**0.5
-            if magnitude > 0:
-                direction_x /= magnitude
-                direction_y /= magnitude
-                # Scale by sensitivity
-                direction_x *= self.translation_sensitivity
-                direction_y *= self.translation_sensitivity
-            self.update_gait_direction((direction_x, direction_y), rotation=rotation)
-        else:
-            # No movement input, just rotation
-            self.update_gait_direction((0.0, 0.0), rotation=rotation)
+        
         # Update LED based on movement activity
-        if self.led_controller and self.led_controller.is_available():
-            movement_magnitude = abs(direction_x) + abs(direction_y) + abs(rotation)
-            new_led_state = 'gait_movement' if movement_magnitude > 0.01 else 'gait_idle'
-            if new_led_state != self.current_led_state:
-                self.led_controller.stop_animation()
-                if new_led_state == 'gait_movement':
-                    self.led_controller.pulse(GamepadLEDColor.LIME, duration=0.8, cycles=0)
-                else:
-                    self.led_controller.pulse(GamepadLEDColor.INDIGO, duration=2.0, cycles=0)
-                self.current_led_state = new_led_state
+        movement_magnitude = abs(direction_x) + abs(direction_y) + abs(rotation)
+        self._update_led_state(movement_magnitude, GamepadLEDColor.INDIGO, GamepadLEDColor.LIME)
+        
+        # Update button states for next frame
         self.last_button_states = self.button_states.copy()
+        
+        # Return raw input values for base class to process
         return {
-            'tx': 0.0,
-            'ty': 0.0,
-            'tz': 0.0,
-            'roll': 0.0,
-            'pitch': 0.0,
-            'yaw': 0.0
+            'direction_x': direction_x,
+            'direction_y': direction_y,
+            'rotation': rotation
         }
     
     def print_help(self):
@@ -386,7 +379,7 @@ class GamepadHexapodController(ManualHexapodController):
         print(f"{controller_type.upper()} GAMEPAD HEXAPOD CONTROLLER")
         print("="*60)
         print("MODE CONTROLS:")
-        print("  Options Button - Toggle between Body Control and Gait Steering modes")
+        print("  Options Button - Toggle between Body Control and Gait Control modes")
         print()
         print("BODY CONTROL MODE (Inverse Kinematics):")
         print("  Left Stick X    - Left/Right translation")
@@ -396,7 +389,7 @@ class GamepadHexapodController(ManualHexapodController):
         print("  Right Stick Y   - Pitch rotation (forward/backward)")
         print("  L1/R1           - Yaw left/right")
         print()
-        print("GAIT STEERING MODE (Walking):")
+        print("GAIT CONTROL MODE (Walking):")
         print("  Left Stick      - Movement direction (forward/backward/left/right/diagonal directions)")
         print("  Right Stick X   - Rotation (clockwise/counterclockwise)")
         print("  The hexapod will walk using its gait generator")
@@ -409,19 +402,12 @@ class GamepadHexapodController(ManualHexapodController):
         print()
         print("LED INDICATORS:")
         print("  Blue Pulse      - Body control mode (idle)")
-        print("  Purple Pulse    - Gait steering mode (idle)")
+        print("  Purple Pulse    - Gait control mode (idle)")
         print("  Lime Pulse      - Movement detected (both modes)")
         print("="*60)
     
-    def cleanup(self):
-        """Clean up resources."""
-        try:
-            self.reset_to_start()
-            self.hexapod.deactivate_all_servos()
-            print("Hexapod servos deactivated")
-        except Exception as e:
-            print(f"Error during cleanup: {e}")
-        
+    def cleanup_controller(self):
+        """Clean up gamepad-specific resources."""
         # Cleanup LED controller
         if hasattr(self, 'led_controller') and self.led_controller:
             try:
