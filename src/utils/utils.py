@@ -1,6 +1,8 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 import threading
+import math
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -127,3 +129,208 @@ def homogeneous_transformation_matrix(tx: float = 0, ty: float = 0, tz: float = 
     T[:3, 3] = [tx, ty, tz]
     
     return T
+
+@dataclass
+class Vector2D:
+    """
+    2D vector for mathematical operations in the X-Y plane.
+    
+    This class provides essential vector operations for circle-based gait calculations,
+    including direction vectors, movement projections, and geometric transformations.
+    
+    Attributes:
+        x (float): X-component of the vector
+        y (float): Y-component of the vector
+    """
+    x: float
+    y: float
+    
+    def __add__(self, other: Vector2D) -> Vector2D:
+        """Add two vectors component-wise."""
+        return Vector2D(self.x + other.x, self.y + other.y)
+    
+    def __sub__(self, other: Vector2D) -> Vector2D:
+        """Subtract two vectors component-wise."""
+        return Vector2D(self.x - other.x, self.y - other.y)
+    
+    def __mul__(self, scalar: float) -> Vector2D:
+        """Multiply vector by a scalar."""
+        return Vector2D(self.x * scalar, self.y * scalar)
+    
+    def __truediv__(self, scalar: float) -> Vector2D:
+        """Divide vector by a scalar."""
+        return Vector2D(self.x / scalar, self.y / scalar)
+    
+    def magnitude(self) -> float:
+        """
+        Calculate the magnitude (length) of the vector.
+        
+        Returns:
+            float: The length of the vector using Pythagorean theorem
+        """
+        return math.sqrt(self.x * self.x + self.y * self.y)
+    
+    def normalized(self) -> Vector2D:
+        """
+        Return a normalized version of the vector (unit vector).
+        
+        A unit vector has magnitude 1 and points in the same direction.
+        
+        Returns:
+            Vector2D: Unit vector in the same direction, or zero vector if original is zero
+        """
+        mag = self.magnitude()
+        if mag == 0:
+            return Vector2D(0, 0)
+        return Vector2D(self.x / mag, self.y / mag)
+    
+    def inverse(self) -> Vector2D:
+        """
+        Return the inverse of the vector (opposite direction).
+        
+        Returns:
+            Vector2D: Vector pointing in the opposite direction
+        """
+        return Vector2D(-self.x, -self.y)
+    
+    def dot(self, other: Vector2D) -> float:
+        """
+        Calculate the dot product with another vector.
+        
+        Args:
+            other (Vector2D): The other vector to dot with
+            
+        Returns:
+            float: Dot product value
+        """
+        return self.x * other.x + self.y * other.y
+    
+    def rotate(self, angle_degrees: float) -> Vector2D:
+        """
+        Rotate the vector by the given angle in degrees.
+        
+        Uses rotation matrix transformation:
+        [cos(θ) -sin(θ)] [x]
+        [sin(θ)  cos(θ)] [y]
+        
+        Args:
+            angle_degrees (float): Angle to rotate by in degrees (positive = counterclockwise)
+            
+        Returns:
+            Vector2D: Rotated vector
+        """
+        angle_rad = math.radians(angle_degrees)
+        cos_angle = math.cos(angle_rad)
+        sin_angle = math.sin(angle_rad)
+        return Vector2D(
+            self.x * cos_angle - self.y * sin_angle,
+            self.x * sin_angle + self.y * cos_angle
+        )
+    
+    def to_tuple(self) -> Tuple[float, float]:
+        """Convert to tuple for compatibility with existing code."""
+        return (self.x, self.y)
+    
+    @staticmethod
+    def angle_between_vectors(v1: Vector2D, v2: Vector2D) -> float:
+        """
+        Calculate the angle between two vectors in degrees.
+        
+        Uses dot product formula: cos(θ) = (v1·v2) / (|v1|·|v2|)
+        
+        Args:
+            v1 (Vector2D): First vector
+            v2 (Vector2D): Second vector
+            
+        Returns:
+            float: Angle between vectors in degrees (0-180)
+        """
+        dot_product = v1.dot(v2)
+        mag1 = v1.magnitude()
+        mag2 = v2.magnitude()
+        
+        if mag1 == 0 or mag2 == 0:
+            return 0
+        
+        cos_angle = dot_product / (mag1 * mag2)
+        cos_angle = max(-1, min(1, cos_angle))  # Clamp to valid range
+        return math.degrees(math.acos(cos_angle))
+
+
+@dataclass
+class Vector3D:
+    """
+    3D vector for representing positions and movements in 3D space.
+    
+    This class handles 3D coordinates for leg positions, including height (Z-axis)
+    for stance height and leg lift calculations.
+    
+    Attributes:
+        x (float): X-component of the vector
+        y (float): Y-component of the vector  
+        z (float): Z-component of the vector (height)
+    """
+    x: float
+    y: float
+    z: float
+    
+    def __add__(self, other: Vector3D) -> Vector3D:
+        """Add two vectors component-wise."""
+        return Vector3D(self.x + other.x, self.y + other.y, self.z + other.z)
+    
+    def __sub__(self, other: Vector3D) -> Vector3D:
+        """Subtract two vectors component-wise."""
+        return Vector3D(self.x - other.x, self.y - other.y, self.z - other.z)
+    
+    def __mul__(self, scalar: float) -> Vector3D:
+        """Multiply vector by a scalar."""
+        return Vector3D(self.x * scalar, self.y * scalar, self.z * scalar)
+    
+    def __truediv__(self, scalar: float) -> Vector3D:
+        """Divide vector by a scalar."""
+        return Vector3D(self.x / scalar, self.y / scalar, self.z / scalar)
+    
+    def magnitude(self) -> float:
+        """
+        Calculate the magnitude (length) of the vector.
+        
+        Returns:
+            float: The 3D length of the vector
+        """
+        return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+    
+    def normalized(self) -> Vector3D:
+        """
+        Return a normalized version of the vector (unit vector).
+        
+        Returns:
+            Vector3D: Unit vector in the same direction, or zero vector if original is zero
+        """
+        mag = self.magnitude()
+        if mag == 0:
+            return Vector3D(0, 0, 0)
+        return Vector3D(self.x / mag, self.y / mag, self.z / mag)
+    
+    def xy_plane(self) -> Vector3D:
+        """
+        Return the vector with z component set to 0 (projection onto XY plane).
+        
+        Useful for 2D calculations when height is not relevant.
+        
+        Returns:
+            Vector3D: Vector with same x,y but z=0
+        """
+        return Vector3D(self.x, self.y, 0)
+    
+    def to_vector2(self) -> Vector2D:
+        """
+        Convert to 2D vector by dropping z component.
+        
+        Returns:
+            Vector2D: 2D vector with same x,y components
+        """
+        return Vector2D(self.x, self.y)
+    
+    def to_tuple(self) -> Tuple[float, float, float]:
+        """Convert to tuple for compatibility with existing code."""
+        return (self.x, self.y, self.z)

@@ -35,14 +35,6 @@ context:
       - "[Set, Adjust] (the) speed (to) $pv.Percent:speed_percentage"
     set_accel:
       - "[Set, Adjust] (the) acceleration (to) $pv.Percent:accel_percentage"
-    low_profle_mode:
-      - Move (in) (a, the) low profile (position)
-      - (Move in) (a, the) [crawl, low profile] mode
-      - Sit down
-    upright_mode:
-      - (Move in) (a, an, the) [upright, high profile] mode
-      - Move (in) (a, an, the) [high, upright] profile (position)
-      - Stand up
     idle_stance:
       - (Return, Set, Move, Go) (to) (the) [neutral, default, home, idle]
         (stance, position)

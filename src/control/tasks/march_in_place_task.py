@@ -4,8 +4,8 @@ import logging
 import time
 
 from control.tasks import ControlTask
-from robot import PredefinedPosition, PredefinedAnglePosition
-from robot import TripodGait
+from robot import PredefinedPosition
+from gait_generator import TripodGait
 
 if TYPE_CHECKING:
     from typing import Optional, Callable

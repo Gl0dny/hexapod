@@ -5,7 +5,7 @@ import argparse
 from pathlib import Path
 
 # Add the src directory to the Python path
-src_path = str(Path(__file__).parent.parent.parent / 'src')
+src_path = str(Path(__file__).parent.parent.parent.parent / 'src')
 sys.path.append(src_path)
 
 from robot import Hexapod

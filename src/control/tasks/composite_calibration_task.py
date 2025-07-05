@@ -4,7 +4,7 @@ import logging
 import threading
 
 from control.tasks import ControlTask
-from robot import PredefinedPosition, PredefinedAnglePosition
+from robot import PredefinedPosition
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
@@ -155,4 +155,5 @@ class RunCalibrationTask(ControlTask):
         
         finally:
             logger.info("RunCalibrationTask completed")
-            self.hexapod.move_to_angles_position(PredefinedAnglePosition.HOME)
+            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            self.hexapod.wait_until_motion_complete(stop_event=self.stop_event)

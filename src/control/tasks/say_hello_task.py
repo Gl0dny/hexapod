@@ -5,7 +5,7 @@ import time
 import math
 
 from control.tasks import ControlTask
-from robot import PredefinedPosition, PredefinedAnglePosition
+from robot import PredefinedPosition
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
