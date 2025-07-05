@@ -10,6 +10,7 @@ Usage:
 """
 from __future__ import annotations
 from typing import TYPE_CHECKING
+import logging
 import sys
 import os
 import warnings
@@ -37,6 +38,9 @@ from interface.input_mappings import InputMapping, DualSenseMapping
 from interface.controllers.gamepad_led_controllers.gamepad_led_controller import BaseGamepadLEDController, GamepadLEDColor
 from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
 from gait_generator import TripodGait
+from utils import rename_thread
+
+logger = logging.getLogger("hexapod_gamepad_controller")
 
 try:
     import pygame
@@ -59,7 +63,9 @@ class GamepadHexapodController(ManualHexapodController):
             input_mapping: The input mapping for the gamepad
             led_controller: Optional LED controller for visual feedback
         """
+        logger.warning("Initializing GamepadHexapodController")
         super().__init__()
+        rename_thread(self, "GamepadHexapodController")
         
         if not PYGAME_AVAILABLE:
             raise ImportError("pygame is required for gamepad support")
@@ -332,7 +338,7 @@ class GamepadHexapodController(ManualHexapodController):
         elif self._check_button_press('circle'):
             self.print_help()
         elif self._check_button_press('ps5'):
-            self.running = False
+            self.stop_event.set()
         
         # Continuous yaw while holding L1/R1
         if self.button_states.get('l1', False):
@@ -396,7 +402,7 @@ class GamepadHexapodController(ManualHexapodController):
         elif self._check_button_press('circle'):
             self.print_help()
         elif self._check_button_press('ps5'):
-            self.running = False
+            self.stop_event.set()
         
         # Handle D-pad sensitivity adjustments
         sensitivity_deltas = {
@@ -502,11 +508,13 @@ def main():
         
         # controller = GamepadHexapodController(input_mapping)  # No LED controller
         controller = GamepadHexapodController(input_mapping, led_controller)  # With LED controller
-        controller.run()
+        controller.start()
+        controller.join()  # Wait for the thread to finish
     except Exception as e:
         print(f"Movement controller execution failed: {e}")
         if controller:
-            controller.cleanup()
+            controller.stop()
+            controller.join()
         sys.exit(1)
 
 if __name__ == "__main__":

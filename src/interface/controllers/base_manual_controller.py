@@ -5,9 +5,12 @@ Base manual hexapod controller implementation.
 This module provides the abstract base class for all manual hexapod controllers,
 defining the common interface and functionality for manual control systems.
 """
-
+from __future__ import annotations
+from typing import TYPE_CHECKING
+import logging
 import sys
 import time
+import threading
 from pathlib import Path
 from abc import ABC, abstractmethod
 
@@ -19,8 +22,11 @@ if str(SRC_DIR) not in sys.path:
 
 from robot import Hexapod, PredefinedPosition
 from gait_generator import BaseGait, TripodGait
+from utils import rename_thread
 
-class ManualHexapodController(ABC):
+logger = logging.getLogger("gamepad_controller")
+
+class ManualHexapodController(threading.Thread, ABC):
     """Abstract base class for all manual hexapod controllers."""
     
     # Movement step parameters (easy to adjust)
@@ -48,6 +54,13 @@ class ManualHexapodController(ABC):
     
     def __init__(self):
         """Initialize the hexapod controller."""
+        super().__init__(daemon=True)
+        rename_thread(self, "ManualHexapodController")
+        
+        # Thread control variables
+        self.stop_event = threading.Event()
+        self.running = True
+        
         try:
             self.hexapod = Hexapod()
             print("Hexapod initialized successfully")
@@ -66,7 +79,6 @@ class ManualHexapodController(ABC):
         # Movement update rate
         self.update_rate = 20  # Hz
         self.update_interval = 1.0 / self.update_rate
-        self.running = True
 
         # Dual-mode support
         self.current_mode = self.DEFAULT_MODE
@@ -455,7 +467,7 @@ class ManualHexapodController(ABC):
         self.print_current_sensitivity_levels()
     
     def run(self):
-        """Run the hexapod controller."""
+        """Run the hexapod controller thread."""
         self.print_help()
         self.reset_position()
         
@@ -463,7 +475,7 @@ class ManualHexapodController(ABC):
         
         last_update = time.time()
         
-        while self.running:
+        while not self.stop_event.is_set():
             try:
                 current_time = time.time()
                 
@@ -480,12 +492,14 @@ class ManualHexapodController(ABC):
                 # Small sleep to prevent high CPU usage
                 time.sleep(0.01)
                 
-            except KeyboardInterrupt:
-                print("\nInterrupted by user")
-                break
             except Exception as e:
                 print(f"Error during controller loop: {e}")
                 break
         
         # Cleanup
         self.cleanup()
+    
+    def stop(self):
+        """Stop the controller thread."""
+        self.stop_event.set()
+        self.running = False

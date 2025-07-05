@@ -14,8 +14,7 @@ if str(src_path) not in sys.path:
 
 from kws import VoiceControl
 from control import ControlInterface
-from lights import ColorRGB
-from robot import PredefinedAnglePosition, PredefinedPosition
+from robot import PredefinedPosition
 from interface import setup_logging, clean_logs
 from interface import DualSenseMapping, DualSenseLEDController, GamepadHexapodController
 
@@ -46,11 +45,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--print-context', action='store_true',
                         help='Print context information.')
     
-    # ODAS arguments
-    parser.add_argument('--use-odas', action='store_true',
-                        help='Use ODAS for audio input')
-    parser.add_argument('--odas-dir', type=Path, default=Path('/home/hexapod/hexapod/'),
-                        help='Directory where ODAS creates raw files')
+
     
     return parser.parse_args()
 
@@ -67,97 +62,94 @@ def main() -> None:
     
     logger.user_info("Hexapod application started")
     logger.info(f"Logging level set to: {args.log_level}")
-    
-    """Main function to run the hexapod movement controller."""
-    controller = None
-    try:
-        # Choose your input interface mapping here:
-        # For PS5 DualSense controller:
-        input_mapping = DualSenseMapping()
-        # For other interfaces, create a new mapping class that inherits from InputMapping
 
-        # Optional: Create LED controller for visual feedback
-        gamepad_led_controller = DualSenseLEDController()  # Create DualSense LED controller
+    # Initialize control interface
+    control_interface = ControlInterface()
         
-        controller = GamepadHexapodController(input_mapping, gamepad_led_controller)  # With LED controller
-        controller.run()
+    keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
+    context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
     
-    # # Initialize control interface
-    # control_interface = ControlInterface()
-        
-    # keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
-    # context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
+    # Initialize voice control
+    voice_control = VoiceControl(
+        keyword_path=keyword_path,
+        context_path=context_path,
+        access_key=args.access_key,
+        control_interface=control_interface,
+        device_index=args.audio_device_index
+    )
     
-    # # Initialize voice control
-    # voice_control = VoiceControl(
-    #     keyword_path=keyword_path,
-    #     context_path=context_path,
-    #     access_key=args.access_key,
-    #     control_interface=control_interface,
-    #     device_index=args.audio_device_index,
-    #     use_odas=args.use_odas,
-    #     odas_dir=args.odas_dir
-    # )
+    # Print context
+    if args.print_context:
+        logger.debug("Print context flag detected, printing context")
+        voice_control.print_context()
+
+    # Start voice control
+    voice_control.start()
     
-    # # Print context
-    # if args.print_context:
-    #     logger.debug("Print context flag detected, printing context")
-    #     voice_control.print_context()
-    
-    # # Start voice control
-    # voice_control.start()
-    
-    # try:
-    #     # logger.debug("Entering main loop to monitor controller errors")
-    #     logger.debug("Waiting for button press to start the system")
-    #     while True:
-    #         # controller_error_code = control_interface.hexapod.controller.get_error()
-    #         # if controller_error_code != 0:
-    #         #     print(f"Controller error: {controller_error_code}")
-    #         #     voice_control.pause()
-    #         #     time.sleep(1)
-    #         #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
-    #         #     control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-    #         #     break
-    #         # time.sleep(1)
-    #         action, is_running = control_interface.button_handler.check_button()
+    # PS5 DualSense controller:
+    input_mapping = DualSenseMapping()
+    gamepad_led_controller = DualSenseLEDController()
+    manual_controller = GamepadHexapodController(input_mapping, gamepad_led_controller)
+    manual_controller.start()
+
+    try:        
+        # logger.debug("Entering main loop to monitor controller errors")
+        logger.debug("Waiting for button press to start the system")
+        while True:
+            # controller_error_code = control_interface.hexapod.controller.get_error()
+            # if controller_error_code != 0:
+            #     print(f"Controller error: {controller_error_code}")
+            #     voice_control.pause()
+            #     time.sleep(1)
+            #     control_interface.lights_handler.set_single_color(ColorRGB.RED)
+            #     control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            #     break
+            # time.sleep(1)
+            action, is_running = control_interface.button_handler.check_button()
             
-    #         if action == 'long_press':
-    #             logger.user_info("Long press detected, starting sound source localization...")
-    #             control_interface.sound_source_localization()
-    #         elif action == 'toggle':
-    #             if is_running:
-    #                 logger.user_info("Starting system...")
-    #                 control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-    #                 voice_control.unpause()
-    #             else:
-    #                 logger.user_info("Stopping system...")
-    #                 voice_control.pause()
-    #                 control_interface.lights_handler.off()
-    #                 control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-    #                 time.sleep(0.5)
-    #                 control_interface.hexapod.deactivate_all_servos()
+            if action == 'long_press':
+                logger.user_info("Long press detected, starting sound source localization...")
+                control_interface.sound_source_localization()
+            elif action == 'toggle':
+                if is_running:
+                    logger.user_info("Starting system...")
+                    control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+                    voice_control.unpause()
+                else:
+                    logger.user_info("Stopping system...")
+                    voice_control.pause()
+                    control_interface.lights_handler.off()
+                    control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+                    time.sleep(0.5)
+                    control_interface.hexapod.deactivate_all_servos()
             
-    #         time.sleep(0.1)  # Small delay to prevent CPU overuse
+            time.sleep(0.1)  # Small delay to prevent CPU overuse
             
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt detected, initiating shutdown")
         sys.stdout.write('\b' * 2)
         logger.critical('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
         
+        if voice_control:
+            voice_control.stop()
+            voice_control.join()
+        if manual_controller:
+            manual_controller.stop()
+            manual_controller.join()
+
         for thread in threading.enumerate():
             logger.user_info(f"{thread.name}, {thread.is_alive()}")
         print("---")
-        
-        # voice_control.stop()
-        # voice_control.join()
-        # control_interface.stop_control_task()
-        # control_interface.lights_handler.off()
-        # logger.debug("Shutdown tasks completed")
     finally:
-        if controller:
-            controller.cleanup()
-        # control_interface.button_handler.cleanup()
+        if control_interface:
+            control_interface.stop_control_task()
+            control_interface.lights_handler.off()
+        # time.sleep(1)
+        # control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        # time.sleep(0.5)
+        # control_interface.hexapod.deactivate_all_servos()
+        if control_interface:
+            control_interface.button_handler.cleanup()
         logger.user_info('Exiting...')
 
 if __name__ == '__main__':
