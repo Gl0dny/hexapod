@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from enum import Enum, auto
 from utils import Vector2D, Vector3D
 
 if TYPE_CHECKING:
-    from robot import Hexapod
+    from robot import Hexapod, Dict, List, Tuple, Union
 
 class GaitPhase(Enum):
     """
@@ -355,17 +355,14 @@ class BaseGait(ABC):
             target_2d = projection_direction.normalized() * movement_distance
         else:
             # For translation, use direction magnitude to scale movement distance (like rotation)
-            direction_magnitude = self.direction_input.magnitude()
-            if direction_magnitude > 0:
-                # Scale the step radius by the direction magnitude (which includes sensitivity)
-                effective_radius = self.step_radius * direction_magnitude
-                
+            movement_distance = self.step_radius * self.direction_input.magnitude()
+            if movement_distance > 0:
                 if is_swing:
-                    # For swing legs, move outward from center in projected direction
-                    target_2d = projection_direction.normalized() * effective_radius
+                    # For swing legs, use circle projection from center (constrained by workspace)
+                    target_2d = self.project_point_to_circle(movement_distance, projection_origin, projection_direction)
                 else:
                     # For stance legs, use circle projection from current position
-                    target_2d = self.project_point_to_circle(effective_radius, projection_origin, projection_direction)
+                    target_2d = self.project_point_to_circle(movement_distance, projection_origin, projection_direction)
             else:
                 # No movement - stay at current position
                 if is_swing:
@@ -457,8 +454,19 @@ class BaseGait(ABC):
             path.add_waypoint(target)  # Final target (lower to ground)
             
         else:
-            # Direct path for stance legs (no lift needed)
-            path.add_waypoint(current_pos)
+            # Three-phase path for stance legs: push down → move → final position
+            path.add_waypoint(current_pos)  # Phase 1: Start position
+            
+            # # Phase 2: Push down slightly (1cm = 10mm) to improve ground contact
+            # push_down_z = current_pos.z - 3.0  # Push down 10mm
+            # push_down_waypoint = Vector3D(current_pos.x, current_pos.y, push_down_z)
+            # path.add_waypoint(push_down_waypoint)
+            
+            # # Phase 3: Move to target position while maintaining downward pressure
+            # target_with_push = Vector3D(target.x, target.y, target.z - 3.0)  # Slight downward pressure
+            # path.add_waypoint(target_with_push)
+            
+            # Phase 4: Final position (normal stance height)
             path.add_waypoint(target)
         
         self.leg_paths[leg_index] = path
