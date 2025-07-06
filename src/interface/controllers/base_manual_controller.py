@@ -24,6 +24,10 @@ from robot import Hexapod, PredefinedPosition
 from gait_generator import BaseGait, TripodGait
 from utils import rename_thread
 
+if TYPE_CHECKING:
+    from typing import Optional
+    from kws import VoiceControl
+    
 logger = logging.getLogger("gamepad_controller")
 
 class ManualHexapodController(threading.Thread, ABC):
@@ -50,16 +54,16 @@ class ManualHexapodController(threading.Thread, ABC):
     # Supported modes
     BODY_CONTROL_MODE = "body_control"
     GAIT_CONTROL_MODE = "gait_control"
+    VOICE_CONTROL_MODE = "voice_control"
     DEFAULT_MODE = BODY_CONTROL_MODE
     
-    def __init__(self):
+    def __init__(self, voice_control: Optional['VoiceControl'] = None):
         """Initialize the hexapod controller."""
         super().__init__(daemon=True)
         rename_thread(self, "ManualHexapodController")
         
         # Thread control variables
         self.stop_event = threading.Event()
-        self.running = True
         
         try:
             self.hexapod = Hexapod()
@@ -97,6 +101,11 @@ class ManualHexapodController(threading.Thread, ABC):
         self.rotation_sensitivity = self.DEFAULT_ROTATION_SENSITIVITY
         self.gait_direction_sensitivity = self.DEFAULT_GAIT_DIRECTION_SENSITIVITY
         self.gait_rotation_sensitivity = self.DEFAULT_GAIT_ROTATION_SENSITIVITY
+
+        self.pause_event = threading.Event()
+        self.pause_event.clear()  # Start unpaused (event is set when paused)
+        self._previous_manual_mode = self.DEFAULT_MODE
+        self.voice_control: Optional['VoiceControl'] = voice_control
     
     @abstractmethod
     def get_inputs(self):
@@ -134,7 +143,7 @@ class ManualHexapodController(threading.Thread, ABC):
     
     def set_mode(self, mode_name: str):
         """Set the current control mode (e.g., 'body_control', 'gait_control')."""
-        if mode_name not in (self.BODY_CONTROL_MODE, self.GAIT_CONTROL_MODE):
+        if mode_name not in (self.BODY_CONTROL_MODE, self.GAIT_CONTROL_MODE, self.VOICE_CONTROL_MODE):
             raise ValueError(f"Unknown mode: {mode_name}")
         self.current_mode = mode_name
         print(f"Switched to mode: {self.current_mode}")
@@ -470,9 +479,8 @@ class ManualHexapodController(threading.Thread, ABC):
         """Run the hexapod controller thread."""
         self.print_help()
         self.reset_position()
-        
         print("\nHexapod controller active. Use your interface to control movement.")
-        
+
         last_update = time.time()
         
         while not self.stop_event.is_set():
@@ -481,12 +489,12 @@ class ManualHexapodController(threading.Thread, ABC):
                 
                 # Update at fixed rate
                 if current_time - last_update >= self.update_interval:
-                    # Get inputs from the interface
                     inputs = self.get_inputs()
-                    
-                    # Process movement inputs
+                    # Only process inputs if not paused (pause_event is set when paused)
+                    if self.pause_event.is_set():
+                        time.sleep(0.1)
+                        continue
                     self.process_movement_inputs(inputs)
-                    
                     last_update = current_time
                 
                 # Small sleep to prevent high CPU usage
@@ -495,11 +503,87 @@ class ManualHexapodController(threading.Thread, ABC):
             except Exception as e:
                 print(f"Error during controller loop: {e}")
                 break
-        
-        # Cleanup
         self.cleanup()
     
     def stop(self):
         """Stop the controller thread."""
         self.stop_event.set()
-        self.running = False
+
+    def toggle_mode(self):
+        """
+        Toggle between body control and gait control modes.
+        Handles all printouts, state changes, and gait start/stop.
+        Calls _on_mode_toggled(new_mode) for subclass-specific actions (e.g., LED feedback).
+        """
+        if self.current_mode == self.BODY_CONTROL_MODE:
+            # Switch to gait control mode
+            self.set_mode(self.GAIT_CONTROL_MODE)
+            print(f"\n=== SWITCHED TO GAIT CONTROL MODE ===")
+            print("Left Stick: Movement direction")
+            print("Right Stick X: Rotation (clockwise/counterclockwise)")
+            print("The hexapod will walk using its gait generator")
+            # Start gait control with separate parameters for translation and rotation
+            translation_params = {
+                'step_radius': 22.0,
+                'leg_lift_distance': 20.0,
+                'dwell_time': 0.1
+            }
+            rotation_params = {
+                'step_radius': 30.0,
+                'leg_lift_distance': 10.0,
+                'dwell_time': 0.1
+            }
+            self.start_gait_control(
+                gait_type=self.gait_type,
+                translation_params=translation_params,
+                rotation_params=rotation_params
+            )
+        else:
+            # Switch to body control mode
+            self.set_mode(self.BODY_CONTROL_MODE)
+            print(f"\n=== SWITCHED TO BODY CONTROL MODE ===")
+            print("Left Stick: Body translation")
+            print("Right Stick: Body rotation")
+            print("The hexapod will move its body using inverse kinematics")
+            self.stop_gait_control()
+        self._on_mode_toggled(self.current_mode)
+
+    def _on_mode_toggled(self, new_mode: str):
+        """
+        Hook for subclasses to perform additional actions (e.g., LED feedback) when mode is toggled.
+        By default, does nothing.
+        """
+        pass
+
+    def pause(self):
+        """Pause the manual controller (stop processing inputs)."""
+        self.pause_event.set()
+
+    def unpause(self):
+        """Unpause the manual controller (resume processing inputs)."""
+        self.pause_event.clear()
+
+    def toggle_voice_control_mode(self):
+        """
+        Toggle between manual (body/gait) and voice control mode.
+        Pauses/unpauses the appropriate controller. If voice_control is None, do nothing and print a warning.
+        """
+        if self.voice_control is None:
+            logger.warning("Voice control is not available. Cannot switch to voice control mode.")
+            return
+        if self.current_mode != self.VOICE_CONTROL_MODE:
+            # Enter voice control mode
+            self._previous_manual_mode = self.current_mode
+            self.set_mode(self.VOICE_CONTROL_MODE)
+            print("\n=== SWITCHED TO VOICE CONTROL MODE ===")
+            print("Manual control paused. Voice control active.")
+            self.pause()
+            self.voice_control.unpause()
+        else:
+            # Return to previous manual mode
+            self.set_mode(self._previous_manual_mode)
+            print(f"\n=== RETURNED TO {self.current_mode.upper()} ===")
+            print("Manual control active. Voice control paused.")
+            self.voice_control.pause()
+            self.unpause()
+        self._on_mode_toggled(self.current_mode)

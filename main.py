@@ -82,10 +82,10 @@ def main() -> None:
     if args.print_context:
         logger.debug("Print context flag detected, printing context")
         voice_control.print_context()
-    
-    voice_control.start()
 
     manual_controller = None
+    
+    voice_control.start()
     
     try:
         input_mapping = DualSenseMapping()
@@ -94,7 +94,11 @@ def main() -> None:
         # Check if gamepad is available
         if GamepadHexapodController.find_gamepad(input_mapping, check_only=True):
             logger.user_info("Compatible gamepad found - starting manual control mode")
-            manual_controller = GamepadHexapodController(input_mapping, gamepad_led_controller)
+            manual_controller = GamepadHexapodController(
+                input_mapping=input_mapping,
+                voice_control=voice_control,
+                led_controller=gamepad_led_controller
+            )
             manual_controller.start()
             # Ensure voice control is paused in manual mode
             voice_control.pause()
@@ -143,7 +147,6 @@ def main() -> None:
                     else:
                         logger.user_info("Stopping system...")
                         voice_control.pause()
-                        control_interface.lights_handler.off()
                         control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
                         time.sleep(0.5)
                         control_interface.hexapod.deactivate_all_servos()

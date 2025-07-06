@@ -60,6 +60,10 @@ class VoiceControl(threading.Thread):
         # Initialize thread control variables first
         self.stop_event = threading.Event()
         self.pause_lock = threading.Lock()
+        # pause_event controls whether voice control is active or paused:
+        # - When set (True): Voice control is active and processing audio
+        # - When cleared (False): Voice control is paused and not processing audio
+        # - Initial state is set (True) so voice control starts active
         self.pause_event = threading.Event()
         self.pause_event.set()
 
@@ -77,6 +81,19 @@ class VoiceControl(threading.Thread):
         self.log_config_file = log_config_file
         self.clean = clean
         self.print_context = print_context
+
+        # Determine device index: use external if specified, else auto-detect Built-in Audio Multichannel
+        auto_device_index = device_index
+        if device_index is None or device_index == -1:
+            auto_device_index = self.find_builtin_audio_multichannel_index()
+            logger.info(f"Found Built-in Audio Multichannel at index {auto_device_index}")
+            logger.info(f"Available audio devices:")
+            for idx, name in enumerate(PvRecorder.get_available_devices()):
+                logger.info(f"  [{idx}] {name}")
+            if auto_device_index == -1:
+                loogger.warning("'Built-in Audio Multichannel' not found, using default device (-1)")
+                auto_device_index = -1
+        self.device_index = auto_device_index
 
         # Picovoice API callback
         def inference_callback(inference: Any) -> None:
@@ -100,9 +117,9 @@ class VoiceControl(threading.Thread):
         self.control_interface.set_task_complete_callback(self.on_task_complete)
         self.intent_dispatcher = IntentDispatcher(self.control_interface)
 
-        logger.debug(f"Using PvRecorder for audio input with device_index={device_index}")
+        logger.debug(f"Using PvRecorder for audio input with device_index={self.device_index}")
         # Initialize PvRecorder
-        self.recorder = PvRecorder(device_index=device_index, frame_length=self.picovoice.frame_length)
+        self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
         
         # Set up logging
         if self.log_dir:
@@ -195,6 +212,9 @@ class VoiceControl(threading.Thread):
                     self.unpause()
                     paused = False
                 
+                # pause_event.wait() blocks until the event is set (unpaused) or timeout occurs
+                # - If paused (event cleared): wait() returns False, no audio processing
+                # - If unpaused (event set): wait() returns True, process audio normally
                 if self.pause_event.wait(timeout=0.1):
                     pcm = self.recorder.read()
                     self.picovoice.process(pcm)
@@ -234,6 +254,7 @@ class VoiceControl(threading.Thread):
                 self.picovoice.delete()
                 self.picovoice = None
             logger.user_info('Voice control paused')
+            self.control_interface.lights_handler.off()
 
     def unpause(self) -> None:
         """
@@ -264,3 +285,18 @@ class VoiceControl(threading.Thread):
         if self.recorder and self.recorder.is_recording:
             self.recorder.stop()
         logger.user_info('Voice control thread stopped')
+
+    @staticmethod
+    def find_builtin_audio_multichannel_index():
+        """
+        Search for the device index of 'Built-in Audio Multichannel' in the available devices list.
+        Returns the index if found, else returns -1.
+        """
+        try:
+            devices = PvRecorder.get_available_devices()
+            for idx, name in enumerate(devices):
+                if name.strip() == 'Built-in Audio Multichannel':
+                    return idx
+        except Exception as e:
+            logger.error(f"[VoiceControl] Could not search for Built-in Audio Multichannel: {e}")
+        return -1

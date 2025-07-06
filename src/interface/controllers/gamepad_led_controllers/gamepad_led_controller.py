@@ -12,6 +12,7 @@ import math
 from typing import Optional, Tuple, Dict, Any
 from enum import Enum
 from abc import ABC, abstractmethod
+from utils import rename_thread
 
 class GamepadLEDColor(Enum):
     """Enumeration of LED colors for the gamepad."""
@@ -146,6 +147,7 @@ class BaseGamepadLEDController(ABC):
         Returns:
             True if successful, False otherwise
         """
+        self.stop_animation()
         return self.set_color(GamepadLEDColor.BLACK)
     
     def pulse(self, color: GamepadLEDColor, duration: float = 1.0, cycles: int = 1) -> bool:
@@ -177,6 +179,7 @@ class BaseGamepadLEDController(ABC):
     
     def _pulse_animation(self, color: GamepadLEDColor, duration: float, cycles: int):
         """Internal method for pulse animation."""
+        rename_thread(threading.current_thread(), "GamepadLEDPulseAnimation")
         cycle_count = 0
         
         while self.animation_running and (cycles == 0 or cycle_count < cycles):
