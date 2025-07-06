@@ -40,8 +40,6 @@ from interface.controllers.gamepad_led_controllers.dual_sense_led_controller imp
 from gait_generator import TripodGait
 from utils import rename_thread
 
-logger = logging.getLogger("hexapod_gamepad_controller")
-
 try:
     import pygame
     PYGAME_AVAILABLE = True
@@ -52,9 +50,46 @@ except ImportError:
 if TYPE_CHECKING:
     from typing import Optional
 
+logger = logging.getLogger("gamepad_controller")
+
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""
     
+    @staticmethod
+    def find_gamepad(input_mapping, check_only: bool = False):
+        """
+        Find and initialize a gamepad that matches the mapping, or just check for availability.
+        Args:
+            input_mapping: The input mapping for the gamepad
+            check_only (bool): If True, only check availability (returns True/False), else returns joystick or None
+        Returns:
+            Joystick object if found (and not check_only), True if available (check_only), else None/False
+        """
+        if not 'PYGAME_AVAILABLE' in globals() or not PYGAME_AVAILABLE:
+            return False if check_only else None
+        try:
+            os.environ['SDL_VIDEODRIVER'] = 'dummy'
+            os.environ['SDL_AUDIODRIVER'] = 'dummy'
+            pygame.init()
+            pygame.joystick.init()
+            joystick_count = pygame.joystick.get_count()
+            for i in range(joystick_count):
+                joystick = pygame.joystick.Joystick(i)
+                name = joystick.get_name().lower()
+                if any(keyword in name for keyword in input_mapping.get_interface_names()):
+                    if check_only:
+                        pygame.quit()
+                        return True
+                    joystick.init()
+                    return joystick
+            if check_only:
+                pygame.quit()
+                return False
+        except Exception as e:
+            print(f"Error checking/finding gamepad: {e}")
+            return False if check_only else None
+        return None
+
     def __init__(self, input_mapping: InputMapping, led_controller: Optional[BaseGamepadLEDController] = None):
         """
         Initialize the gamepad controller.
@@ -63,7 +98,6 @@ class GamepadHexapodController(ManualHexapodController):
             input_mapping: The input mapping for the gamepad
             led_controller: Optional LED controller for visual feedback
         """
-        logger.warning("Initializing GamepadHexapodController")
         super().__init__()
         rename_thread(self, "GamepadHexapodController")
         
@@ -82,7 +116,7 @@ class GamepadHexapodController(ManualHexapodController):
         pygame.joystick.init()
         
         # Find and initialize gamepad
-        self.gamepad = self._find_gamepad()
+        self.gamepad = self.find_gamepad(input_mapping, check_only=False)
         if not self.gamepad:
             raise RuntimeError(f"Gamepad not found. This script only supports: {', '.join(input_mapping.get_interface_names())}")
         
@@ -121,41 +155,6 @@ class GamepadHexapodController(ManualHexapodController):
         print(f"Gamepad '{self.gamepad.get_name()}' initialized successfully")
         print(f"Current mode: {self.current_mode}")
         print("Press OPTIONS button to toggle between body control and gait control modes")
-    
-    def _find_gamepad(self):
-        """Find and initialize a gamepad that matches the mapping."""
-        joystick_count = pygame.joystick.get_count()
-        print(f"Found {joystick_count} gamepad(s)")
-        
-        for i in range(joystick_count):
-            joystick = pygame.joystick.Joystick(i)
-            name = joystick.get_name().lower()
-            print(f"Gamepad {i}: {name}")
-            
-            # Check if this gamepad matches our mapping
-            if any(keyword in name for keyword in self.input_mapping.get_interface_names()):
-                print(f"Compatible gamepad found: {name}")
-                joystick.init()
-                return joystick
-        
-        # If no compatible gamepad found, print proper message and return None
-        if joystick_count > 0:
-            print("\n" + "="*60)
-            print(f"ERROR: Only {type(self.input_mapping).__name__} gamepads are supported")
-            print("="*60)
-            print(f"This script is specifically designed for {type(self.input_mapping).__name__} gamepads.")
-            print("Other gamepads are not implemented.")
-            print(f"\nSupported gamepads: {', '.join(self.input_mapping.get_interface_names())}")
-            print("\nPlease connect a compatible gamepad and try again.")
-            print("="*60)
-        else:
-            print("\n" + "="*60)
-            print("ERROR: No gamepads found")
-            print("="*60)
-            print(f"Please connect a {type(self.input_mapping).__name__} gamepad and try again.")
-            print("="*60)
-        
-        return None
     
     def _apply_deadzone(self, value):
         """Apply deadzone to analog stick values."""

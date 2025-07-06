@@ -82,15 +82,33 @@ def main() -> None:
     if args.print_context:
         logger.debug("Print context flag detected, printing context")
         voice_control.print_context()
-
-    # Start voice control
-    voice_control.start()
     
-    # PS5 DualSense controller:
-    input_mapping = DualSenseMapping()
-    gamepad_led_controller = DualSenseLEDController()
-    manual_controller = GamepadHexapodController(input_mapping, gamepad_led_controller)
-    manual_controller.start()
+    voice_control.start()
+
+    manual_controller = None
+    
+    try:
+        input_mapping = DualSenseMapping()
+        gamepad_led_controller = DualSenseLEDController()
+        
+        # Check if gamepad is available
+        if GamepadHexapodController.find_gamepad(input_mapping, check_only=True):
+            logger.user_info("Compatible gamepad found - starting manual control mode")
+            manual_controller = GamepadHexapodController(input_mapping, gamepad_led_controller)
+            manual_controller.start()
+            # Ensure voice control is paused in manual mode
+            voice_control.pause()
+            logger.user_info("Manual controller started successfully")
+        else:
+            logger.user_info("No compatible gamepad found - falling back to voice control mode")
+            if not voice_control.pause_event.is_set():
+                voice_control.unpause()  # Unpause voice control for fallback mode
+            
+    except Exception as e:
+        logger.warning(f"Failed to initialize manual controller: {e}")
+        logger.user_info("Falling back to voice control mode")
+        if not voice_control.pause_event.is_set():
+            voice_control.unpause()
 
     try:        
         # logger.debug("Entering main loop to monitor controller errors")
@@ -105,23 +123,30 @@ def main() -> None:
             #     control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
             #     break
             # time.sleep(1)
-            action, is_running = control_interface.button_handler.check_button()
-            
-            if action == 'long_press':
-                logger.user_info("Long press detected, starting sound source localization...")
-                control_interface.sound_source_localization()
-            elif action == 'toggle':
-                if is_running:
-                    logger.user_info("Starting system...")
-                    control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-                    voice_control.unpause()
-                else:
-                    logger.user_info("Stopping system...")
-                    voice_control.pause()
-                    control_interface.lights_handler.off()
-                    control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-                    time.sleep(0.5)
-                    control_interface.hexapod.deactivate_all_servos()
+            # Handle different control modes
+            if manual_controller:
+                # Manual control mode - just monitor for shutdown
+                # The manual controller runs independently, we just need to keep the main thread alive
+                pass
+            else:
+                # Voice control mode - handle button interactions
+                action, is_running = control_interface.button_handler.check_button()
+                
+                if action == 'long_press':
+                    logger.user_info("Long press detected, starting sound source localization...")
+                    control_interface.sound_source_localization()
+                elif action == 'toggle':
+                    if is_running:
+                        logger.user_info("Starting system...")
+                        control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+                        voice_control.unpause()
+                    else:
+                        logger.user_info("Stopping system...")
+                        voice_control.pause()
+                        control_interface.lights_handler.off()
+                        control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+                        time.sleep(0.5)
+                        control_interface.hexapod.deactivate_all_servos()
             
             time.sleep(0.1)  # Small delay to prevent CPU overuse
             
@@ -144,12 +169,11 @@ def main() -> None:
         if control_interface:
             control_interface.stop_control_task()
             control_interface.lights_handler.off()
+            control_interface.button_handler.cleanup()
         # time.sleep(1)
         # control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         # time.sleep(0.5)
         # control_interface.hexapod.deactivate_all_servos()
-        if control_interface:
-            control_interface.button_handler.cleanup()
         logger.user_info('Exiting...')
 
 if __name__ == '__main__':
