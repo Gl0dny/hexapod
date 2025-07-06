@@ -23,6 +23,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("main_logger")
 
+# Global shutdown event
+shutdown_event = threading.Event()
+
+def shutdown_callback():
+    """Callback function to trigger program shutdown."""
+    shutdown_event.set()
+
 def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Voice Control for Hexapod')
@@ -48,6 +55,50 @@ def parse_arguments() -> argparse.Namespace:
 
     
     return parser.parse_args()
+
+def handle_button_interactions(control_interface, voice_control):
+    """Handle button interactions for voice control mode."""
+    action, is_running = control_interface.button_handler.check_button()
+    
+    if action == 'long_press':
+        logger.user_info("Long press detected, starting sound source localization...")
+        control_interface.sound_source_localization()
+    elif action == 'toggle':
+        if is_running:
+            logger.user_info("Starting system...")
+            control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            voice_control.unpause()
+        else:
+            logger.user_info("Stopping system...")
+            voice_control.pause()
+            control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+            time.sleep(0.5)
+            control_interface.hexapod.deactivate_all_servos()
+
+def shutdown_cleanup(voice_control, manual_controller, control_interface):
+    """Perform cleanup when shutting down the program."""
+    logger.critical('Stopping all tasks and deactivating hexapod...')
+    
+    if voice_control:
+        voice_control.stop()
+        voice_control.join()
+    if manual_controller:
+        manual_controller.stop()
+        manual_controller.join()
+
+    for thread in threading.enumerate():
+        logger.user_info(f"{thread.name}, {thread.is_alive()}")
+    print("---")
+    
+    if control_interface:
+        control_interface.stop_control_task()
+        control_interface.lights_handler.off()
+        control_interface.button_handler.cleanup()
+    # time.sleep(1)
+    # control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+    # time.sleep(0.5)
+    # control_interface.hexapod.deactivate_all_servos()
+    logger.user_info('Exiting...')
 
 def main() -> None:
     """Main entry point."""
@@ -98,7 +149,8 @@ def main() -> None:
                 input_mapping=input_mapping,
                 control_interface=control_interface,
                 voice_control=voice_control,
-                led_controller=gamepad_led_controller
+                led_controller=gamepad_led_controller,
+                shutdown_callback=shutdown_callback
             )
             manual_controller.start()
             # Ensure voice control is paused in manual mode
@@ -118,7 +170,16 @@ def main() -> None:
     try:        
         # logger.debug("Entering main loop to monitor controller errors")
         logger.debug("Waiting for button press to start the system")
+        cleanup_done = False
+        
         while True:
+            # Check for shutdown event (triggered by PS5 button)
+            if shutdown_event.is_set():
+                logger.critical("Shutdown event detected, initiating shutdown")
+                shutdown_cleanup(voice_control, manual_controller, control_interface)
+                cleanup_done = True
+                break
+                
             # controller_error_code = control_interface.hexapod.controller.get_error()
             # if controller_error_code != 0:
             #     print(f"Controller error: {controller_error_code}")
@@ -128,57 +189,30 @@ def main() -> None:
             #     control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
             #     break
             # time.sleep(1)
-            # Handle different control modes
+            
             if manual_controller:
-                # Manual control mode - just monitor for shutdown
-                # The manual controller runs independently, we just need to keep the main thread alive
-                pass
+                # Manual control mode - check if in voice control mode
+                if manual_controller.current_mode == manual_controller.VOICE_CONTROL_MODE:
+                    # Manual controller is in voice control mode - handle button interactions
+                    handle_button_interactions(control_interface, voice_control)
+                else:
+                    # Manual controller is in body/gait control mode - just monitor for shutdown
+                    # The manual controller runs independently, we just need to keep the main thread alive
+                    pass
             else:
-                # Voice control mode - handle button interactions
-                action, is_running = control_interface.button_handler.check_button()
-                
-                if action == 'long_press':
-                    logger.user_info("Long press detected, starting sound source localization...")
-                    control_interface.sound_source_localization()
-                elif action == 'toggle':
-                    if is_running:
-                        logger.user_info("Starting system...")
-                        control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-                        voice_control.unpause()
-                    else:
-                        logger.user_info("Stopping system...")
-                        voice_control.pause()
-                        control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-                        time.sleep(0.5)
-                        control_interface.hexapod.deactivate_all_servos()
+                # No manual controller - voice control mode only - handle button interactions
+                handle_button_interactions(control_interface, voice_control)
             
             time.sleep(0.1)  # Small delay to prevent CPU overuse
             
     except KeyboardInterrupt:
         logger.critical("KeyboardInterrupt detected, initiating shutdown")
         sys.stdout.write('\b' * 2)
-        logger.critical('Stopping all tasks and deactivating hexapod due to keyboard interrupt...')
-        
-        if voice_control:
-            voice_control.stop()
-            voice_control.join()
-        if manual_controller:
-            manual_controller.stop()
-            manual_controller.join()
-
-        for thread in threading.enumerate():
-            logger.user_info(f"{thread.name}, {thread.is_alive()}")
-        print("---")
+        shutdown_cleanup(voice_control, manual_controller, control_interface)
+        cleanup_done = True
     finally:
-        if control_interface:
-            control_interface.stop_control_task()
-            control_interface.lights_handler.off()
-            control_interface.button_handler.cleanup()
-        # time.sleep(1)
-        # control_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-        # time.sleep(0.5)
-        # control_interface.hexapod.deactivate_all_servos()
-        logger.user_info('Exiting...')
+        if not cleanup_done:
+            shutdown_cleanup(voice_control, manual_controller, control_interface)
 
 if __name__ == '__main__':
     main()

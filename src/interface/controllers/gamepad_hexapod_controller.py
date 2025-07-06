@@ -99,25 +99,36 @@ class GamepadHexapodController(ManualHexapodController):
             input_mapping: InputMapping,
             control_interface: 'ControlInterface',
             voice_control: Optional['VoiceControl'] = None,
-            led_controller: Optional['BaseGamepadLEDController'] = None
+            led_controller: Optional['BaseGamepadLEDController'] = None,
+            shutdown_callback: Optional[callable] = None
             ):
         """
-        Initialize the gamepad controller.
-        
+        Initialize the gamepad hexapod controller.
+
         Args:
-            input_mapping: The input mapping for the gamepad
-            control_interface: Control interface for voice commands
+            input_mapping: Input mapping for the specific controller type
+            control_interface: Control interface for hexapod operations
             voice_control: Optional voice control mode
             led_controller: Optional LED controller for visual feedback
+            shutdown_callback: Optional callback function to call when PS5 button is pressed
         """
-        super().__init__(control_interface=control_interface, voice_control=voice_control)
+        super().__init__(control_interface=control_interface, voice_control=voice_control, shutdown_callback=shutdown_callback)
         rename_thread(self, "GamepadHexapodController")
         
         if not PYGAME_AVAILABLE:
             raise ImportError("pygame is required for gamepad support")
         
+        # Store parameters
         self.input_mapping = input_mapping
         self.led_controller = led_controller
+        
+        # Initialize gamepad state
+        self.gamepad = None
+        self.analog_inputs = {}
+        self.button_states = {}
+        self.last_button_states = {}
+        self._button_last_press_time = {}
+        self.current_led_state = None
         
         # Set display environment for headless systems
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
@@ -134,18 +145,6 @@ class GamepadHexapodController(ManualHexapodController):
         
         # Deadzone for analog sticks (specific to gamepad hardware)
         self.deadzone = 0.1
-        
-        # Button states
-        self.button_states = {}
-        self.last_button_states = {}
-        # Debounce tracking
-        self._button_last_press_time = {}
-        
-        # Analog inputs
-        self.analog_inputs = {}
-        
-        # LED state tracking
-        self.current_led_state = None
         
         # Initialize LED controller if provided
         if self.led_controller is not None:
@@ -182,14 +181,14 @@ class GamepadHexapodController(ManualHexapodController):
             return
         
         if self.current_mode == self.GAIT_CONTROL_MODE:
-            # Use two-color pulse for gait mode - indigo to white
-            self.led_controller.pulse_two_colors(GamepadLEDColor.INDIGO, GamepadLEDColor.WHITE, duration=2.0, cycles=0)
+            self.led_controller.pulse(GamepadLEDColor.INDIGO, duration=2.0, cycles=0)
             self.current_led_state = 'gait_mode'
         elif self.current_mode == self.BODY_CONTROL_MODE:
             self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)
             self.current_led_state = 'body_mode'
         elif self.current_mode == self.VOICE_CONTROL_MODE:
-            pass
+            self.led_controller.pulse_two_colors(GamepadLEDColor.BLUE, GamepadLEDColor.GREEN, duration=2.0, cycles=0)
+            self.current_led_state = 'voice_mode'
     
     def _apply_deadzone(self, value):
         """Apply deadzone to analog stick values."""
@@ -295,7 +294,9 @@ class GamepadHexapodController(ManualHexapodController):
         
         # Handle mode toggles
         if self._check_button_press('options'):
-            self.toggle_mode()
+            # Only toggle manual control modes if not in voice control mode
+            if self.current_mode != self.VOICE_CONTROL_MODE:
+                self.toggle_mode()
         if self._check_button_press('create'):
             self.toggle_voice_control_mode()
         
@@ -325,7 +326,7 @@ class GamepadHexapodController(ManualHexapodController):
         elif self._check_button_press('circle'):
             self.print_help()
         elif self._check_button_press('ps5'):
-            self.stop_event.set()
+            self.trigger_shutdown()
         
         # Continuous yaw while holding L1/R1
         if self.button_states.get('l1', False):
@@ -387,7 +388,7 @@ class GamepadHexapodController(ManualHexapodController):
         elif self._check_button_press('circle'):
             self.print_help()
         elif self._check_button_press('ps5'):
-            self.stop_event.set()
+            self.trigger_shutdown()
         
         # Handle D-pad sensitivity adjustments
         sensitivity_deltas = {
@@ -450,7 +451,7 @@ class GamepadHexapodController(ManualHexapodController):
         print("  Triangle        - Reset to start position")
         print("  Square          - Show current position")
         print("  Circle          - Show this help menu")
-        print("  PS5             - Exit program")
+        print("  PS5             - Shutdown entire program")
         print()
         print("SENSITIVITY CONTROLS (D-Pad):")
         print("  D-Pad Left/Right - Decrease/Increase translation/gait direction sensitivity")

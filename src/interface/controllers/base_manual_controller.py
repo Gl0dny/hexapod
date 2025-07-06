@@ -59,7 +59,7 @@ class ManualHexapodController(threading.Thread, ABC):
     VOICE_CONTROL_MODE = "voice_control"
     DEFAULT_MODE = BODY_CONTROL_MODE
     
-    def __init__(self, control_interface: 'ControlInterface', voice_control: Optional['VoiceControl'] = None):
+    def __init__(self, control_interface: 'ControlInterface', voice_control: Optional['VoiceControl'] = None, shutdown_callback: Optional[callable] = None):
         """Initialize the hexapod controller."""
         super().__init__(daemon=True)
         rename_thread(self, "ManualHexapodController")
@@ -68,6 +68,7 @@ class ManualHexapodController(threading.Thread, ABC):
         self.stop_event = threading.Event()
         
         self.control_interface = control_interface
+        self.shutdown_callback = shutdown_callback
         
         # Current movement state
         self.current_tx = 0.0
@@ -604,3 +605,11 @@ class ManualHexapodController(threading.Thread, ABC):
             self.voice_control.pause()
             self.unpause()
         self._on_mode_toggled(self.current_mode)
+
+    def trigger_shutdown(self):
+        """Trigger program shutdown via callback if provided."""
+        if self.shutdown_callback:
+            self.shutdown_callback()
+        else:
+            # Fallback: just stop this controller
+            self.stop_event.set()
