@@ -20,13 +20,15 @@ SRC_DIR = (SCRIPT_DIR.parent.parent).resolve()
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from robot import Hexapod, PredefinedPosition
+from robot import PredefinedPosition
 from gait_generator import BaseGait, TripodGait
 from utils import rename_thread
+from lights import ColorRGB
 
 if TYPE_CHECKING:
     from typing import Optional
     from kws import VoiceControl
+    from control import ControlInterface
     
 logger = logging.getLogger("gamepad_controller")
 
@@ -57,7 +59,7 @@ class ManualHexapodController(threading.Thread, ABC):
     VOICE_CONTROL_MODE = "voice_control"
     DEFAULT_MODE = BODY_CONTROL_MODE
     
-    def __init__(self, voice_control: Optional['VoiceControl'] = None):
+    def __init__(self, control_interface: 'ControlInterface', voice_control: Optional['VoiceControl'] = None):
         """Initialize the hexapod controller."""
         super().__init__(daemon=True)
         rename_thread(self, "ManualHexapodController")
@@ -65,12 +67,7 @@ class ManualHexapodController(threading.Thread, ABC):
         # Thread control variables
         self.stop_event = threading.Event()
         
-        try:
-            self.hexapod = Hexapod()
-            print("Hexapod initialized successfully")
-        except Exception as e:
-            print(f"Failed to initialize hexapod: {e}")
-            raise
+        self.control_interface = control_interface
         
         # Current movement state
         self.current_tx = 0.0
@@ -91,7 +88,6 @@ class ManualHexapodController(threading.Thread, ABC):
         self.translation_gait = None
         self.rotation_gait = None
         self.current_gait = None  # Points to either translation_gait or rotation_gait
-        self.gait_generator = self.hexapod.gait_generator
         
         # Gait type for both translation and rotation (must be the same)
         self.gait_type = TripodGait
@@ -120,15 +116,18 @@ class ManualHexapodController(threading.Thread, ABC):
     def cleanup(self):
         """Clean up common resources (gait generation, servos)."""
         try:
+            # Stop light animations
+            self.control_interface.lights_handler.off()
+            
             # Stop gait generation if running
-            if hasattr(self, 'hexapod') and hasattr(self.hexapod, 'gait_generator'):
-                if self.hexapod.gait_generator.is_running:
-                    self.hexapod.gait_generator.stop()
+            if hasattr(self.control_interface.hexapod, 'gait_generator'):
+                if self.control_interface.hexapod.gait_generator.is_running:
+                    self.control_interface.hexapod.gait_generator.stop()
                     print("Gait generation stopped")
             
             # Reset to safe position and deactivate servos
             self.reset_position()
-            self.hexapod.deactivate_all_servos()
+            self.control_interface.hexapod.deactivate_all_servos()
             print("Hexapod servos deactivated")
         except Exception as e:
             print(f"Error during base cleanup: {e}")
@@ -159,8 +158,8 @@ class ManualHexapodController(threading.Thread, ABC):
         print("Resetting to reset position...")
         try:
             reset_position = _get_reset_position()
-            self.hexapod.move_to_position(reset_position)
-            self.hexapod.wait_until_motion_complete()
+            self.control_interface.hexapod.move_to_position(reset_position)
+            self.control_interface.hexapod.wait_until_motion_complete()
             
             # Reset current state
             self.current_tx = 0.0
@@ -203,14 +202,14 @@ class ManualHexapodController(threading.Thread, ABC):
             }
         
         # Create separate gait instances for translation and rotation
-        self.translation_gait = self.gait_type(self.hexapod, **translation_params)
-        self.rotation_gait = self.gait_type(self.hexapod, **rotation_params)
+        self.translation_gait = self.gait_type(self.control_interface.hexapod, **translation_params)
+        self.rotation_gait = self.gait_type(self.control_interface.hexapod, **rotation_params)
         
         # Start with translation gait as default
         self.current_gait = self.translation_gait
         
         if not self.is_gait_control_active():
-            self.gait_generator.start(self.current_gait)
+            self.control_interface.hexapod.gait_generator.start(self.current_gait)
             print("Gait generation started")
             print(f"Translation gait: {translation_params}")
             print(f"Rotation gait: {rotation_params}")
@@ -218,12 +217,12 @@ class ManualHexapodController(threading.Thread, ABC):
     def stop_gait_control(self):
         """Stop gait control if running."""
         if self.is_gait_control_active():
-            self.gait_generator.stop()
+            self.control_interface.hexapod.gait_generator.stop()
             print("Gait generation stopped")
 
     def is_gait_control_active(self):
         """Return True if gait generator is running."""
-        return getattr(self.gait_generator, 'is_running', False)
+        return getattr(self.control_interface.hexapod.gait_generator, 'is_running', False)
     
     def process_movement_inputs(self, inputs):
         """
@@ -261,7 +260,7 @@ class ManualHexapodController(threading.Thread, ABC):
         if any(abs(val) > 0.01 for val in [tx, ty, tz, roll, pitch, yaw]):
             try:
                 # Apply movement to hexapod
-                self.hexapod.move_body(tx=tx, ty=ty, tz=tz, roll=roll, pitch=pitch, yaw=yaw)
+                self.control_interface.hexapod.move_body(tx=tx, ty=ty, tz=tz, roll=roll, pitch=pitch, yaw=yaw)
 
                 # Update current state
                 self.current_tx += tx
@@ -297,16 +296,16 @@ class ManualHexapodController(threading.Thread, ABC):
                 self.current_gait = self.rotation_gait
                 # Update the gait generator with the new gait instance
                 if self.is_gait_control_active():
-                    self.gait_generator.stop()
-                    self.gait_generator.start(self.current_gait)
+                    self.control_interface.hexapod.gait_generator.stop()
+                    self.control_interface.hexapod.gait_generator.start(self.current_gait)
         elif has_translation:
             # Has translation (with or without rotation) - use translation gait
             if self.current_gait != self.translation_gait:
                 self.current_gait = self.translation_gait
                 # Update the gait generator with the new gait instance
                 if self.is_gait_control_active():
-                    self.gait_generator.stop()
-                    self.gait_generator.start(self.current_gait)
+                    self.control_interface.hexapod.gait_generator.stop()
+                    self.control_interface.hexapod.gait_generator.start(self.current_gait)
         
         # Update gait direction and rotation
         if hasattr(self, 'current_gait') and self.current_gait is not None:
@@ -407,7 +406,7 @@ class ManualHexapodController(threading.Thread, ABC):
             print(f"  Dwell Time: {getattr(self.rotation_gait, 'dwell_time', 'N/A')}s")
         
         # Try to get current phase/state information from gait generator
-        current_state = getattr(self.gait_generator, 'current_state', None)
+        current_state = getattr(self.control_interface.hexapod.gait_generator, 'current_state', None)
         if current_state:
             print(f"- Current Phase: {getattr(current_state, 'phase', 'N/A')}")
             print(f"- Swing Legs: {getattr(current_state, 'swing_legs', 'N/A')}")
@@ -431,7 +430,7 @@ class ManualHexapodController(threading.Thread, ABC):
         
         # Display all leg positions
         print("- Leg Positions:")
-        for i, pos in enumerate(getattr(self, 'hexapod', None).current_leg_positions):
+        for i, pos in enumerate(self.control_interface.hexapod.current_leg_positions):
             print(f"    Leg {i}: {tuple(round(x, 2) for x in pos)}")
 
     def print_current_position_details(self):
@@ -479,6 +478,7 @@ class ManualHexapodController(threading.Thread, ABC):
         """Run the hexapod controller thread."""
         self.print_help()
         self.reset_position()
+        self._start_initial_animation()
         print("\nHexapod controller active. Use your interface to control movement.")
 
         last_update = time.time()
@@ -551,9 +551,26 @@ class ManualHexapodController(threading.Thread, ABC):
     def _on_mode_toggled(self, new_mode: str):
         """
         Hook for subclasses to perform additional actions (e.g., LED feedback) when mode is toggled.
-        By default, does nothing.
+        By default, starts appropriate light animations based on the mode.
         """
-        pass
+        # Start appropriate light animation based on mode
+        if new_mode == self.BODY_CONTROL_MODE:
+            self.control_interface.lights_handler.pulse_smoothly(base_color=ColorRGB.BLUE, pulse_color=ColorRGB.BLACK, pulse_speed=0.05)
+        elif new_mode == self.GAIT_CONTROL_MODE:
+            self.control_interface.lights_handler.think(color=ColorRGB.INDIGO)
+        elif new_mode == self.VOICE_CONTROL_MODE:
+            pass
+
+    def _start_initial_animation(self):
+        """
+        Start the initial light animation based on the current mode.
+        """
+        if self.current_mode == self.BODY_CONTROL_MODE:
+            self.control_interface.lights_handler.pulse_smoothly(base_color=ColorRGB.BLUE, pulse_color=ColorRGB.BLACK, pulse_speed=0.05)
+        elif self.current_mode == self.GAIT_CONTROL_MODE:
+            self.control_interface.lights_handler.think(color=ColorRGB.INDIGO)
+        elif self.current_mode == self.VOICE_CONTROL_MODE:
+            pass
 
     def pause(self):
         """Pause the manual controller (stop processing inputs)."""

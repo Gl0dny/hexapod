@@ -50,13 +50,14 @@ except ImportError:
 if TYPE_CHECKING:
     from typing import Optional
     from kws import VoiceControl
+    from control import ControlInterface
 
 logger = logging.getLogger("gamepad_controller")
 
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""
     
-    BUTTON_DEBOUNCE_INTERVAL = 0.2  # seconds
+    BUTTON_DEBOUNCE_INTERVAL = 0.3  # seconds
     
     @staticmethod
     def find_gamepad(input_mapping, check_only: bool = False):
@@ -96,6 +97,7 @@ class GamepadHexapodController(ManualHexapodController):
     def __init__(
             self, 
             input_mapping: InputMapping,
+            control_interface: 'ControlInterface',
             voice_control: Optional['VoiceControl'] = None,
             led_controller: Optional['BaseGamepadLEDController'] = None
             ):
@@ -104,10 +106,11 @@ class GamepadHexapodController(ManualHexapodController):
         
         Args:
             input_mapping: The input mapping for the gamepad
+            control_interface: Control interface for voice commands
             voice_control: Optional voice control mode
             led_controller: Optional LED controller for visual feedback
         """
-        super().__init__(voice_control=voice_control)
+        super().__init__(control_interface=control_interface, voice_control=voice_control)
         rename_thread(self, "GamepadHexapodController")
         
         if not PYGAME_AVAILABLE:
@@ -166,6 +169,27 @@ class GamepadHexapodController(ManualHexapodController):
         print(f"Gamepad '{self.gamepad.get_name()}' initialized successfully")
         print(f"Current mode: {self.current_mode}")
         print("Press OPTIONS button to toggle between body control and gait control modes")
+
+    def _start_initial_animation(self):
+        """
+        Start the initial light animation based on the current mode.
+        """
+        # Call parent method to start hexapod light animations
+        super()._start_initial_animation()
+        
+        # Handle gamepad LED feedback - synchronized with hexapod LEDs (2.0s cycle)
+        if not (self.led_controller and self.led_controller.is_available()):
+            return
+        
+        if self.current_mode == self.GAIT_CONTROL_MODE:
+            # Use two-color pulse for gait mode - indigo to white
+            self.led_controller.pulse_two_colors(GamepadLEDColor.INDIGO, GamepadLEDColor.WHITE, duration=2.0, cycles=0)
+            self.current_led_state = 'gait_mode'
+        elif self.current_mode == self.BODY_CONTROL_MODE:
+            self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)
+            self.current_led_state = 'body_mode'
+        elif self.current_mode == self.VOICE_CONTROL_MODE:
+            pass
     
     def _apply_deadzone(self, value):
         """Apply deadzone to analog stick values."""
@@ -245,46 +269,23 @@ class GamepadHexapodController(ManualHexapodController):
         """
         Handle LED feedback when mode is toggled.
         """
+        # Call parent method to start hexapod light animations
+        super()._on_mode_toggled(new_mode)
+        
         if not (self.led_controller and self.led_controller.is_available()):
             return
         self.led_controller.stop_animation()
         if new_mode == self.GAIT_CONTROL_MODE:
-            self.led_controller.pulse(GamepadLEDColor.INDIGO, duration=1.5, cycles=0)
+            self.led_controller.pulse(GamepadLEDColor.INDIGO, duration=2.0, cycles=0)
             self.current_led_state = 'gait_mode'
         elif new_mode == self.BODY_CONTROL_MODE:
             self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)
             self.current_led_state = 'body_mode'
         elif new_mode == self.VOICE_CONTROL_MODE:
-            self.led_controller.pulse(GamepadLEDColor.RED, duration=2.0, cycles=0)
+            self.led_controller.pulse_two_colors(GamepadLEDColor.BLUE, GamepadLEDColor.GREEN, duration=2.0, cycles=0)
             self.current_led_state = 'voice_mode'
     
-    def _update_led_state(self, movement_magnitude, idle_color, movement_color):
-        """
-        Update LED state based on movement magnitude.
 
-        Args:
-            movement_magnitude (float): Magnitude of movement input
-            idle_color (GamepadLEDColor): Color for idle state
-            movement_color (GamepadLEDColor): Color for movement state
-        """
-        if not (self.led_controller and self.led_controller.is_available()):
-            return
-
-        # Determine current LED state
-        if movement_magnitude > 0.01:  # Threshold for movement detection
-            new_led_state = 'movement'
-        else:
-            new_led_state = 'idle'
-
-        # Only change LED if state has changed
-        if new_led_state != self.current_led_state:
-            self.led_controller.stop_animation()
-            
-            if new_led_state == 'movement':
-                self.led_controller.pulse(movement_color, duration=0.8, cycles=0)
-            else:  # idle
-                self.led_controller.pulse(idle_color, duration=2.0, cycles=0)
-            self.current_led_state = new_led_state
     
     def get_inputs(self):
         """Get current input values from the gamepad."""
@@ -352,9 +353,7 @@ class GamepadHexapodController(ManualHexapodController):
         if self._check_button_press('dpad_up'):
             sensitivity_deltas['rotation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
         
-        # Update LED based on movement activity
-        movement_magnitude = abs(tx) + abs(ty) + abs(tz) + abs(roll) + abs(pitch) + abs(yaw)
-        self._update_led_state(movement_magnitude, GamepadLEDColor.BLUE, GamepadLEDColor.LIME)
+
         
         # Update button states for next frame
         self.last_button_states = self.button_states.copy()
@@ -410,9 +409,7 @@ class GamepadHexapodController(ManualHexapodController):
         if self._check_button_press('dpad_up'):
             sensitivity_deltas['rotation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
         
-        # Update LED based on movement activity
-        movement_magnitude = abs(direction_x) + abs(direction_y) + abs(rotation)
-        self._update_led_state(movement_magnitude, GamepadLEDColor.INDIGO, GamepadLEDColor.LIME)
+
         
         # Update button states for next frame
         self.last_button_states = self.button_states.copy()
@@ -490,11 +487,15 @@ def main():
         input_mapping = DualSenseMapping()
         # For other interfaces, create a new mapping class that inherits from InputMapping
 
+        # Create control interface
+        from control import ControlInterface
+        control_interface = ControlInterface()
+
         # Optional: Create LED controller for visual feedback
         led_controller = DualSenseLEDController()  # Create DualSense LED controller
         
-        # controller = GamepadHexapodController(input_mapping)  # No LED controller
-        controller = GamepadHexapodController(input_mapping, led_controller)  # With LED controller
+        # controller = GamepadHexapodController(input_mapping, control_interface)  # No LED controller
+        controller = GamepadHexapodController(input_mapping, control_interface, led_controller=led_controller)  # With LED controller
         controller.start()
         controller.join()  # Wait for the thread to finish
     except Exception as e:

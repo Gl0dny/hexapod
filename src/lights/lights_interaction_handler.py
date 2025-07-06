@@ -302,3 +302,26 @@ class LightsInteractionHandler:
             color=ColorRGB.TEAL,
             interval=interval
         )
+
+    @animation
+    def pulse_smoothly(
+        self,
+        base_color: ColorRGB = ColorRGB.BLUE,
+        pulse_color: ColorRGB = ColorRGB.BLACK,
+        pulse_speed: float = 0.05
+    ) -> None:
+        """
+        Start a smooth pulse animation between two colors with gradual transitions.
+
+        Args:
+            base_color (ColorRGB): The base color of the LEDs.
+            pulse_color (ColorRGB): The color to pulse to.
+            pulse_speed (float): The speed of the pulse transitions.
+        """
+        self.off()
+        self.animation = lights.animations.PulseSmoothlyAnimation(
+            lights=self.lights,
+            base_color=base_color,
+            pulse_color=pulse_color,
+            pulse_speed=pulse_speed
+        )

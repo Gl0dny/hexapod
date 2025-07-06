@@ -96,6 +96,7 @@ def main() -> None:
             logger.user_info("Compatible gamepad found - starting manual control mode")
             manual_controller = GamepadHexapodController(
                 input_mapping=input_mapping,
+                control_interface=control_interface,
                 voice_control=voice_control,
                 led_controller=gamepad_led_controller
             )

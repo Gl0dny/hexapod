@@ -26,6 +26,7 @@ class ColorRGB(Enum):
     
     Each member represents a specific color with its corresponding RGB values.
     """
+    BLACK = (0, 0, 0)
     BLUE = (0, 0, 255)
     TEAL = (0, 128, 128)
     GREEN = (0, 255, 0)
