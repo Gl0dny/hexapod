@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+import logging
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -9,6 +10,8 @@ from utils import Vector2D, Vector3D
 
 if TYPE_CHECKING:
     from robot import Hexapod, Dict, List, Tuple, Union
+
+logger = logging.getLogger("gait_generator_logger")
 
 class GaitPhase(Enum):
     """

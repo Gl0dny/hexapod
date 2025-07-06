@@ -58,6 +58,18 @@
         "odas_filter": {
             "class": "logging.Filter",
             "name": "odas_logger"
+        },
+        "gait_generator_filter": {
+            "class": "logging.Filter",
+            "name": "gait_generator_logger"
+        },
+        "gamepad_filter": {
+            "class": "logging.Filter",
+            "name": "gamepad_logger"
+        },
+        "button_filter": {
+            "class": "logging.Filter",
+            "name": "button_logger"
         }
     },
     "handlers": {
@@ -160,6 +172,33 @@
             "backupCount": 5,
             "filters": ["odas_filter"]
         },
+        "gait_generator_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "verbose",
+            "filename": "gait_generator.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["gait_generator_filter"]
+        },
+        "gamepad_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "verbose",
+            "filename": "gamepad.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["gamepad_filter"]
+        },
+        "button_logger": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "verbose",
+            "filename": "button.log",
+            "maxBytes": 10485760,
+            "backupCount": 5,
+            "filters": ["button_filter"]
+        },
         "queue_handler": {
             "class": "logging.handlers.QueueHandler",
             "level": "DEBUG",
@@ -174,7 +213,10 @@
                 "lights_logger",
                 "maestro_logger",
                 "robot_logger",
-                "odas_logger"
+                "odas_logger",
+                "gait_generator_logger",
+                "gamepad_logger",
+                "button_logger"
             ],
             "respect_handler_level": true
         }
@@ -225,6 +267,21 @@
             "propagate": false
         },
         "odas_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "gait_generator_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "gamepad_logger": {
+            "level": "DEBUG",
+            "handlers": ["queue_handler"],
+            "propagate": false
+        },
+        "button_logger": {
             "level": "DEBUG",
             "handlers": ["queue_handler"],
             "propagate": false

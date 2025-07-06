@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from control import ControlTask
 
 # Configure logger
-logger = logging.getLogger("voice_control")
+logger = logging.getLogger("kws_logger")
 
 class VoiceControl(threading.Thread):
     """
@@ -91,7 +91,7 @@ class VoiceControl(threading.Thread):
             for idx, name in enumerate(PvRecorder.get_available_devices()):
                 logger.info(f"  [{idx}] {name}")
             if auto_device_index == -1:
-                loogger.warning("'Built-in Audio Multichannel' not found, using default device (-1)")
+                logger.warning("'Built-in Audio Multichannel' not found, using default device (-1)")
                 auto_device_index = -1
         self.device_index = auto_device_index
 

@@ -10,7 +10,7 @@ from .base_gait import BaseGait, GaitPhase, GaitState
 from .tripod_gait import TripodGait
 from .wave_gait import WaveGait
 
-logger = logging.getLogger("robot_logger")
+logger = logging.getLogger("gait_generator_logger")
 
 if TYPE_CHECKING:
     from robot import Hexapod

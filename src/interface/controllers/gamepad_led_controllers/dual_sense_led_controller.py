@@ -5,6 +5,10 @@ DualSense LED controller implementation.
 This module provides LED control functionality specifically for the PS5 DualSense controller.
 """
 
+import logging
+
+logger = logging.getLogger("gamepad_logger")
+
 from .gamepad_led_controller import BaseGamepadLEDController
 
 class DualSenseLEDController(BaseGamepadLEDController):

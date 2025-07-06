@@ -17,7 +17,7 @@ import resampy
 import time
 
 # Configure logger
-logger = logging.getLogger("odas_voice")
+logger = logging.getLogger("odas_logger")
 logger.setLevel(logging.DEBUG)  # Set to DEBUG level
 
 class ODASAudioProcessor:

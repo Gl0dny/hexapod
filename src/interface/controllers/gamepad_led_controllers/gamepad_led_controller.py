@@ -6,6 +6,7 @@ This module provides LED control functionality for various gamepad controllers
 using inheritance to support different controller types.
 """
 
+import logging
 import time
 import threading
 import math
@@ -13,6 +14,8 @@ from typing import Optional, Tuple, Dict, Any
 from enum import Enum
 from abc import ABC, abstractmethod
 from utils import rename_thread
+
+logger = logging.getLogger("gamepad_logger")
 
 class GamepadLEDColor(Enum):
     """Enumeration of LED colors for the gamepad."""

@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from kws import VoiceControl
     from control import ControlInterface
     
-logger = logging.getLogger("gamepad_controller")
+logger = logging.getLogger("gamepad_logger")
 
 class ManualHexapodController(threading.Thread, ABC):
     """Abstract base class for all manual hexapod controllers."""
