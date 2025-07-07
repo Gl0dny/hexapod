@@ -291,7 +291,11 @@ class GamepadHexapodController(ManualHexapodController):
         # Get gamepad inputs
         self.analog_inputs = self._get_analog_inputs()
         self.button_states = self._get_button_states()
-        
+
+        # Always allow shutdown with PS5 button, regardless of mode
+        if self._check_button_press('ps5'):
+            self.trigger_shutdown()
+
         # Handle mode toggles
         if self._check_button_press('options'):
             # Only toggle manual control modes if not in voice control mode
@@ -299,7 +303,7 @@ class GamepadHexapodController(ManualHexapodController):
                 self.toggle_mode()
         if self._check_button_press('create'):
             self.toggle_voice_control_mode()
-        
+
         # Only process manual inputs if not in voice control mode
         if self.current_mode == self.BODY_CONTROL_MODE:
             return self._get_body_control_inputs()
@@ -325,8 +329,6 @@ class GamepadHexapodController(ManualHexapodController):
             self.show_current_position()
         elif self._check_button_press('circle'):
             self.print_help()
-        elif self._check_button_press('ps5'):
-            self.trigger_shutdown()
         
         # Continuous yaw while holding L1/R1
         if self.button_states.get('l1', False):
