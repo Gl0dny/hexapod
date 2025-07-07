@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, override
 import logging
 
-from control.tasks import ControlTask
+from task_interface.tasks import Task
 from robot import PredefinedPosition
 
 if TYPE_CHECKING:
@@ -10,9 +10,9 @@ if TYPE_CHECKING:
     from robot import Hexapod
     from lights import LightsInteractionHandler
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class FollowTask(ControlTask):
+class FollowTask(Task):
     """
     Task to make the hexapod follow a target and manage related lights.
     """

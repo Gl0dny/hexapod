@@ -1,10 +1,7 @@
 import RPi.GPIO as GPIO
 import threading
 import time
-import logging
 from typing import Tuple, Optional
-
-logger = logging.getLogger("button_logger")
 
 class ButtonHandler:
     def __init__(self, pin=26, long_press_time=3.0, external_control_paused_event=None):

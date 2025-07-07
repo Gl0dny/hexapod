@@ -3,7 +3,7 @@ Module: intent_dispatcher
 
 This module defines the IntentDispatcher class, which is responsible for
 dispatching intents to their corresponding handler methods. It interacts
-with the ControlInterface to execute actions based on the received intents
+with the TaskInterface to execute actions based on the received intents
 and associated slots.
 """
 
@@ -32,14 +32,14 @@ class IntentDispatcher:
     Dispatches intents to their corresponding handler methods.
     """
 
-    def __init__(self, control_interface_module: Any) -> None:
+    def __init__(self, task_interface: Any) -> None:
         """
-        Initialize the IntentDispatcher with a control interface module.
+        Initialize the IntentDispatcher with a task interface module.
         
         Args:
-            control_interface_module (Any): The control interface module to handle intents.
+            task_interface (Any): The task interface module to handle intents.
         """
-        self.control_interface = control_interface_module
+        self.task_interface = task_interface
         self.intent_handlers: Dict[str, Callable[[Dict[str, Any]], None]] = {
             'help': self.handle_help,
             'system_status': self.handle_system_status,
@@ -99,7 +99,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.hexapod_help()
+        self.task_interface.hexapod_help()
             
     @handler
     def handle_system_status(self, slots: Dict[str, Any]) -> None:
@@ -109,7 +109,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.system_status()
+        self.task_interface.system_status()
             
     @handler
     def handle_shut_down(self, slots: Dict[str, Any]) -> None:
@@ -119,7 +119,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.shut_down()
+        self.task_interface.shut_down()
 
     @handler
     def handle_wake_up(self, slots: Dict[str, Any]) -> None:
@@ -129,7 +129,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.wake_up()
+        self.task_interface.wake_up()
 
     @handler
     def handle_sleep(self, slots: Dict[str, Any]) -> None:
@@ -139,7 +139,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.sleep()
+        self.task_interface.sleep()
 
     @handler
     def handle_calibrate(self, slots: Dict[str, Any]) -> None:
@@ -149,7 +149,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.calibrate()
+        self.task_interface.calibrate()
 
     @handler
     def handle_run_sequence(self, slots: Dict[str, Any]) -> None:
@@ -161,7 +161,7 @@ class IntentDispatcher:
         """
         try:
             sequence_name = slots['sequence_name']
-            self.control_interface.run_sequence(sequence_name=sequence_name)
+            self.task_interface.run_sequence(sequence_name=sequence_name)
         except KeyError:
             logger.exception("No sequence_name provided for run_sequence command.")
 
@@ -173,7 +173,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.repeat_last_command()
+        self.task_interface.repeat_last_command()
 
     @handler
     def handle_turn_lights(self, slots: Dict[str, Any]) -> None:
@@ -184,7 +184,7 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         switch_state = slots.get('switch_state')
-        self.control_interface.turn_lights(switch_state)
+        self.task_interface.turn_lights(switch_state)
 
     @handler
     def handle_change_color(self, slots: Dict[str, Any]) -> None:
@@ -195,7 +195,7 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         color = slots.get('color')
-        self.control_interface.change_color(color=color)
+        self.task_interface.change_color(color=color)
 
     @handler
     def handle_set_brightness(self, slots: Dict[str, Any]) -> None:
@@ -208,7 +208,7 @@ class IntentDispatcher:
         try:
             brightness_percentage = slots['brightness_percentage']
             brightness_value = parse_percentage(brightness_percentage)
-            self.control_interface.set_brightness(brightness_value)
+            self.task_interface.set_brightness(brightness_value)
         except KeyError:
             logger.exception("No brightness_percentage provided for set_brightness command.")
         except ValueError:
@@ -225,7 +225,7 @@ class IntentDispatcher:
         try:
             speed_percentage = slots['speed_percentage']
             speed_value = parse_percentage(speed_percentage)
-            self.control_interface.set_speed(speed_value)
+            self.task_interface.set_speed(speed_value)
         except KeyError:
             logger.exception("No speed_percentage provided for set_speed command.")
         except ValueError:
@@ -242,7 +242,7 @@ class IntentDispatcher:
         try:
             accel_percentage = slots['accel_percentage']
             accel_value = parse_percentage(accel_percentage)
-            self.control_interface.set_accel(accel_value)
+            self.task_interface.set_accel(accel_value)
         except KeyError:
             logger.exception("No accel_percentage provided for set_accel command.")
         except ValueError:
@@ -260,10 +260,10 @@ class IntentDispatcher:
             duration = None
             if 'march_time' in slots:
                 duration = float(slots['march_time'])
-            self.control_interface.march_in_place(duration=duration)
+            self.task_interface.march_in_place(duration=duration)
         except (ValueError, TypeError) as e:
             logger.exception(f"Invalid duration value: {e}")
-            self.control_interface.march_in_place()  # Use default duration
+            self.task_interface.march_in_place()  # Use default duration
 
     @handler
     def handle_idle_stance(self, slots: Dict[str, Any]) -> None:
@@ -273,7 +273,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.idle_stance()
+        self.task_interface.idle_stance()
 
     @handler
     def handle_move(self, slots: Dict[str, Any]) -> None:
@@ -285,7 +285,7 @@ class IntentDispatcher:
         """
         try:
             direction = slots['direction']
-            self.control_interface.move(direction=direction)
+            self.task_interface.move(direction=direction)
         except KeyError:
             logger.exception("No direction provided for move command.")
 
@@ -297,7 +297,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.stop()
+        self.task_interface.stop()
             
     @handler
     def handle_rotate(self, slots: Dict[str, Any]) -> None:
@@ -307,7 +307,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.rotate()
+        self.task_interface.rotate()
 
     @handler
     def handle_follow(self, slots: Dict[str, Any]) -> None:
@@ -317,7 +317,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.follow()
+        self.task_interface.follow()
 
     @handler
     def handle_sound_source_localization(self, slots: Dict[str, Any]) -> None:
@@ -327,7 +327,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.sound_source_localization()
+        self.task_interface.sound_source_localization()
 
     @handler
     def handle_stream_odas_audio(self, slots: Dict[str, Any]) -> None:
@@ -344,7 +344,7 @@ class IntentDispatcher:
             # Convert "post filtered" to "postfiltered" to match the expected format
             if stream_type == "post filtered":
                 stream_type = "postfiltered"
-            self.control_interface.stream_odas_audio(stream_type=stream_type)
+            self.task_interface.stream_odas_audio(stream_type=stream_type)
         except Exception as e:
             logger.exception(f"Error handling stream_odas_audio intent: {e}")
 
@@ -356,7 +356,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.police()
+        self.task_interface.police()
 
     @handler
     def handle_rainbow(self, slots: Dict[str, Any]) -> None:
@@ -366,7 +366,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.rainbow()
+        self.task_interface.rainbow()
             
     @handler
     def handle_sit_up(self, slots: Dict[str, Any]) -> None:
@@ -376,7 +376,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.sit_up()
+        self.task_interface.sit_up()
 
     @handler
     def handle_dance(self, slots: Dict[str, Any]) -> None:
@@ -386,7 +386,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.dance()
+        self.task_interface.dance()
 
     @handler
     def handle_helix(self, slots: Dict[str, Any]) -> None:
@@ -396,7 +396,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.helix()
+        self.task_interface.helix()
 
     @handler
     def handle_show_off(self, slots: Dict[str, Any]) -> None:
@@ -406,7 +406,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.show_off()
+        self.task_interface.show_off()
 
     @handler
     def handle_hello(self, slots: Dict[str, Any]) -> None:
@@ -416,4 +416,4 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.say_hello()
+        self.task_interface.say_hello()

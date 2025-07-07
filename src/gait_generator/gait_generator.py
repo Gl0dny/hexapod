@@ -14,7 +14,7 @@ logger = logging.getLogger("gait_generator_logger")
 
 if TYPE_CHECKING:
     from robot import Hexapod
-    from imu import IMU
+    from robot.sensors import Imu
 
 class GaitGenerator:
     """
@@ -25,7 +25,7 @@ class GaitGenerator:
     separate thread to allow continuous movement while the main program
     continues to run.
     """
-    def __init__(self, hexapod: Hexapod, imu: Optional[IMU] = None) -> None:
+    def __init__(self, hexapod: Hexapod, imu: Optional[Imu] = None) -> None:
         """
         Initialize the GaitGenerator with references to the hexapod and IMU.
 
@@ -56,7 +56,7 @@ class GaitGenerator:
         
         # Get current IMU readings
         accel = self.imu.get_acceleration()
-        gyro = self.imu.get_gyro()
+        gyro = self.imu.get_gyroscope()
         
         # Simple stability check - can be enhanced based on specific requirements
         accel_magnitude = np.linalg.norm(accel)

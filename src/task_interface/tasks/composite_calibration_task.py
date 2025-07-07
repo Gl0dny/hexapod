@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, override
 import logging
 import threading
 
-from control.tasks import ControlTask
+from task_interface.tasks import Task
 from robot import PredefinedPosition
 
 if TYPE_CHECKING:
@@ -11,9 +11,9 @@ if TYPE_CHECKING:
     from robot import Hexapod
     from lights import LightsInteractionHandler
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class CompositeCalibrationTask(ControlTask):
+class CompositeCalibrationTask(Task):
     """
     Task to orchestrate the calibration process by running and monitoring calibration tasks.
 
@@ -89,7 +89,7 @@ class CompositeCalibrationTask(ControlTask):
             logger.exception(f"Error stopping composite calibration task: {e}")
             raise
 
-class MonitorCalibrationStatusTask(ControlTask):
+class MonitorCalibrationStatusTask(Task):
     """
     Continuously monitors calibration status and updates lights.
     """
@@ -127,7 +127,7 @@ class MonitorCalibrationStatusTask(ControlTask):
             logger.info("MonitorCalibrationStatusTask completed")
             self.lights_handler.off()
 
-class RunCalibrationTask(ControlTask):
+class RunCalibrationTask(Task):
     """
     Runs the calibration routine for all servos.
     """

@@ -2,16 +2,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, override
 import logging
 
-from control.tasks import ControlTask
+from task_interface.tasks import Task
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
     from robot import Hexapod
     from lights import LightsInteractionHandler
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class SleepTask(ControlTask):
+class SleepTask(Task):
     """
     Task to put the hexapod into sleep mode by reducing brightness, graying out lights, and deactivating servos.
 

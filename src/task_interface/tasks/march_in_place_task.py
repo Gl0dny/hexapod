@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, override
 import logging
 import time
 
-from control.tasks import ControlTask
+from task_interface.tasks import Task
 from robot import PredefinedPosition
 from gait_generator import TripodGait
 
@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from robot import Hexapod
     from lights import LightsInteractionHandler
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class MarchInPlaceTask(ControlTask):
+class MarchInPlaceTask(Task):
     """
     Task to perform marching in place routine with the hexapod and manage lights.
 

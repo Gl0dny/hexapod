@@ -15,7 +15,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from utils import rename_thread
 
-logger = logging.getLogger("gamepad_logger")
+logger = logging.getLogger("interface_logger")
 
 class GamepadLEDColor(Enum):
     """Enumeration of LED colors for the gamepad."""

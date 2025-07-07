@@ -1,4 +1,4 @@
-from .control_task import ControlTask
+from .task import Task
 from .composite_calibration_task import CompositeCalibrationTask
 from .dance_task import DanceTask
 from .follow_task import FollowTask

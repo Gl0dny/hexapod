@@ -9,11 +9,11 @@ from utils import rename_thread
 if TYPE_CHECKING:
     from typing import Optional, Callable
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class ControlTask(threading.Thread, abc.ABC):
+class Task(threading.Thread, abc.ABC):
     """
-    Abstract base class for control tasks executed by the hexapod.
+    Abstract base class for tasks executed by the hexapod.
 
     Attributes:
         stop_event (threading.Event): Event to signal the task to stop.
@@ -22,7 +22,7 @@ class ControlTask(threading.Thread, abc.ABC):
 
     def __init__(self, callback: Optional[Callable] = None) -> None:
         """
-        Initializes the ControlTask with threading.Thread.
+        Initializes the Task with threading.Thread.
 
         Args:
             callback (Optional[Callable]): Function to execute after task completion.
@@ -36,7 +36,7 @@ class ControlTask(threading.Thread, abc.ABC):
 
     def start(self) -> None:
         """
-        Start the control task in a separate thread.
+        Start the task in a separate thread.
 
         Clears the stop event and initiates the thread's run method.
         """

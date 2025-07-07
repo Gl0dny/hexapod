@@ -50,9 +50,9 @@ except ImportError:
 if TYPE_CHECKING:
     from typing import Optional
     from kws import VoiceControl
-    from control import ControlInterface
+    from task_interfcae import TaskInterface
 
-logger = logging.getLogger("gamepad_logger")
+logger = logging.getLogger("interface_logger")
 
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""
@@ -97,7 +97,7 @@ class GamepadHexapodController(ManualHexapodController):
     def __init__(
             self, 
             input_mapping: InputMapping,
-            control_interface: 'ControlInterface',
+            task_interface: 'TaskInterface',
             voice_control: Optional['VoiceControl'] = None,
             led_controller: Optional['BaseGamepadLEDController'] = None,
             shutdown_callback: Optional[callable] = None
@@ -107,12 +107,12 @@ class GamepadHexapodController(ManualHexapodController):
 
         Args:
             input_mapping: Input mapping for the specific controller type
-            control_interface: Control interface for hexapod operations
+            task_interface: Task interface for hexapod operations
             voice_control: Optional voice control mode
             led_controller: Optional LED controller for visual feedback
             shutdown_callback: Optional callback function to call when PS5 button is pressed
         """
-        super().__init__(control_interface=control_interface, voice_control=voice_control, shutdown_callback=shutdown_callback)
+        super().__init__(task_interface=task_interface, voice_control=voice_control, shutdown_callback=shutdown_callback)
         rename_thread(self, "GamepadHexapodController")
         
         if not PYGAME_AVAILABLE:
@@ -488,15 +488,15 @@ def main():
         input_mapping = DualSenseMapping()
         # For other interfaces, create a new mapping class that inherits from InputMapping
 
-        # Create control interface
-        from control import ControlInterface
-        control_interface = ControlInterface()
+        # Create task interface
+        from task_interface import TaskInterface
+        task_interface = TaskInterface()
 
         # Optional: Create LED controller for visual feedback
         led_controller = DualSenseLEDController()  # Create DualSense LED controller
         
-        # controller = GamepadHexapodController(input_mapping, control_interface)  # No LED controller
-        controller = GamepadHexapodController(input_mapping, control_interface, led_controller=led_controller)  # With LED controller
+        # controller = GamepadHexapodController(input_mapping, task_interface)  # No LED controller
+        controller = GamepadHexapodController(input_mapping, task_interface, led_controller=led_controller)  # With LED controller
         controller.start()
         controller.join()  # Wait for the thread to finish
     except Exception as e:

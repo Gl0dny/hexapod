@@ -124,7 +124,7 @@ This ensures smooth, proportional responses to all tilts while preventing excess
 
 Use the `test_imu.py` script to test and verify IMU readings:
 ```bash
-python tests/test_robot/test_imu.py
+python tests/test_robot/test_sensors/test_imu.py
 ```
 
 The script provides:
