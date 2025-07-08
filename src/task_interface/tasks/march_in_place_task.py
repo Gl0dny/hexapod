@@ -5,7 +5,6 @@ import time
 
 from task_interface.tasks import Task
 from robot import PredefinedPosition
-from gait_generator import TripodGait
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
@@ -35,55 +34,56 @@ class MarchInPlaceTask(Task):
         super().__init__(callback)
         self.hexapod = hexapod
         self.lights_handler = lights_handler
-        self.duration = 10.0 if duration is None else float(duration)
+        self.duration = duration
 
     def _perform_march(self) -> None:
         """
         Performs the marching in place motion using TripodGait.
+        
         The motion consists of:
-        1. Alternating tripod groups lifting and lowering
-        2. No forward movement (swing_distance = 0)
-        3. Maintaining body height while marching in place
+        1. Moving to low profile position
+        2. Creating and configuring tripod gait for marching
+        3. Executing marching based on duration or infinite
+        4. Handling stop events during execution
         """
         logger.info("Starting marching in place motion")
         
         # Start in a stable position
-        self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.hexapod.move_to_position(PredefinedPosition.ZERO)
         self.hexapod.wait_until_motion_complete(self.stop_event)
         if self.stop_event.is_set():
+            logger.warning("March task interrupted during position change.")
             return
         
         # Configure tripod gait for marching in place
         gait_params = {
-            'swing_distance': 0.0,      # No forward movement
-            'swing_height': 30.0,       # Lift legs 30mm
-            'stance_distance': 0.0,     # No backward movement
-            'dwell_time': 1.0,         # One second per step
-            'stability_threshold': 0.2  # Standard stability threshold
+            'step_radius': 0.0,      # No forward movement
+            'leg_lift_distance': 30.0,       # Lift legs 30mm
+            'leg_lift_incline': 2.0,         # Default incline
+            'stance_height': 0.0,            # Default stance
+            'dwell_time': 0.3,               # Fast stepping for marching
+            'use_full_circle_stance': False
         }
         
-        # Create and start the tripod gait
-        gait = TripodGait(self.hexapod, **gait_params)
-        logger.info("Starting tripod gait for marching in place")
-        self.hexapod.gait_generator.start(gait, stop_event=self.stop_event)
+        self.hexapod.gait_generator.create_gait('tripod', **gait_params)
         
-        # March for specified duration
-        logger.info(f"Marching in place for {self.duration} seconds")
-        start_time = time.time()
-        while time.time() - start_time < self.duration:
-            if self.stop_event.is_set():
-                logger.info("Marching task interrupted.")
-                break
-            time.sleep(0.1)  # Check stop event every 100ms
+        if self.duration is not None:
+            # March for specified duration
+            logger.info(f"Marching in place for {self.duration} seconds")
+            cycles_completed, elapsed_time = self.hexapod.gait_generator.run_for_duration(self.duration)
+            logger.info(f"Marching completed: {cycles_completed} cycles in {elapsed_time:.2f} seconds")
+        else:
+            # Start infinite marching
+            logger.info("Starting infinite marching in place")
+            self.hexapod.gait_generator.start()
+            logger.warning("Infinite marching started - will continue until stopped externally")
+            # Wait until externally stopped
+            while not self.stop_event.is_set():
+                time.sleep(0.1)
+            logger.warning("Marching task interrupted by external stop.")
         
-        # Stop the gait
-        logger.info("Stopping marching in place motion")
+        # Stop the gait generator
         self.hexapod.gait_generator.stop()
-        
-        # Return to home position
-        logger.info("Returning to home position")
-        self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-        self.hexapod.wait_until_motion_complete(self.stop_event)
 
     @override
     def execute_task(self) -> None:
@@ -98,8 +98,8 @@ class MarchInPlaceTask(Task):
             self.lights_handler.think()
             self._perform_march()
         except Exception as e:
-            logger.exception(f"Marching task failed: {e}")
+            logger.exception(f"Error in MarchTask: {e}")
         finally:
-            self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-            self.hexapod.wait_until_motion_complete(self.stop_event)
-            logger.info("MarchTask completed") 
+            logger.info("MarchTask completed")
+            self.hexapod.move_to_position(PredefinedPosition.ZERO)
+            self.hexapod.wait_until_motion_complete(self.stop_event) 

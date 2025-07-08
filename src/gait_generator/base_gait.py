@@ -94,6 +94,7 @@ class BaseGait(ABC):
             Args:
                 waypoint (Vector3D): 3D position to add to the path
             """
+            logger.debug(f"Adding waypoint {waypoint} to LegPath")
             self.waypoints.append(waypoint)
         
         def get_current_target(self) -> Vector3D:
@@ -103,8 +104,10 @@ class BaseGait(ABC):
             Returns:
                 Vector3D: Current waypoint, or zero vector if no waypoints exist
             """
+            logger.debug(f"Getting current target waypoint at index {self.current_waypoint_index}")
             if self.waypoints:
                 return self.waypoints[self.current_waypoint_index]
+            logger.warning("No waypoints in LegPath, returning zero vector")
             return Vector3D(0, 0, 0)
         
         def advance_to_next_waypoint(self) -> bool:
@@ -114,13 +117,17 @@ class BaseGait(ABC):
             Returns:
                 bool: True if there are more waypoints, False if at the end
             """
+            logger.debug(f"Advancing from waypoint {self.current_waypoint_index}")
             if self.current_waypoint_index < len(self.waypoints) - 1:
                 self.current_waypoint_index += 1
+                logger.debug(f"Advanced to waypoint {self.current_waypoint_index}")
                 return True
+            logger.debug("No more waypoints to advance to")
             return False
         
         def reset(self) -> None:
             """Reset the path to start from the beginning."""
+            logger.debug("Resetting LegPath to start from the beginning")
             self.current_waypoint_index = 0
     
     # Direction mapping for consistent movement vectors
@@ -146,7 +153,6 @@ class BaseGait(ABC):
     def __init__(self, hexapod: Hexapod,
                  step_radius: float = 30.0,
                  leg_lift_distance: float = 10.0,
-                 leg_lift_incline: float = 2.0,
                  stance_height: float = 0.0,  # Height of stance legs above ground (mm), 0.0 = reference position
                  dwell_time: float = 0.5,
                  stability_threshold: float = 0.2,
@@ -158,7 +164,6 @@ class BaseGait(ABC):
             hexapod (Hexapod): The hexapod robot instance
             step_radius (float): Radius of the circular workspace for each leg (mm)
             leg_lift_distance (float): Height legs lift during swing phase (mm)
-            leg_lift_incline (float): Incline ratio for smooth leg movement (mm/degree)
             stance_height (float): Height above ground for stance legs (mm). 
                                  A value of 0.0 matches the reference position (starting/home position).
                                  Positive values lower legs (raise body), negative values raise legs (lower body).
@@ -182,13 +187,15 @@ class BaseGait(ABC):
                 
                 Half circle is more efficient as stance legs move half the distance.
         """
+        logger.info(f"Initializing BaseGait with step_radius={step_radius}, leg_lift_distance={leg_lift_distance}, "
+                    f"stance_height={stance_height}, dwell_time={dwell_time}, "
+                    f"stability_threshold={stability_threshold}, use_full_circle_stance={use_full_circle_stance}")
         self.hexapod = hexapod
         self.gait_graph: Dict[GaitPhase, List[GaitPhase]] = {}
         
         # Circle-based gait parameters
         self.step_radius = step_radius
         self.leg_lift_distance = leg_lift_distance
-        self.leg_lift_incline = leg_lift_incline
         self.stance_height = stance_height
         self.dwell_time = dwell_time
         self.stability_threshold = stability_threshold
@@ -209,6 +216,7 @@ class BaseGait(ABC):
         self.leg_paths: List[self.LegPath] = [self.LegPath([]) for _ in range(6)]
         
         self._setup_gait_graph()
+        logger.debug("Gait graph setup complete")
 
     def project_point_to_circle(self, radius: float, point: Vector2D, direction: Vector2D) -> Vector2D:
         """
@@ -236,18 +244,22 @@ class BaseGait(ABC):
             result = project_point_to_circle(80.0, Vector2D(0,0), Vector2D(1,0))
             # Returns: Vector2D(80.0, 0.0)
         """
+        logger.debug(f"Projecting point {point} onto circle with radius {radius} in direction {direction}")
         # No direction for projection -> no calculation
         if direction.magnitude() == 0:
+            logger.warning("Direction vector has zero magnitude, returning original point")
             return point
         
         # If point is at origin or has same direction as input, simple calculation
         if (point.magnitude() == 0 or 
             point.normalized() == direction.normalized() or 
             point.normalized() == direction.normalized() * -1):
+            logger.debug("Point is at origin or collinear with direction, using simple projection")
             return direction.normalized() * radius
         
         # If direction is too long, clamp it to circle boundary
         if direction.magnitude() > radius - 0.005:
+            logger.debug("Direction magnitude exceeds circle boundary, clamping to boundary")
             direction = direction.normalized() * (radius - 0.005)
         
         # Calculate projection using trigonometry (law of sines)
@@ -257,6 +269,7 @@ class BaseGait(ABC):
         # Handle edge case where angle_beta is 0° or 180° (sin = 0)
         if abs(angle_beta) < 0.1 or abs(angle_beta - 180) < 0.1:
             # Direction and point are collinear, use simple projection
+            logger.warning("Angle beta is near 0 or 180 degrees, using simple projection")
             return direction.normalized() * radius
         
         # Calculate missing angles using law of sines
@@ -296,29 +309,35 @@ class BaseGait(ABC):
         Returns:
             Vector3D: Target position in 3D space
         """
+        logger.debug(f"Calculating leg target for leg {leg_index}, is_swing={is_swing}")
         # If no movement input, handle marching in place
         if self.direction_input.magnitude() == 0 and self.rotation_input == 0:
+            logger.info("No movement input, handling marching in place")
             current_pos = Vector3D(*self.hexapod.current_leg_positions[leg_index])
             
             if is_swing:
                 # For swing legs in marching in place: lift up and down
-                # Target is the same X,Y position but lifted by leg_lift_distance
-                target_pos = Vector3D(current_pos.x, current_pos.y, -self.stance_height + self.leg_lift_distance)
+                # Target is the same X,Y position at ground level (path calculation will handle lifting)
+                target_pos = Vector3D(current_pos.x, current_pos.y, -self.stance_height)
+                logger.debug(f"Swing leg {leg_index} marching in place: lift up and down. Target: {target_pos}")
                 return target_pos
             else:
                 # For stance legs: maintain current position with proper stance height
                 current_pos.z = -self.stance_height  # Adjust for stance height
+                logger.debug(f"Stance leg {leg_index} marching in place: maintain current position. Current: {current_pos}, Target: {current_pos}")
                 return current_pos
         
         # Get the leg's mounting angle (in degrees)
         leg_angle_deg = self.leg_mount_angles[leg_index]
         leg_angle_rad = math.radians(leg_angle_deg)
+        logger.debug(f"Leg {leg_index} mount angle: {leg_angle_deg} degrees")
         
         # Calculate projection direction and origin
         projection_direction = Vector2D(0, 0)
         projection_origin = Vector2D(0, 0)
         
         if self.rotation_input != 0:
+            logger.info(f"Rotation input detected: {self.rotation_input}")
             # Handle rotation movement
             # For rotation, all legs move in the same relative direction regardless of mounting angle
             if self.rotation_input > 0:  # Clockwise rotation
@@ -330,6 +349,7 @@ class BaseGait(ABC):
                 # Swing legs: project from center in rotation direction
                 projection_direction = rotation_projection
                 projection_origin = Vector2D(0, 0)
+                logger.debug(f"Swing leg {leg_index} rotation: project from center in rotation direction. Projection: {projection_direction}, Origin: {projection_origin}")
             else:
                 # Stance legs behavior for rotation
                 if self.use_full_circle_stance:
@@ -337,13 +357,16 @@ class BaseGait(ABC):
                     projection_direction = rotation_projection.inverse()
                     current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
                     projection_origin = current_pos_2d
+                    logger.debug(f"Stance leg {leg_index} rotation (full circle): move in opposite rotation direction. Projection: {projection_direction}, Origin: {projection_origin}")
                 else:
                     # Half circle behavior: stance legs move back to center (0,0)
                     current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
                     # Direction from current position to center
                     projection_direction = current_pos_2d.inverse()
                     projection_origin = current_pos_2d
+                    logger.debug(f"Stance leg {leg_index} rotation (half circle): move back to center (0,0). Projection: {projection_direction}, Origin: {projection_origin}")
         else:
+            logger.info(f"Translation input detected: {self.direction_input}")
             # Handle translation movement
             # Project the global movement direction into the leg's local coordinate system
             global_direction = self.direction_input
@@ -372,6 +395,7 @@ class BaseGait(ABC):
                 # Swing legs: move in the projected direction from center
                 projection_direction = leg_projected_direction
                 projection_origin = Vector2D(0, 0)
+                logger.debug(f"Swing leg {leg_index} translation: move in projected direction from center. Projection: {projection_direction}, Origin: {projection_origin}")
             else:
                 # Stance legs behavior
                 if self.use_full_circle_stance:
@@ -379,12 +403,14 @@ class BaseGait(ABC):
                     projection_direction = leg_projected_direction.inverse()
                     current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
                     projection_origin = current_pos_2d
+                    logger.debug(f"Stance leg {leg_index} translation (full circle): move to opposite side of circle. Projection: {projection_direction}, Origin: {projection_origin}")
                 else:
                     # Half circle behavior: stance legs move back to center (0,0)
                     current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
                     # Direction from current position to center
                     projection_direction = current_pos_2d.inverse()
                     projection_origin = current_pos_2d
+                    logger.debug(f"Stance leg {leg_index} translation (half circle): move back to center (0,0). Projection: {projection_direction}, Origin: {projection_origin}")
         
         # Calculate target position using circle projection
         if self.rotation_input != 0:
@@ -393,14 +419,17 @@ class BaseGait(ABC):
             if is_swing:
                 # Swing legs: use relative movement
                 target_2d = projection_direction.normalized() * movement_distance
+                logger.debug(f"Swing leg {leg_index} rotation: use relative movement. Movement distance: {movement_distance}, Projection: {projection_direction}, Target: {target_2d}")
             else:
                 # Stance legs for rotation
                 if self.use_full_circle_stance:
                     # Full circle behavior: use relative movement
                     target_2d = projection_direction.normalized() * movement_distance
+                    logger.debug(f"Stance leg {leg_index} rotation (full circle): use relative movement. Movement distance: {movement_distance}, Projection: {projection_direction}, Target: {target_2d}")
                 else:
                     # Half circle behavior: move back to center (0,0)
                     target_2d = Vector2D(0, 0)
+                    logger.debug(f"Stance leg {leg_index} rotation (half circle): move back to center (0,0). Target: {target_2d}")
         else:
             # For translation, use direction magnitude to scale movement distance (like rotation)
             movement_distance = self.step_radius * self.direction_input.magnitude()
@@ -408,25 +437,30 @@ class BaseGait(ABC):
                 if is_swing:
                     # For swing legs, use circle projection from center (constrained by workspace)
                     target_2d = self.project_point_to_circle(movement_distance, projection_origin, projection_direction)
+                    logger.debug(f"Swing leg {leg_index} translation: use circle projection from center. Movement distance: {movement_distance}, Projection origin: {projection_origin}, Projection: {projection_direction}, Target: {target_2d}")
                 else:
                     # For stance legs
                     if self.use_full_circle_stance:
                         # Full circle behavior: use circle projection from current position
                         target_2d = self.project_point_to_circle(movement_distance, projection_origin, projection_direction)
+                        logger.debug(f"Stance leg {leg_index} translation (full circle): use circle projection from current position. Movement distance: {movement_distance}, Projection origin: {projection_origin}, Projection: {projection_direction}, Target: {target_2d}")
                     else:
                         # Half circle behavior: move back to center (0,0) - no circle projection needed
                         target_2d = Vector2D(0, 0)
+                        logger.debug(f"Stance leg {leg_index} translation (half circle): move back to center (0,0). Target: {target_2d}")
             else:
                 # No movement - stay at current position
                 if is_swing:
                     target_2d = Vector2D(0, 0)
+                    logger.debug(f"Swing leg {leg_index} no movement: stay at current position. Target: {target_2d}")
                 else:
                     current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
                     target_2d = current_pos_2d
+                    logger.debug(f"Stance leg {leg_index} no movement: stay at current position. Target: {target_2d}")
         
         # Convert to 3D with proper stance height
         target_3d = Vector3D(target_2d.x, target_2d.y, -self.stance_height)
-        
+        logger.debug(f"Calculated target 3D position for leg {leg_index}: {target_3d}")
         return target_3d
     
     def calculate_leg_path(self, leg_index: int, target: Vector3D, is_swing: bool) -> None:
@@ -448,63 +482,45 @@ class BaseGait(ABC):
             target (Vector3D): Target position to reach
             is_swing (bool): True if leg is in swing phase, False if in stance phase
         """
+        logger.debug(f"Calculating leg path for leg {leg_index}, target={target}, is_swing={is_swing}")
         current_pos = Vector3D(*self.hexapod.current_leg_positions[leg_index])
         path = self.LegPath([])
         
         if is_swing:
-            # Calculate three-phase path for swing legs
-            current_to_target = target - current_pos
+            # Check if this is marching in place (no movement input)
+            is_marching_in_place = (self.direction_input.magnitude() == 0 and self.rotation_input == 0)
             
-            # Calculate lift parameters based on incline ratio
-            missing_height = target.z + self.leg_lift_distance - current_pos.z
-            distance_from_current_to_lift_xy = abs(missing_height) / self.leg_lift_incline
-            distance_from_target_to_lower_xy = self.leg_lift_distance / self.leg_lift_incline
-            distance_from_current_to_target_xy = current_to_target.xy_plane().magnitude()
-            
-            # Determine number of waypoints needed based on distance and movement type
-            num_waypoints = 0
-            step_height = self.leg_lift_distance
-            
-            # For rotation, use simpler 2-waypoint path (lift+move, then lower)
-            if self.rotation_input != 0:
-                num_waypoints = 1  # Single waypoint for lift+move combined
-            elif (distance_from_current_to_lift_xy + distance_from_target_to_lower_xy < distance_from_current_to_target_xy and 
-                  abs(missing_height) > 2):
-                # Long distance: need both lift and travel waypoints
-                num_waypoints = 2
-            elif missing_height < 2:
-                # Short distance: adjust step height
-                num_waypoints = 1
-                step_height = self.leg_lift_distance - ((distance_from_current_to_lift_xy + distance_from_target_to_lower_xy - distance_from_current_to_target_xy) / 2) * self.leg_lift_incline
-            else:
-                # Medium distance: single travel waypoint
-                num_waypoints = 1
-                step_height = distance_from_current_to_target_xy * self.leg_lift_incline
-            
-            # Create waypoints for movement
-            path.add_waypoint(current_pos)  # Phase 1: Start position
-            
-            if self.rotation_input != 0:
-                # For rotation: simplified 2-waypoint path
-                # Phase 2: Lift and move to target X,Y in one motion
-                lift_move_waypoint = Vector3D(target.x, target.y, current_pos.z + step_height)
-                path.add_waypoint(lift_move_waypoint)
-            else:
-                # For non-rotation: three-phase path
-                if num_waypoints == 2:
-                    # Phase 2: Lift waypoint (up and forward)
-                    lift_direction = current_to_target.xy_plane().normalized()
-                    lift_waypoint = current_pos + lift_direction * (abs(missing_height) / self.leg_lift_incline)
-                    lift_waypoint.z = current_pos.z + missing_height
-                    path.add_waypoint(lift_waypoint)
+            if is_marching_in_place:
+                # For marching in place: simple up and down movement
+                logger.debug(f"Path calculation for leg {leg_index} (marching in place):")
+                logger.debug(f"  Current pos: {current_pos}")
+                logger.debug(f"  Leg lift distance: {self.leg_lift_distance}")
                 
-                # Phase 3: Travel waypoint (move to target X,Y while lifted)
-                if num_waypoints > 0:
-                    # Create waypoint at target X,Y but still lifted
-                    travel_waypoint = Vector3D(target.x, target.y, current_pos.z + step_height)
-                    path.add_waypoint(travel_waypoint)
-            
-            path.add_waypoint(target)  # Final target (lower to ground)
+                # Phase 1: Start position
+                path.add_waypoint(current_pos)
+                
+                # Phase 2: Lift up in place
+                lift_waypoint = Vector3D(current_pos.x, current_pos.y, current_pos.z + self.leg_lift_distance)
+                path.add_waypoint(lift_waypoint)
+                
+                # Phase 3: Lower back to start position
+                path.add_waypoint(current_pos)
+            else:
+                # For actual movement: use 3-waypoint path: lift → move → lower
+                logger.debug(f"Path calculation for leg {leg_index} (with movement):")
+                logger.debug(f"  Current pos: {current_pos}, Target: {target}")
+                logger.debug(f"  Leg lift distance: {self.leg_lift_distance}")
+                
+                # Phase 1: Start position
+                path.add_waypoint(current_pos)
+                
+                # Phase 2: Lift and move to target X,Y
+                # Use target.z + leg_lift_distance to ensure consistent lift height from ground
+                lift_move_waypoint = Vector3D(target.x, target.y, target.z + self.leg_lift_distance)
+                path.add_waypoint(lift_move_waypoint)
+                
+                # Phase 3: Lower to final target
+                path.add_waypoint(target)
             
         else:
             # Three-phase path for stance legs: push down → move → final position

@@ -22,11 +22,9 @@ class TripodGait(BaseGait):
     def __init__(self, hexapod: Hexapod,
                  step_radius: float = 30.0,
                  leg_lift_distance: float = 20.0,
-                 leg_lift_incline: float = 2.0,
                  stance_height: float = 0.0,
                  dwell_time: float = 0.5,
-                 stability_threshold: float = 0.2,
-                 use_full_circle_stance: bool = False) -> None:
+                 stability_threshold: float = 0.2) -> None:
         """
         Initialize tripod gait with circle-based parameters.
         
@@ -38,32 +36,14 @@ class TripodGait(BaseGait):
             hexapod (Hexapod): The hexapod robot instance
             step_radius (float): Radius of circular workspace for each leg (mm)
             leg_lift_distance (float): Height legs lift during swing (mm)
-            leg_lift_incline (float): Incline ratio for smooth movement
             stance_height (float): Height above ground for stance (mm). 
                                  A value of 0.0 matches the reference position (starting/home position).
                                  Positive values lower legs (raise body), negative values raise legs (lower body).
             dwell_time (float): Time in each phase (seconds)
-            stability_threshold (float): Maximum IMU deviation for stability check
-            use_full_circle_stance (bool): Stance leg movement pattern
-                - False (default): Half circle behavior - stance legs move from current position back to center (0,0)
-                - True: Full circle behavior - stance legs move from current position to opposite side of circle
-                
-                Example calculations (step_radius=30.0, direction=1.0):
-                
-                HALF CIRCLE (default):
-                - Swing legs: (0,0) → (+30,0) [30mm movement]
-                - Stance legs: (+30,0) → (0,0) [30mm movement back to center]
-                - Total stance movement: 30mm
-                
-                FULL CIRCLE:
-                - Swing legs: (0,0) → (+30,0) [30mm movement]
-                - Stance legs: (+30,0) → (-30,0) [60mm movement to opposite side]
-                - Total stance movement: 60mm
-                
-                Half circle is more efficient as stance legs move half the distance.
+            stability_threshold (float): Maximum IMU deviation allowed
         """
-        super().__init__(hexapod, step_radius, leg_lift_distance, leg_lift_incline,
-                        stance_height, dwell_time, stability_threshold, use_full_circle_stance)
+        super().__init__(hexapod, step_radius, leg_lift_distance,
+                        stance_height, dwell_time, stability_threshold)
 
     def _setup_gait_graph(self) -> None:
         """

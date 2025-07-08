@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, override
 import logging
+import time
 
 from task_interface.tasks import Task
 from robot import PredefinedPosition
@@ -50,28 +51,22 @@ class MoveTask(Task):
         
         # Define gait parameters
         gait_params = {
-            'step_radius': 30.0,
+            'step_radius': 20.0,
             'leg_lift_distance': 20.0,
-            'leg_lift_incline': 2.0,
             'stance_height': 0.0,
             'dwell_time': 0.3,
             'use_full_circle_stance': False
         }
 
-        # Move to high profile position
-        logger.debug("Moving to high profile position")
-        self.hexapod.move_to_position(PredefinedPosition.HIGH_PROFILE)
+        # Start in a stable position
+        self.hexapod.move_to_position(PredefinedPosition.ZERO)
         self.hexapod.wait_until_motion_complete(self.stop_event)
+
         if self.stop_event.is_set():
-            logger.info("Move task interrupted during position change.")
+            logger.warning("Move task interrupted during position change.")
             return
         
-        # Create a gait using the generator's factory method
-        logger.debug("Creating tripod gait")
         self.hexapod.gait_generator.create_gait('tripod', **gait_params)
-        
-        # Set the direction for the gait
-        logger.debug(f"Setting gait direction to {self.direction}")
         self.hexapod.gait_generator.current_gait.set_direction(self.direction)
         
         if self.cycles is not None:
@@ -90,7 +85,14 @@ class MoveTask(Task):
             # Start infinite gait generation (no cycles or duration specified)
             logger.info("Starting infinite gait generation")
             self.hexapod.gait_generator.start()
-            logger.info("Infinite gait generation started - will continue until stopped externally")
+            logger.warning("Infinite gait generation started - will continue until stopped externally")
+            # Wait until externally stopped
+            while not self.stop_event.is_set():
+                time.sleep(0.1)
+            logger.warning("Marching task interrupted by external stop.")
+
+        # Stop the gait generator
+        self.hexapod.gait_generator.stop()
 
     @override
     def execute_task(self) -> None:
@@ -107,4 +109,6 @@ class MoveTask(Task):
         except Exception as e:
             logger.exception(f"Error in MoveTask: {e}")
         finally:
+            self.hexapod.move_to_position(PredefinedPosition.ZERO)
+            self.hexapod.wait_until_motion_complete(self.stop_event) 
             logger.info("MoveTask completed")

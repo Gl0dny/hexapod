@@ -46,7 +46,7 @@ def main():
         gait_params = {
             'step_radius': args.swing_distance,  # swing_distance as step_radius
             'leg_lift_distance': args.swing_height,
-            'leg_lift_incline': 2.0,  # Default incline
+        
             'stance_height': 0.0,     # Default stance
             'dwell_time': args.dwell_time,
             'stability_threshold': args.stability_threshold,

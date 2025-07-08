@@ -59,7 +59,7 @@ def override_log_levels(config: dict, log_level: str) -> dict:
     
     return config
 
-def setup_logging(log_dir: Optional[Path] = None, config_file: Optional[Path] = None, log_level: str = 'INFO') -> None:
+def setup_logging(log_dir: Optional[Path] = None, config_file: Optional[Path] = None, log_level: str = 'DEBUG') -> None:
     """
     Set up logging configuration for the application.
     

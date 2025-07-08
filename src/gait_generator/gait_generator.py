@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 import logging
 import threading
 import time
+import math
 import numpy as np
 
 from utils import rename_thread, Vector3D
@@ -52,7 +53,6 @@ class GaitGenerator:
     def create_gait(self, gait_type: str = 'tripod', *,
                     step_radius: float = 30.0,
                     leg_lift_distance: float = 20.0,
-                    leg_lift_incline: float = 2.0,
                     stance_height: float = 0.0,
                     dwell_time: float = 0.5,
                     stability_threshold: float = 0.2,
@@ -65,16 +65,15 @@ class GaitGenerator:
             gait_type (str): The type of gait to create ('tripod' or 'wave').
             step_radius (float): Radius of circular workspace for each leg (mm)
             leg_lift_distance (float): Height legs lift during swing (mm)
-            leg_lift_incline (float): Incline ratio for smooth movement
             stance_height (float): Height above ground for stance (mm)
             dwell_time (float): Time in each phase (seconds)
             stability_threshold (float): Maximum IMU deviation allowed
             use_full_circle_stance (bool): Stance leg movement pattern (half or full circle)
         """
         if gait_type == 'tripod':
-            gait = TripodGait(self.hexapod, step_radius, leg_lift_distance, leg_lift_incline, stance_height, dwell_time, stability_threshold, use_full_circle_stance)
+            gait = TripodGait(self.hexapod, step_radius, leg_lift_distance, stance_height, dwell_time, stability_threshold, use_full_circle_stance)
         elif gait_type == 'wave':
-            gait = WaveGait(self.hexapod, step_radius, leg_lift_distance, leg_lift_incline, stance_height, dwell_time, stability_threshold, use_full_circle_stance)
+            gait = WaveGait(self.hexapod, step_radius, leg_lift_distance, stance_height, dwell_time, stability_threshold, use_full_circle_stance)
         else:
             raise ValueError(f"Unknown gait type: {gait_type}")
         
@@ -239,7 +238,7 @@ class GaitGenerator:
                 # self.hexapod.wait_until_motion_complete()
                 dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
                 time.sleep(dwell_time)  # Delay between waypoints
-
+                
                 logger.debug(f"    All legs moved successfully to waypoint {waypoint_idx + 1}")
                 
             except Exception as e:
@@ -290,13 +289,13 @@ class GaitGenerator:
         
         # Check if stop was requested before starting this cycle
         if self.stop_event.is_set() and not self.stop_requested:
-            logger.warning("Stop event detected before cycle start - completing current cycle")
+            logger.error("Stop event detected before cycle start - completing current cycle")
             self.stop_requested = True
         
         while self.is_running:
             # Check if stop event is set during cycle execution
             if self.stop_event.is_set() and not self.stop_requested:
-                logger.warning("Stop event detected during cycle execution - will complete current cycle")
+                logger.error("Stop event detected during cycle execution - will complete current cycle")
                 self.stop_requested = True
             
             try:
@@ -318,18 +317,18 @@ class GaitGenerator:
                        self._check_stability()):
                     # Check stop event during dwell time
                     if self.stop_event.is_set() and not self.stop_requested:
-                        logger.warning("Stop event detected during dwell time - will complete current cycle")
+                        logger.error("Stop event detected during dwell time - will complete current cycle")
                         self.stop_requested = True
                     time.sleep(0.01)  # Small sleep to prevent CPU hogging
                 
                 # Check stop event before transitioning
                 if self.stop_event.is_set() and not self.stop_requested:
-                    logger.warning("Stop event detected before state transition - will complete current cycle")
+                    logger.error("Stop event detected before state transition - will complete current cycle")
                     self.stop_requested = True
                 
                 # If stop was requested, complete the cycle but don't start a new one
                 if self.stop_requested:
-                    logger.warning("Stop requested - completing current cycle before stopping")
+                    logger.error("Stop requested - completing current cycle before stopping")
                     # Continue to complete the current cycle
                 
                 # Transition to next state
@@ -384,7 +383,7 @@ class GaitGenerator:
             logger.info(f"Current state before cycle: {self.current_state.phase}")
             # Check if stop event is set
             if self.stop_event.is_set():
-                logger.warning("Stop event detected during cycle execution - will complete current cycle")
+                logger.error("Stop event detected during cycle execution - will complete current cycle")
                 self.stop_requested = True
             
             try:
@@ -397,7 +396,7 @@ class GaitGenerator:
                 
                 # If stop was requested during the cycle, stop after completing it
                 if self.stop_requested:
-                    logger.warning("Stop requested - completed current cycle, stopping execution")
+                    logger.error("Stop requested - completed current cycle, stopping execution")
                     break
                 
                 # Brief pause between cycles for stability
@@ -442,7 +441,7 @@ class GaitGenerator:
                 logger.warning("Time limit reached, will finish current cycle and stop.")
                 self.stop_requested = True
             if self.stop_event.is_set():
-                logger.warning("Stop event detected, will finish current cycle and stop.")
+                logger.error("Stop event detected, will finish current cycle and stop.")
                 self.stop_requested = True
             try:
                 self._execute_full_cycle()
@@ -463,7 +462,7 @@ class GaitGenerator:
         self.stop()
         logger.info(f"Completed {cycles_completed} cycles in {elapsed_time:.2f} seconds")
         return cycles_completed, elapsed_time
-        
+
     def start(self) -> None:
         """
         Start the gait generation in a separate thread.
@@ -476,7 +475,7 @@ class GaitGenerator:
             self.is_running = True
             self.stop_requested = False  # Reset stop flag when starting
             self.stop_event.clear()
-
+            
             # Start gait execution in background thread
             self.thread = threading.Thread(target=self.run_gait)
             rename_thread(self.thread, f"GaitGenerator-{self.current_gait.__class__.__name__}")
@@ -506,7 +505,7 @@ class GaitGenerator:
 
             # Check if stop event is set
             if self.stop_event.is_set():
-                logger.warning("Stop event detected - will complete current cycle before stopping")
+                logger.error("Stop event detected - will complete current cycle before stopping")
                 self.stop_requested = True
 
             try:
@@ -515,15 +514,26 @@ class GaitGenerator:
                 
                 # If stop was requested during the cycle, stop after completing it
                 if self.stop_requested:
-                    logger.warning("Stop requested - completed current cycle, stopping gait")
+                    logger.error("Stop requested - completed current cycle, stopping gait")
                     break
+
+                # Handle pending direction/rotation change after cycle
+                if self.pending_direction is not None or self.pending_rotation is not None:
+                    new_direction = self.pending_direction if self.pending_direction is not None else self.current_gait.direction_input
+                    new_rotation = self.pending_rotation if self.pending_rotation is not None else self.current_gait.rotation_input
+                    logger.info(f"Direction/rotation change requested: {new_direction}, {new_rotation}, returning to neutral before applying.")
+                    self.return_legs_to_neutral()
+                    self.current_gait.set_direction(new_direction, new_rotation)
+                    logger.info(f"Direction/rotation updated to: {new_direction}, rotation: {new_rotation}")
+                    self.pending_direction = None
+                    self.pending_rotation = None
+                
                 
                 # Pause between cycles for stability
                 if self.is_running and not self.stop_event.is_set():
                     dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
                     logger.debug(f"Pause between cycles: {dwell_time}s")
                     time.sleep(dwell_time)
-                    
                 
             except Exception as e:
                 logger.error(f"\nError in gait generation cycle #{cycle_count}: {e}")
@@ -579,6 +589,95 @@ class GaitGenerator:
             self.cycle_count = 0
             self.total_phases_executed = 0
             self.stop_requested = False
+
+    def _calculate_rotation_per_cycle(self, step_radius: float) -> float:
+        """
+        Calculate rotation per cycle based on hexapod geometry.
+        
+        The calculation is based on the hexapod's physical geometry:
+        - End effector radius: hexagon_side_length + coxa_length + femur_length
+        - Step radius: gait parameter
+        
+        For rotation, each leg moves by step_radius × rotation_input per cycle.
+        The effective rotation depends on the hexapod's end effector radius and leg coordination.
+        
+        Args:
+            step_radius: Gait step radius in mm
+            
+        Returns:
+            float: Rotation angle per cycle in degrees
+        """
+        # Use the hexapod's calculated end effector radius
+        # This includes: hexagon_side_length + coxa_length + femur_length
+        end_effector_radius = self.hexapod.end_effector_radius
+        
+        # For rotation, the effective movement radius is the hexapod's end effector radius
+        # Each gait cycle moves the hexapod by approximately step_radius distance
+        # The rotation angle per cycle = (step_radius / end_effector_radius) * (180/π) degrees
+        
+        rotation_per_cycle_radians = step_radius / end_effector_radius
+        rotation_per_cycle_degrees = math.degrees(rotation_per_cycle_radians)
+        
+        return rotation_per_cycle_degrees
+
+    def _calculate_cycles_for_angle(self, angle_degrees: float, step_radius: float) -> int:
+        """
+        Calculate the number of gait cycles needed to rotate by the specified angle.
+        
+        Args:
+            angle_degrees: Target rotation angle in degrees
+            step_radius: Gait step radius in mm
+            
+        Returns:
+            int: Number of gait cycles needed
+        """
+        rotation_per_cycle = self._calculate_rotation_per_cycle(step_radius)
+        cycles_needed = abs(angle_degrees) / rotation_per_cycle
+        cycles_needed = math.ceil(cycles_needed)
+        
+        end_effector_radius = self.hexapod.end_effector_radius
+        logger.info(f"Rotation calculation:")
+        logger.info(f"  Target angle: {angle_degrees}°")
+        logger.info(f"  End effector radius: {end_effector_radius:.1f} mm")
+        logger.info(f"  Step radius: {step_radius} mm")
+        logger.info(f"  Rotation per cycle: {rotation_per_cycle:.1f}°")
+        logger.info(f"  Cycles needed: {cycles_needed}")
+        
+        return max(1, cycles_needed)  # Minimum 1 cycle
+
+    def execute_rotation_by_angle(self, angle_degrees: float, rotation_direction: float, step_radius: float) -> int:
+        """
+        Execute rotation by a specific angle using the current gait.
+        
+        This method calculates the required number of cycles based on the hexapod's
+        physical geometry and executes the rotation using the current gait.
+        
+        Args:
+            angle_degrees: Target rotation angle in degrees (positive = clockwise)
+            rotation_direction: Rotation direction multiplier (1.0 = clockwise, -1.0 = counterclockwise)
+            step_radius: Gait step radius in mm (uses current gait's step_radius)
+            
+        Returns:
+            int: Number of cycles actually completed
+        """
+        if not self.current_gait:
+            raise ValueError("No current gait set. Call create_gait() first.")
+        
+        # Use current gait's step_radius
+        step_radius = getattr(self.current_gait, 'step_radius')
+        
+        # Calculate cycles needed for the target angle
+        cycles_needed = self._calculate_cycles_for_angle(angle_degrees, step_radius)
+        
+        # Set rotation direction on the current gait
+        self.current_gait.set_direction('neutral', rotation=rotation_direction)
+        
+        # Execute the calculated number of cycles
+        logger.info(f"Executing {cycles_needed} cycles for {angle_degrees}° rotation")
+        cycles_completed = self.execute_cycles(cycles_needed)
+        
+        logger.info(f"Completed {cycles_completed} cycles for {angle_degrees}° rotation")
+        return cycles_completed
 
     def return_legs_to_neutral(self):
         """
@@ -644,3 +743,30 @@ class GaitGenerator:
                 logger.info(f"Leg {leg_idx} returned to neutral.")
         
         logger.info("All legs returned to neutral position.")
+
+    def queue_direction(self, direction, rotation=0.0):
+        """
+        Queue a new direction and/or rotation to be applied after the current cycle and a return to neutral.
+        This should be called by the controller/gamepad instead of calling BaseGait.set_direction directly.
+        The actual direction change will be applied by the gait generator thread at a safe time.
+        """
+        # WARNING: Do not call self.current_gait.set_direction directly from the controller/gamepad.
+        if not self.current_gait:
+            return
+        current_dir = self.current_gait.direction_input
+        current_rot = self.current_gait.rotation_input
+        # Convert to tuple for comparison if needed
+        if hasattr(current_dir, 'to_tuple'):
+            current_dir_tuple = current_dir.to_tuple()
+        else:
+            current_dir_tuple = (getattr(current_dir, 'x', 0), getattr(current_dir, 'y', 0))
+        if isinstance(direction, str):
+            direction_tuple = self.current_gait.DIRECTION_MAP.get(direction, (0,0))
+        elif isinstance(direction, tuple):
+            direction_tuple = direction
+        else:
+            direction_tuple = (0,0)
+        # Only set as pending if different from current
+        if (direction_tuple, rotation) != (current_dir_tuple, current_rot):
+            self.pending_direction = direction
+            self.pending_rotation = rotation
