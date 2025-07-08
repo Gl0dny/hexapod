@@ -25,26 +25,68 @@ class GaitGenerator:
     separate thread to allow continuous movement while the main program
     continues to run.
     """
-    def __init__(self, hexapod: Hexapod, imu: Optional[Imu] = None, waypoint_dwell_time: float = 0.3) -> None:
+    DEFAULT_DWELL_TIME = 1.0  # seconds
+
+    def __init__(self, hexapod: Hexapod, imu: Optional[Imu] = None, stop_event: Optional[threading.Event] = None) -> None:
         """
         Initialize the GaitGenerator with references to the hexapod and IMU.
 
         Args:
             hexapod (Hexapod): The Hexapod instance to control
             imu (IMU, optional): The IMU instance for stability monitoring
-            waypoint_dwell_time (float): Time to wait between waypoints during leg movement (seconds)
+            stop_event (threading.Event, optional): Event to signal stopping the gait
         """
         self.hexapod = hexapod
         self.imu = imu
-        self.waypoint_dwell_time = waypoint_dwell_time
         self.is_running = False
         self.thread = None
         self.current_state: Optional[GaitState] = None
         self.current_gait: Optional[BaseGait] = None
-        self.stop_event: Optional[threading.Event] = None
+        self.stop_event: threading.Event = stop_event if stop_event is not None else threading.Event()
         self.cycle_count: int = 0
         self.total_phases_executed: int = 0
         self.stop_requested: bool = False
+        self.pending_direction = None
+        self.pending_rotation = None
+
+    def create_gait(self, gait_type: str = 'tripod', *,
+                    step_radius: float = 30.0,
+                    leg_lift_distance: float = 20.0,
+                    leg_lift_incline: float = 2.0,
+                    stance_height: float = 0.0,
+                    dwell_time: float = 0.5,
+                    stability_threshold: float = 0.2,
+                    use_full_circle_stance: bool = False) -> None:
+        """
+        Factory method to create and set the current gait instance. Supports 'tripod' and 'wave'.
+        All gait parameters can be specified and are forwarded to the gait constructor.
+        The created gait is set as the current_gait of the generator.
+        Args:
+            gait_type (str): The type of gait to create ('tripod' or 'wave').
+            step_radius (float): Radius of circular workspace for each leg (mm)
+            leg_lift_distance (float): Height legs lift during swing (mm)
+            leg_lift_incline (float): Incline ratio for smooth movement
+            stance_height (float): Height above ground for stance (mm)
+            dwell_time (float): Time in each phase (seconds)
+            stability_threshold (float): Maximum IMU deviation allowed
+            use_full_circle_stance (bool): Stance leg movement pattern (half or full circle)
+        """
+        if gait_type == 'tripod':
+            gait = TripodGait(self.hexapod, step_radius, leg_lift_distance, leg_lift_incline, stance_height, dwell_time, stability_threshold, use_full_circle_stance)
+        elif gait_type == 'wave':
+            gait = WaveGait(self.hexapod, step_radius, leg_lift_distance, leg_lift_incline, stance_height, dwell_time, stability_threshold, use_full_circle_stance)
+        else:
+            raise ValueError(f"Unknown gait type: {gait_type}")
+        
+        self.current_gait = gait
+                
+        # Set the initial state based on gait type
+        if gait_type == 'tripod':
+            self.current_state = self.current_gait.get_state(GaitPhase.TRIPOD_A)
+        elif gait_type == 'wave':
+            self.current_state = self.current_gait.get_state(GaitPhase.WAVE_1)
+        else:
+            raise ValueError(f"Unknown gait type: {gait_type}")
 
     def _check_stability(self) -> bool:
         """
@@ -195,8 +237,9 @@ class GaitGenerator:
                 
                 # Wait for all movements to complete
                 # self.hexapod.wait_until_motion_complete()
-                time.sleep(self.waypoint_dwell_time)  # Delay between waypoints
-                
+                dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
+                time.sleep(dwell_time)  # Delay between waypoints
+
                 logger.debug(f"    All legs moved successfully to waypoint {waypoint_idx + 1}")
                 
             except Exception as e:
@@ -246,13 +289,13 @@ class GaitGenerator:
         logger.info(f"Gait type: {type(self.current_gait).__name__}")
         
         # Check if stop was requested before starting this cycle
-        if self.stop_event and self.stop_event.is_set():
+        if self.stop_event.is_set() and not self.stop_requested:
             logger.error("Stop event detected before cycle start - completing current cycle")
             self.stop_requested = True
         
         while self.is_running:
             # Check if stop event is set during cycle execution
-            if self.stop_event and self.stop_event.is_set() and not self.stop_requested:
+            if self.stop_event.is_set() and not self.stop_requested:
                 logger.error("Stop event detected during cycle execution - will complete current cycle")
                 self.stop_requested = True
             
@@ -274,13 +317,13 @@ class GaitGenerator:
                 while (time.time() - start_time < self.current_state.dwell_time and
                        self._check_stability()):
                     # Check stop event during dwell time
-                    if self.stop_event and self.stop_event.is_set() and not self.stop_requested:
+                    if self.stop_event.is_set() and not self.stop_requested:
                         logger.error("Stop event detected during dwell time - will complete current cycle")
                         self.stop_requested = True
                     time.sleep(0.01)  # Small sleep to prevent CPU hogging
                 
                 # Check stop event before transitioning
-                if self.stop_event and self.stop_event.is_set() and not self.stop_requested:
+                if self.stop_event.is_set() and not self.stop_requested:
                     logger.error("Stop event detected before state transition - will complete current cycle")
                     self.stop_requested = True
                 
@@ -324,6 +367,10 @@ class GaitGenerator:
         Returns:
             int: Number of cycles actually completed
         """
+        self.is_running = True
+        self.stop_requested = False
+        self.stop_event.clear()
+
         if num_cycles <= 0:
             logger.error(f"Invalid number of cycles: {num_cycles}")
             return 0
@@ -336,7 +383,7 @@ class GaitGenerator:
             logger.info(f"Starting cycle {cycles_completed + 1}/{num_cycles}")
             logger.info(f"Current state before cycle: {self.current_state.phase}")
             # Check if stop event is set
-            if self.stop_event and self.stop_event.is_set():
+            if self.stop_event.is_set():
                 logger.error("Stop event detected during cycle execution - will complete current cycle")
                 self.stop_requested = True
             
@@ -354,9 +401,10 @@ class GaitGenerator:
                     break
                 
                 # Brief pause between cycles for stability
-                if cycles_completed < num_cycles and self.is_running and (not self.stop_event or not self.stop_event.is_set()):
-                    logger.debug(f"Pause between cycles: {self.current_gait.dwell_time}s")
-                    time.sleep(self.current_gait.dwell_time)
+                if cycles_completed < num_cycles and self.is_running and not self.stop_event.is_set():
+                    dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
+                    logger.debug(f"Pause between cycles: {dwell_time}s")
+                    time.sleep(dwell_time)
                 
             except Exception as e:
                 logger.error(f"Error in cycle {cycles_completed}: {e}")
@@ -370,36 +418,25 @@ class GaitGenerator:
         self.stop()
         return cycles_completed
 
-    def start(self, gait: BaseGait, stop_event: Optional[threading.Event] = None) -> None:
+    def start(self) -> None:
         """
         Start the gait generation in a separate thread.
 
-        This method initializes the gait state machine and starts the gait
-        execution in a background thread. The gait will continue running
+        This method starts the gait execution in a background thread using the
+        current gait that was set by create_gait(). The gait will continue running
         until stopped or the stop event is set.
-
-        Args:
-            gait (BaseGait): The gait instance to execute
-            stop_event (threading.Event, optional): Event to signal stopping the gait
         """
-        if not self.is_running:
+        if not self.is_running and self.current_gait:
             self.is_running = True
-            self.stop_event = stop_event
-            self.current_gait = gait
             self.stop_requested = False  # Reset stop flag when starting
-            
-            # Set initial state based on gait type
-            if isinstance(gait, TripodGait):
-                self.current_state = gait.get_state(GaitPhase.TRIPOD_A)
-            elif isinstance(gait, WaveGait):
-                self.current_state = gait.get_state(GaitPhase.WAVE_1)
-            else:
-                raise ValueError(f"Unknown gait type: {type(gait)}")
-            
+            self.stop_event.clear()
+
             # Start gait execution in background thread
             self.thread = threading.Thread(target=self.run_gait)
-            rename_thread(self.thread, f"GaitGenerator-{gait.__class__.__name__}")
+            rename_thread(self.thread, f"GaitGenerator-{self.current_gait.__class__.__name__}")
             self.thread.start()
+        elif not self.current_gait:
+            raise ValueError("No current gait set. Call create_gait() first.")
 
     def run_gait(self) -> None:
         """
@@ -422,7 +459,7 @@ class GaitGenerator:
                 break
 
             # Check if stop event is set
-            if self.stop_event and self.stop_event.is_set():
+            if self.stop_event.is_set():
                 logger.error("Stop event detected - will complete current cycle before stopping")
                 self.stop_requested = True
 
@@ -435,10 +472,12 @@ class GaitGenerator:
                     logger.error("Stop requested - completed current cycle, stopping gait")
                     break
                 
-                # Pause between cycles using dwell_time
-                if self.is_running and (not self.stop_event or not self.stop_event.is_set()):
-                    logger.debug(f"Pause between cycles: {self.current_gait.dwell_time}s")
-                    time.sleep(self.current_gait.dwell_time)
+                # Pause between cycles for stability
+                if self.is_running and not self.stop_event.is_set():
+                    dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
+                    logger.debug(f"Pause between cycles: {dwell_time}s")
+                    time.sleep(dwell_time)
+                    
                 
             except Exception as e:
                 logger.error(f"\nError in gait generation cycle #{cycle_count}: {e}")
@@ -485,13 +524,11 @@ class GaitGenerator:
         """
         if self.is_running:
             self.is_running = False
-            if self.stop_event:
-                self.stop_event.set()
+            self.stop_event.set()
             if self.thread:
                 self.thread.join()
             self.current_state = None
             self.current_gait = None
-            self.stop_event = None
             # Reset cycle statistics
             self.cycle_count = 0
             self.total_phases_executed = 0
@@ -509,6 +546,7 @@ class GaitGenerator:
             return
         
         stance_height = self.current_gait.stance_height if hasattr(self.current_gait, 'stance_height') else 0.0
+        dwell_time = self.current_gait.dwell_time if hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
         
         if isinstance(self.current_gait, TripodGait):
             logger.info("Returning legs to neutral using tripod pattern (groups of 3)")
@@ -556,7 +594,7 @@ class GaitGenerator:
                     all_positions = list(self.hexapod.current_leg_positions)
                     all_positions[leg_idx] = (waypoint.x, waypoint.y, waypoint.z)
                     self.hexapod.move_all_legs(all_positions)
-                    time.sleep(self.waypoint_dwell_time)
+                    time.sleep(dwell_time)
                 logger.info(f"Leg {leg_idx} returned to neutral.")
         
         logger.info("All legs returned to neutral position.")

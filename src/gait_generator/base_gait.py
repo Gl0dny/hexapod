@@ -508,7 +508,7 @@ class BaseGait(ABC):
             
         else:
             # Three-phase path for stance legs: push down → move → final position
-            path.add_waypoint(current_pos)  # Phase 1: Start position
+            # path.add_waypoint(current_pos)  # Phase 1: Start position
             
             # # Phase 2: Push down slightly (1cm = 10mm) to improve ground contact
             # push_down_z = current_pos.z - 3.0  # Push down 10mm
@@ -520,7 +520,13 @@ class BaseGait(ABC):
             # path.add_waypoint(target_with_push)
             
             # Phase 4: Final position (normal stance height)
-            path.add_waypoint(target)
+            # path.add_waypoint(target)
+
+            # Stance leg: hold position for two steps, then move to target
+            path.add_waypoint(current_pos)  # Step 0: Start
+            # path.add_waypoint(current_pos)  # Step 1: Hold (while swing leg lifts)
+            path.add_waypoint(target)       # Step 2: Move to target (after swing lift)
+            # path.add_waypoint(target)       # Step 3: Hold (while swing leg reaches target)
         
         self.leg_paths[leg_index] = path
 
