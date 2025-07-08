@@ -562,21 +562,26 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def move(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, direction: str) -> None:
+    def move(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, direction: str, cycles: int = None, duration: float = None) -> None:
         """
-        Initiate a move in the specified direction.
+        Initiate a move in the specified direction, for a number of cycles or duration if provided.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
             direction (str): The direction to move.
+            cycles (int, optional): Number of gait cycles to execute.
+            duration (float, optional): Duration to move in seconds.
         """
         try:
             if self.task:
                 self.task.stop_task()
             self.task = task_interface.tasks.MoveTask(
-                hexapod, 
-                direction, 
+                hexapod,
+                lights_handler,
+                direction,
+                cycles=cycles,
+                duration=duration,
                 callback=lambda: self._notify_task_completion(self.task)
             )
         except Exception as e:
@@ -610,30 +615,31 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def rotate(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, angle: Optional[float] = None, direction: Optional[str] = None) -> None:
+    def rotate(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, angle: float = None, turn_direction: str = None, cycles: int = None, duration: float = None) -> None:
         """
-        Rotate the hexapod by a specified angle or direction.
+        Rotate the hexapod by a specified angle, direction, cycles, or duration.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
-            angle (Optional[float]): The angle to rotate.
-            direction (Optional[str]): The direction to rotate.
+            angle (float, optional): The angle to rotate.
+            turn_direction (str, optional): The direction to rotate.
+            cycles (int, optional): Number of gait cycles to execute.
+            duration (float, optional): Duration to rotate in seconds.
         """
         try:
             logger.user_info("Initiating rotate.")
             if self.task:
                 self.task.stop_task()
             self.task = task_interface.tasks.RotateTask(
-                hexapod, 
-                angle, 
-                direction, 
+                hexapod,
+                lights_handler,
+                angle=angle,
+                turn_direction=turn_direction,
+                cycles=cycles,
+                duration=duration,
                 callback=lambda: self._notify_task_completion(self.task)
             )
-            if angle:
-                logger.user_info(f"Rotating {angle} degrees.")
-            elif direction:
-                logger.user_info(f"Rotating to the {direction}.")
         except Exception as e:
             logger.exception(f"Rotate task failed: {e}")
 

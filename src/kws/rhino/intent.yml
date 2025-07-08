@@ -43,12 +43,12 @@ context:
         (direction) (for, by) $pv.TwoDigitInteger:move_time
         $time_unit:time_unit"
       - "[Move, Go, Walk, Proceed] (in, to) (the) $direction:move_direction
-        (direction) (for, by) $pv.TwoDigitInteger:move_distance
-        $distance_unit:distance_unit"
+        (direction) (for, by) $pv.TwoDigitInteger:move_cycles
+        cycles"
       - "[Move, Go, Walk, Proceed] (in, to) (the) $direction:move_direction
         (direction)"
     stop:
-      - "[Stop, Halt, Pause]"
+      - "[Stop, Halt, Pause] (the) (current) (task, movement, command)"
     rotate:
       - "[Turn, Rotate, Spin] (in, to) (the) $turn_direction:turn_direction
         (direction) (for, by) $angle:rotate_angle (degree, degrees)"
@@ -57,6 +57,9 @@ context:
         $time_unit:time_unit"
       - "[Turn, Rotate, Spin] (in, to) (the) $turn_direction:turn_direction
         (direction)"
+      - "[Turn, Rotate, Spin] (in, to) (the) $turn_direction:turn_direction
+        (direction) (for, by) $pv.TwoDigitInteger:rotate_cycles
+        cycles"
     follow:
       - "[Follow, Come to me, Follow me, Track me]"
     sound_source_localization:
@@ -94,12 +97,18 @@ context:
       - "[Show off, Let them see]"
     hello:
       - Say [hello, hi, hey]
+      - Wave (hello, hi, hey) (your) (hand, leg)
   slots:
     direction:
-      - right
-      - left
-      - backward
       - forward
+      - backward
+      - left
+      - right
+      - forward right
+      - forward left
+      - backward right
+      - backward left
+      - neutral
     turn_direction:
       - counterclockwise
       - clockwise
@@ -112,9 +121,6 @@ context:
       - minute
       - seconds
       - second
-    distance_unit:
-      - steps
-      - step
     switch_state:
       - off
       - on
@@ -133,21 +139,17 @@ context:
       - gray
       - white
     angle:
-      - minus three hundred sixty
-      - minus three hundred
-      - minus two hundred seventy
-      - minus two hundred forty
-      - minus one hundred eighty
-      - minus one hundred twenty
-      - minus ninety
-      - minus sixty
+      - thirty
       - sixty
       - ninety
       - one hundred twenty
+      - two hundred fifty
       - one hundred eighty
+      - two hundred ten
       - two hundred forty
       - two hundred seventy
       - three hundred
+      - three hundred thirty
       - three hundred sixty
     sequence_name:
       - pass

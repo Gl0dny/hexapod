@@ -290,13 +290,13 @@ class GaitGenerator:
         
         # Check if stop was requested before starting this cycle
         if self.stop_event.is_set() and not self.stop_requested:
-            logger.error("Stop event detected before cycle start - completing current cycle")
+            logger.warning("Stop event detected before cycle start - completing current cycle")
             self.stop_requested = True
         
         while self.is_running:
             # Check if stop event is set during cycle execution
             if self.stop_event.is_set() and not self.stop_requested:
-                logger.error("Stop event detected during cycle execution - will complete current cycle")
+                logger.warning("Stop event detected during cycle execution - will complete current cycle")
                 self.stop_requested = True
             
             try:
@@ -318,18 +318,18 @@ class GaitGenerator:
                        self._check_stability()):
                     # Check stop event during dwell time
                     if self.stop_event.is_set() and not self.stop_requested:
-                        logger.error("Stop event detected during dwell time - will complete current cycle")
+                        logger.warning("Stop event detected during dwell time - will complete current cycle")
                         self.stop_requested = True
                     time.sleep(0.01)  # Small sleep to prevent CPU hogging
                 
                 # Check stop event before transitioning
                 if self.stop_event.is_set() and not self.stop_requested:
-                    logger.error("Stop event detected before state transition - will complete current cycle")
+                    logger.warning("Stop event detected before state transition - will complete current cycle")
                     self.stop_requested = True
                 
                 # If stop was requested, complete the cycle but don't start a new one
                 if self.stop_requested:
-                    logger.error("Stop requested - completing current cycle before stopping")
+                    logger.warning("Stop requested - completing current cycle before stopping")
                     # Continue to complete the current cycle
                 
                 # Transition to next state
@@ -384,7 +384,7 @@ class GaitGenerator:
             logger.info(f"Current state before cycle: {self.current_state.phase}")
             # Check if stop event is set
             if self.stop_event.is_set():
-                logger.error("Stop event detected during cycle execution - will complete current cycle")
+                logger.warning("Stop event detected during cycle execution - will complete current cycle")
                 self.stop_requested = True
             
             try:
@@ -397,7 +397,7 @@ class GaitGenerator:
                 
                 # If stop was requested during the cycle, stop after completing it
                 if self.stop_requested:
-                    logger.error("Stop requested - completed current cycle, stopping execution")
+                    logger.warning("Stop requested - completed current cycle, stopping execution")
                     break
                 
                 # Brief pause between cycles for stability
@@ -418,6 +418,52 @@ class GaitGenerator:
         self.stop()
         return cycles_completed
 
+    def run_for_duration(self, seconds: float):
+        """
+        Run the gait for a specific amount of time (in seconds).
+        The last cycle will always finish, even if the time is up.
+        If a stop event is set, it will also stop after the current cycle.
+        Returns (cycles_completed, elapsed_time).
+        """
+        self.is_running = True
+        self.stop_requested = False
+        self.stop_event.clear()
+        
+        if seconds <= 0:
+            logger.error(f"Invalid duration: {seconds}")
+            return 0, 0.0
+        logger.info(f"Running gait for {seconds:.2f} seconds")
+        cycles_completed = 0
+        start_time = time.time()
+        while self.is_running:
+            now = time.time()
+            elapsed = now - start_time
+            if elapsed >= seconds:
+                logger.warning("Time limit reached, will finish current cycle and stop.")
+                self.stop_requested = True
+            if self.stop_event.is_set():
+                logger.warning("Stop event detected, will finish current cycle and stop.")
+                self.stop_requested = True
+            try:
+                self._execute_full_cycle()
+                cycles_completed += 1
+                if self.stop_requested:
+                    logger.warning("Stop requested or time limit reached, stopping after current cycle.")
+                    break
+                # Pause between cycles for stability
+                if self.is_running and not self.stop_event.is_set():
+                    dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
+                    logger.debug(f"Pause between cycles: {dwell_time}s")
+                    time.sleep(dwell_time)
+            except Exception as e:
+                logger.error(f"Error in cycle {cycles_completed}: {e}")
+                break
+        elapsed_time = time.time() - start_time
+        self.return_legs_to_neutral()
+        self.stop()
+        logger.info(f"Completed {cycles_completed} cycles in {elapsed_time:.2f} seconds")
+        return cycles_completed, elapsed_time
+        
     def start(self) -> None:
         """
         Start the gait generation in a separate thread.
@@ -460,7 +506,7 @@ class GaitGenerator:
 
             # Check if stop event is set
             if self.stop_event.is_set():
-                logger.error("Stop event detected - will complete current cycle before stopping")
+                logger.warning("Stop event detected - will complete current cycle before stopping")
                 self.stop_requested = True
 
             try:
@@ -469,7 +515,7 @@ class GaitGenerator:
                 
                 # If stop was requested during the cycle, stop after completing it
                 if self.stop_requested:
-                    logger.error("Stop requested - completed current cycle, stopping gait")
+                    logger.warning("Stop requested - completed current cycle, stopping gait")
                     break
                 
                 # Pause between cycles for stability

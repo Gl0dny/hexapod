@@ -134,10 +134,10 @@ class BaseGait(ABC):
         'left': (-1.0, 0.0),      # -X direction
         
         # Diagonal directions (0.707 = 1/√2 for unit magnitude)
-        'diagonal-fr': (0.707, 0.707),    # Forward-Right
-        'diagonal-fl': (-0.707, 0.707),   # Forward-Left
-        'diagonal-br': (0.707, -0.707),   # Backward-Right
-        'diagonal-bl': (-0.707, -0.707),  # Backward-Left
+        'forward right': (0.707, 0.707),    # Forward-Right
+        'forward left': (-0.707, 0.707),   # Forward-Left
+        'backward right': (0.707, -0.707),   # Backward-Right
+        'backward left': (-0.707, -0.707),  # Backward-Left
         
         # Stop/neutral
         'neutral': (0.0, 0.0),
@@ -526,7 +526,7 @@ class BaseGait(ABC):
             path.add_waypoint(current_pos)  # Step 0: Start
             # path.add_waypoint(current_pos)  # Step 1: Hold (while swing leg lifts)
             path.add_waypoint(target)       # Step 2: Move to target (after swing lift)
-            # path.add_waypoint(target)       # Step 3: Hold (while swing leg reaches target)
+            # path.add_waypoint(target)  # Step 3: Hold (while swing leg reaches target)
         
         self.leg_paths[leg_index] = path
 
@@ -570,8 +570,8 @@ class BaseGait(ABC):
                 
                 String names (recommended):
                 - 'forward', 'backward', 'left', 'right'
-                - 'diagonal-fr', 'diagonal-fl', 'diagonal-br', 'diagonal-bl'
-                - 'stop'
+                - 'forward right', 'forward left', 'backward right', 'backward left'
+                - 'neutral'
                 
                 Direct tuples:
                 - (1, 0): Forward
@@ -590,7 +590,7 @@ class BaseGait(ABC):
                 
         Examples:
             gait.set_direction('forward', 0.0)           # Forward movement
-            gait.set_direction('diagonal-fr', 0.0)       # Diagonal forward-right
+            gait.set_direction('forward right', 0.0)     # Diagonal forward-right
             gait.set_direction((0.5, 0.5), 0.0)         # Custom direction
         """
         if isinstance(direction, str):
