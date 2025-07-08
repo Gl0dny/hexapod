@@ -5,7 +5,7 @@ import threading
 import time
 import numpy as np
 
-from utils import rename_thread
+from utils import rename_thread, Vector3D
 from .base_gait import BaseGait, GaitPhase, GaitState
 from .tripod_gait import TripodGait
 from .wave_gait import WaveGait
@@ -214,8 +214,10 @@ class GaitGenerator:
         Execute a complete gait cycle.
         
         This method executes all phases of the current gait pattern to complete
-        one full cycle. For tripod gait, this means executing both TRIPOD_A and
-        TRIPOD_B phases. For wave gait, this means executing all six WAVE phases.
+        one full cycle. 
+        For tripod gait, this means executing both TRIPOD_A and
+        TRIPOD_B phases. 
+        For wave gait, this means executing all six WAVE phases.
         
         The method handles:
         - Phase transitions through the complete cycle
@@ -362,9 +364,10 @@ class GaitGenerator:
         
         logger.info(f"Completed {cycles_completed} out of {num_cycles} requested cycles")
         
+        # Return legs to neutral before stopping
+        self.return_legs_to_neutral()
         # Stop the gait generator after completing the cycles
         self.stop()
-        
         return cycles_completed
 
     def start(self, gait: BaseGait, stop_event: Optional[threading.Event] = None) -> None:
@@ -444,6 +447,8 @@ class GaitGenerator:
                 raise
         
         logger.info(f"Gait generation stopped after {cycle_count} cycles")
+        # Return legs to neutral before stopping
+        self.return_legs_to_neutral()
 
     def get_cycle_statistics(self) -> Dict[str, int]:
         """
@@ -491,3 +496,67 @@ class GaitGenerator:
             self.cycle_count = 0
             self.total_phases_executed = 0
             self.stop_requested = False
+
+    def return_legs_to_neutral(self):
+        """
+        Move all legs to the neutral (0,0) position using gait-appropriate movement patterns.
+        For tripod gait: moves legs in groups of 3 (like swing legs)
+        For wave gait: moves legs one by one
+        This is called after the gait is stopped, for all gaits.
+        """
+        if not self.current_gait or not self.hexapod:
+            logger.warning("No current gait or hexapod, cannot return legs to neutral.")
+            return
+        
+        stance_height = self.current_gait.stance_height if hasattr(self.current_gait, 'stance_height') else 0.0
+        
+        if isinstance(self.current_gait, TripodGait):
+            logger.info("Returning legs to neutral using tripod pattern (groups of 3)")
+            # For tripod gait, move legs in two groups like swing legs
+            # Group 1: Legs 0, 2, 4 (Right, Left Front, Left Back)
+            # Group 2: Legs 1, 3, 5 (Right Front, Left, Right Back)
+            
+            swing_groups = [[0, 2, 4], [1, 3, 5]]
+            
+            for group_idx, swing_legs in enumerate(swing_groups):
+                logger.info(f"Moving swing group {group_idx + 1}: legs {swing_legs}")
+                
+                # Calculate paths for all legs in this swing group
+                swing_paths = {}
+                for leg_idx in swing_legs:
+                    target = (0.0, 0.0, -stance_height)
+                    self.current_gait.calculate_leg_path(
+                        leg_idx,
+                        Vector3D(*target),
+                        is_swing=True
+                    )
+                    swing_paths[leg_idx] = self.current_gait.leg_paths[leg_idx]
+                    logger.info(f"Leg {leg_idx} path has {len(swing_paths[leg_idx].waypoints)} waypoints")
+                
+                # Execute movement for this swing group using the existing waypoint execution method
+                # Pass empty stance legs list since we're only moving swing legs
+                self._execute_waypoints(swing_legs, swing_paths, [], {})
+                
+                logger.info(f"Swing group {group_idx + 1} returned to neutral")
+                
+        else:
+            # For wave gait or other gaits, move legs one by one
+            logger.info("Returning all legs to neutral position one by one.")
+            for leg_idx in range(6):
+                target = (0.0, 0.0, -stance_height)
+                # Use the current gait's path planner for swing legs
+                self.current_gait.calculate_leg_path(
+                    leg_idx,
+                    Vector3D(*target),
+                    is_swing=True
+                )
+                path = self.current_gait.leg_paths[leg_idx]
+                logger.info(f"Returning leg {leg_idx} to neutral via {len(path.waypoints)} waypoints.")
+                for waypoint in path.waypoints:
+                    all_positions = list(self.hexapod.current_leg_positions)
+                    all_positions[leg_idx] = (waypoint.x, waypoint.y, waypoint.z)
+                    self.hexapod.move_all_legs(all_positions)
+                    time.sleep(self.waypoint_dwell_time)
+                logger.info(f"Leg {leg_idx} returned to neutral.")
+        
+        logger.info("All legs returned to neutral position.")

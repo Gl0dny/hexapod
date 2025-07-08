@@ -8,7 +8,7 @@ controller:
 
 # Servo settings
 speed: 25                   # Default speed percentage for servos
-accel: 10                   # Default acceleration percentage for servos
+accel: 20                   # Default acceleration percentage for servos
 
 # Coxa joint parameters
 coxa_params:
