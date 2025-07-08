@@ -25,21 +25,26 @@ class GaitGenerator:
     separate thread to allow continuous movement while the main program
     continues to run.
     """
-    def __init__(self, hexapod: Hexapod, imu: Optional[Imu] = None) -> None:
+    def __init__(self, hexapod: Hexapod, imu: Optional[Imu] = None, waypoint_dwell_time: float = 0.3) -> None:
         """
         Initialize the GaitGenerator with references to the hexapod and IMU.
 
         Args:
             hexapod (Hexapod): The Hexapod instance to control
             imu (IMU, optional): The IMU instance for stability monitoring
+            waypoint_dwell_time (float): Time to wait between waypoints during leg movement (seconds)
         """
         self.hexapod = hexapod
         self.imu = imu
+        self.waypoint_dwell_time = waypoint_dwell_time
         self.is_running = False
         self.thread = None
         self.current_state: Optional[GaitState] = None
         self.current_gait: Optional[BaseGait] = None
         self.stop_event: Optional[threading.Event] = None
+        self.cycle_count: int = 0
+        self.total_phases_executed: int = 0
+        self.stop_requested: bool = False
 
     def _check_stability(self) -> bool:
         """
@@ -190,7 +195,7 @@ class GaitGenerator:
                 
                 # Wait for all movements to complete
                 # self.hexapod.wait_until_motion_complete()
-                time.sleep(0.3)  # Delay between waypoints
+                time.sleep(self.waypoint_dwell_time)  # Delay between waypoints
                 
                 logger.debug(f"    All legs moved successfully to waypoint {waypoint_idx + 1}")
                 
@@ -203,6 +208,164 @@ class GaitGenerator:
                 raise e
         
         logger.debug(f"  Completed simultaneous movement for all legs")
+
+    def _execute_full_cycle(self) -> None:
+        """
+        Execute a complete gait cycle.
+        
+        This method executes all phases of the current gait pattern to complete
+        one full cycle. For tripod gait, this means executing both TRIPOD_A and
+        TRIPOD_B phases. For wave gait, this means executing all six WAVE phases.
+        
+        The method handles:
+        - Phase transitions through the complete cycle
+        - Stability monitoring throughout the cycle
+        - Stop event checking between phases (completes current cycle if stop requested)
+        - Error handling and recovery
+        """
+        logger.info("Starting full gait cycle execution")
+
+        # Always reset to canonical start phase for each cycle
+        if isinstance(self.current_gait, TripodGait):
+            self.current_state = self.current_gait.get_state(GaitPhase.TRIPOD_A)
+        elif isinstance(self.current_gait, WaveGait):
+            self.current_state = self.current_gait.get_state(GaitPhase.WAVE_1)
+        
+        # Get the starting phase
+        current_phase = self.current_state.phase
+        cycle_start_phase = current_phase
+        
+        # Determine how many phases constitute a full cycle based on gait type
+        phases_per_cycle = len(self.current_gait.gait_graph)
+        phases_executed = 0
+        
+        logger.info(f"Executing full cycle starting from phase: {cycle_start_phase}")
+        logger.info(f"Expected phases per cycle: {phases_per_cycle}")
+        logger.info(f"Gait type: {type(self.current_gait).__name__}")
+        
+        # Check if stop was requested before starting this cycle
+        if self.stop_event and self.stop_event.is_set():
+            logger.error("Stop event detected before cycle start - completing current cycle")
+            self.stop_requested = True
+        
+        while self.is_running:
+            # Check if stop event is set during cycle execution
+            if self.stop_event and self.stop_event.is_set() and not self.stop_requested:
+                logger.error("Stop event detected during cycle execution - will complete current cycle")
+                self.stop_requested = True
+            
+            try:
+                # Execute current phase
+                logger.info(f"Executing phase {phases_executed + 1}/{phases_per_cycle}: {self.current_state.phase}")
+                self._execute_phase(self.current_state)
+                phases_executed += 1
+                
+                # Check if we've completed a full cycle
+                if phases_executed >= phases_per_cycle:
+                    logger.info(f"Completed full gait cycle ({phases_executed} phases)")
+                    logger.info(f"Cycle completed - phases_executed: {phases_executed}, phases_per_cycle: {phases_per_cycle}")
+                    break
+                
+                # Wait for dwell time or until stability is compromised
+                logger.debug(f"Waiting for dwell time: {self.current_state.dwell_time}s")
+                start_time = time.time()
+                while (time.time() - start_time < self.current_state.dwell_time and
+                       self._check_stability()):
+                    # Check stop event during dwell time
+                    if self.stop_event and self.stop_event.is_set() and not self.stop_requested:
+                        logger.error("Stop event detected during dwell time - will complete current cycle")
+                        self.stop_requested = True
+                    time.sleep(0.01)  # Small sleep to prevent CPU hogging
+                
+                # Check stop event before transitioning
+                if self.stop_event and self.stop_event.is_set() and not self.stop_requested:
+                    logger.error("Stop event detected before state transition - will complete current cycle")
+                    self.stop_requested = True
+                
+                # If stop was requested, complete the cycle but don't start a new one
+                if self.stop_requested:
+                    logger.error("Stop requested - completing current cycle before stopping")
+                    # Continue to complete the current cycle
+                
+                # Transition to next state
+                next_phases = self.current_gait.gait_graph[self.current_state.phase]
+                logger.info(f"Transitioning to next phase: {next_phases[0]}")
+                self.current_state = self.current_gait.get_state(next_phases[0])
+                
+            except Exception as e:
+                logger.error(f"Error in cycle execution: {e}")
+                logger.error(f"Current state: {self.current_state}")
+                logger.error(f"Phases executed: {phases_executed}")
+                logger.error(f"Current leg positions: {self.hexapod.current_leg_positions}")
+                raise
+        
+        logger.info(f"Full cycle execution completed. Executed {phases_executed} phases")
+        
+        # Update cycle statistics
+        self.cycle_count += 1
+        self.total_phases_executed += phases_executed
+
+    def execute_cycles(self, num_cycles: int) -> int:
+        """
+        Execute a specific number of gait cycles.
+        
+        This method executes the specified number of complete gait cycles
+        and then stops. Useful for controlled movement over a specific distance
+        or for testing purposes.
+        
+        When a stop event is detected, the current cycle is completed before stopping
+        to ensure graceful termination.
+        
+        Args:
+            num_cycles (int): Number of complete cycles to execute
+            
+        Returns:
+            int: Number of cycles actually completed
+        """
+        if num_cycles <= 0:
+            logger.error(f"Invalid number of cycles: {num_cycles}")
+            return 0
+        
+        logger.info(f"Executing {num_cycles} gait cycles")
+        cycles_completed = 0
+        
+        # Execute cycles directly without using the background thread
+        while self.is_running and cycles_completed < num_cycles:
+            logger.info(f"Starting cycle {cycles_completed + 1}/{num_cycles}")
+            logger.info(f"Current state before cycle: {self.current_state.phase}")
+            # Check if stop event is set
+            if self.stop_event and self.stop_event.is_set():
+                logger.error("Stop event detected during cycle execution - will complete current cycle")
+                self.stop_requested = True
+            
+            try:
+                # Execute one full cycle
+                cycles_completed += 1
+                logger.info(f"Executing cycle {cycles_completed}/{num_cycles}")
+                self._execute_full_cycle()
+                logger.info(f"Completed cycle {cycles_completed}/{num_cycles}")
+                logger.info(f"After cycle {cycles_completed} - cycle_count: {self.cycle_count}")
+                
+                # If stop was requested during the cycle, stop after completing it
+                if self.stop_requested:
+                    logger.error("Stop requested - completed current cycle, stopping execution")
+                    break
+                
+                # Brief pause between cycles for stability
+                if cycles_completed < num_cycles and self.is_running and (not self.stop_event or not self.stop_event.is_set()):
+                    logger.debug(f"Pause between cycles: {self.current_gait.dwell_time}s")
+                    time.sleep(self.current_gait.dwell_time)
+                
+            except Exception as e:
+                logger.error(f"Error in cycle {cycles_completed}: {e}")
+                raise
+        
+        logger.info(f"Completed {cycles_completed} out of {num_cycles} requested cycles")
+        
+        # Stop the gait generator after completing the cycles
+        self.stop()
+        
+        return cycles_completed
 
     def start(self, gait: BaseGait, stop_event: Optional[threading.Event] = None) -> None:
         """
@@ -220,6 +383,7 @@ class GaitGenerator:
             self.is_running = True
             self.stop_event = stop_event
             self.current_gait = gait
+            self.stop_requested = False  # Reset stop flag when starting
             
             # Set initial state based on gait type
             if isinstance(gait, TripodGait):
@@ -239,50 +403,73 @@ class GaitGenerator:
         Execute the gait pattern continuously.
         
         This is the main gait execution loop that runs in a separate thread.
-        It cycles through gait phases, executes leg movements, and handles
-        timing and stability monitoring.
+        It continuously executes full gait cycles, handling timing and stability
+        monitoring. Each cycle completes all phases of the gait pattern before
+        starting the next cycle.
+        
+        When a stop event is detected, the current cycle is completed before stopping
+        to ensure graceful termination of the gait pattern.
         """
         logger.info("Starting gait generation thread")
+        cycle_count = 0
+        
         while self.is_running:
             if not self.current_state:
-                logger.warning("No current state set, stopping gait")
+                logger.error("No current state set, stopping gait")
                 break
 
             # Check if stop event is set
             if self.stop_event and self.stop_event.is_set():
-                logger.warning("Stop event detected, stopping gait")
-                break
+                logger.error("Stop event detected - will complete current cycle before stopping")
+                self.stop_requested = True
 
             try:
-                # Execute current phase
-                self._execute_phase(self.current_state)
+                # Execute full gait cycle
+                self._execute_full_cycle()
                 
-                # Wait for dwell time or until stability is compromised
-                logger.debug(f"\nWaiting for dwell time: {self.current_state.dwell_time}s")
-                start_time = time.time()
-                while (time.time() - start_time < self.current_state.dwell_time and
-                       self._check_stability()):
-                    # Check stop event during dwell time
-                    if self.stop_event and self.stop_event.is_set():
-                        logger.warning("Stop event detected during dwell time")
-                        return
-                    time.sleep(0.01)  # Small sleep to prevent CPU hogging
-
-                # Check stop event before transitioning
-                if self.stop_event and self.stop_event.is_set():
-                    logger.warning("Stop event detected before state transition")
+                # If stop was requested during the cycle, stop after completing it
+                if self.stop_requested:
+                    logger.error("Stop requested - completed current cycle, stopping gait")
                     break
-
-                # Transition to next state
-                next_phases = self.current_gait.gait_graph[self.current_state.phase]
-                logger.info(f"\nTransitioning to next phase: {next_phases[0]}")
-                self.current_state = self.current_gait.get_state(next_phases[0])
+                
+                # Pause between cycles using dwell_time
+                if self.is_running and (not self.stop_event or not self.stop_event.is_set()):
+                    logger.debug(f"Pause between cycles: {self.current_gait.dwell_time}s")
+                    time.sleep(self.current_gait.dwell_time)
                 
             except Exception as e:
-                logger.error(f"\nError in gait generation: {e}")
+                logger.error(f"\nError in gait generation cycle #{cycle_count}: {e}")
                 logger.error(f"Current state: {self.current_state}")
                 logger.error(f"Current leg positions: {self.hexapod.current_leg_positions}")
                 raise
+        
+        logger.info(f"Gait generation stopped after {cycle_count} cycles")
+
+    def get_cycle_statistics(self) -> Dict[str, int]:
+        """
+        Get statistics about the gait execution.
+        
+        Returns:
+            Dict[str, int]: Dictionary containing cycle statistics
+                - 'total_cycles': Total number of complete cycles executed
+                - 'total_phases': Total number of phases executed
+                - 'is_running': Current cycle number (if running)
+        """
+        return {
+            'total_cycles': self.cycle_count,
+            'total_phases': self.total_phases_executed,
+            'is_running': self.is_running
+        }
+
+    def is_stop_requested(self) -> bool:
+        """
+        Check if a stop has been requested.
+        
+        Returns:
+            bool: True if a stop event has been set and the gait will stop
+                  after completing the current cycle
+        """
+        return self.stop_requested
 
     def stop(self) -> None:
         """
@@ -300,3 +487,7 @@ class GaitGenerator:
             self.current_state = None
             self.current_gait = None
             self.stop_event = None
+            # Reset cycle statistics
+            self.cycle_count = 0
+            self.total_phases_executed = 0
+            self.stop_requested = False

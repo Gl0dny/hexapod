@@ -85,20 +85,18 @@ def shutdown_cleanup(voice_control, manual_controller, task_interface):
     if manual_controller:
         manual_controller.stop()
         manual_controller.join()
-
-    for thread in threading.enumerate():
-        logger.user_info(f"{thread.name}, {thread.is_alive()}")
-    print("---")
     
     if task_interface:
         task_interface.stop_task()
         task_interface.lights_handler.off()
         task_interface.button_handler.cleanup()
-    # time.sleep(1)
     # task_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-    # time.sleep(0.5)
-    # task_interface.hexapod.deactivate_all_servos()
+    task_interface.hexapod.deactivate_all_servos()
     logger.user_info('Exiting...')
+
+    for thread in threading.enumerate():
+        logger.user_info(f"{thread.name}, {thread.is_alive()}")
+    print("---")
 
 def main() -> None:
     """Main entry point."""

@@ -146,9 +146,6 @@ class Hexapod:
 
         self.set_all_servos_speed(self.speed)
         self.set_all_servos_accel(self.accel)
-
-        self.move_to_position(PredefinedPosition.LOW_PROFILE)
-        self.wait_until_motion_complete()
         
         logger.info("Hexapod initialized successfully")
 
@@ -209,6 +206,12 @@ class Hexapod:
         Sets all servos to 0 to deactivate them.
         """
         logger.info("Deactivating all servos")
+        
+        # Add 2-second delay before deactivation
+        import time
+        logger.info("Deactivating servos...")
+        time.sleep(2.0)
+        
         targets = []
         for leg in self.legs:
             targets.append((leg.coxa_params['channel'], 0))

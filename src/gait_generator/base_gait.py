@@ -149,7 +149,8 @@ class BaseGait(ABC):
                  leg_lift_incline: float = 2.0,
                  stance_height: float = 0.0,  # Height of stance legs above ground (mm), 0.0 = reference position
                  dwell_time: float = 0.5,
-                 stability_threshold: float = 0.2) -> None:
+                 stability_threshold: float = 0.2,
+                 use_full_circle_stance: bool = False) -> None:
         """
         Initialize the base gait with circle-based parameters.
         
@@ -163,6 +164,23 @@ class BaseGait(ABC):
                                  Positive values lower legs (raise body), negative values raise legs (lower body).
             dwell_time (float): Time to spend in each gait phase (seconds)
             stability_threshold (float): Maximum IMU deviation for stability check
+            use_full_circle_stance (bool): Stance leg movement pattern
+                - False (default): Half circle behavior - stance legs move from current position back to center (0,0)
+                - True: Full circle behavior - stance legs move from current position to opposite side of circle
+                
+                Example calculations (step_radius=30.0, direction=1.0):
+                
+                HALF CIRCLE (default):
+                - Swing legs: (0,0) → (+30,0) [30mm movement]
+                - Stance legs: (+30,0) → (0,0) [30mm movement back to center]
+                - Total stance movement: 30mm
+                
+                FULL CIRCLE:
+                - Swing legs: (0,0) → (+30,0) [30mm movement]
+                - Stance legs: (+30,0) → (-30,0) [60mm movement to opposite side]
+                - Total stance movement: 60mm
+                
+                Half circle is more efficient as stance legs move half the distance.
         """
         self.hexapod = hexapod
         self.gait_graph: Dict[GaitPhase, List[GaitPhase]] = {}
@@ -174,6 +192,7 @@ class BaseGait(ABC):
         self.stance_height = stance_height
         self.dwell_time = dwell_time
         self.stability_threshold = stability_threshold
+        self.use_full_circle_stance = use_full_circle_stance
         
         # Movement parameters - set by user to control robot movement
         self.direction_input = Vector2D(0, 0)  # Movement direction and speed
@@ -312,10 +331,18 @@ class BaseGait(ABC):
                 projection_direction = rotation_projection
                 projection_origin = Vector2D(0, 0)
             else:
-                # Stance legs: project from current position in opposite rotation direction
-                projection_direction = rotation_projection.inverse()
-                current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
-                projection_origin = current_pos_2d
+                # Stance legs behavior for rotation
+                if self.use_full_circle_stance:
+                    # Full circle behavior: stance legs move in opposite rotation direction
+                    projection_direction = rotation_projection.inverse()
+                    current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
+                    projection_origin = current_pos_2d
+                else:
+                    # Half circle behavior: stance legs move back to center (0,0)
+                    current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
+                    # Direction from current position to center
+                    projection_direction = current_pos_2d.inverse()
+                    projection_origin = current_pos_2d
         else:
             # Handle translation movement
             # Project the global movement direction into the leg's local coordinate system
@@ -346,16 +373,34 @@ class BaseGait(ABC):
                 projection_direction = leg_projected_direction
                 projection_origin = Vector2D(0, 0)
             else:
-                # Stance legs: move in opposite direction from current position
-                projection_direction = leg_projected_direction.inverse()
-                current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
-                projection_origin = current_pos_2d
+                # Stance legs behavior
+                if self.use_full_circle_stance:
+                    # Full circle behavior: stance legs move to opposite side of circle
+                    projection_direction = leg_projected_direction.inverse()
+                    current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
+                    projection_origin = current_pos_2d
+                else:
+                    # Half circle behavior: stance legs move back to center (0,0)
+                    current_pos_2d = Vector2D(*self.hexapod.current_leg_positions[leg_index][:2])
+                    # Direction from current position to center
+                    projection_direction = current_pos_2d.inverse()
+                    projection_origin = current_pos_2d
         
         # Calculate target position using circle projection
         if self.rotation_input != 0:
             # For rotation, use relative movements
             movement_distance = self.step_radius * abs(self.rotation_input)
-            target_2d = projection_direction.normalized() * movement_distance
+            if is_swing:
+                # Swing legs: use relative movement
+                target_2d = projection_direction.normalized() * movement_distance
+            else:
+                # Stance legs for rotation
+                if self.use_full_circle_stance:
+                    # Full circle behavior: use relative movement
+                    target_2d = projection_direction.normalized() * movement_distance
+                else:
+                    # Half circle behavior: move back to center (0,0)
+                    target_2d = Vector2D(0, 0)
         else:
             # For translation, use direction magnitude to scale movement distance (like rotation)
             movement_distance = self.step_radius * self.direction_input.magnitude()
@@ -364,8 +409,13 @@ class BaseGait(ABC):
                     # For swing legs, use circle projection from center (constrained by workspace)
                     target_2d = self.project_point_to_circle(movement_distance, projection_origin, projection_direction)
                 else:
-                    # For stance legs, use circle projection from current position
-                    target_2d = self.project_point_to_circle(movement_distance, projection_origin, projection_direction)
+                    # For stance legs
+                    if self.use_full_circle_stance:
+                        # Full circle behavior: use circle projection from current position
+                        target_2d = self.project_point_to_circle(movement_distance, projection_origin, projection_direction)
+                    else:
+                        # Half circle behavior: move back to center (0,0) - no circle projection needed
+                        target_2d = Vector2D(0, 0)
             else:
                 # No movement - stay at current position
                 if is_swing:
