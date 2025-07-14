@@ -313,8 +313,6 @@ class TaskInterface:
         """
         try:
             logger.user_info("Activating robot...")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.WakeUpTask(
                 hexapod, 
                 lights_handler, 
@@ -339,8 +337,6 @@ class TaskInterface:
         """
         try:
             logger.user_info("Deactivating robot...")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.SleepTask(
                 hexapod, 
                 lights_handler, 
@@ -365,8 +361,6 @@ class TaskInterface:
         """
         try:
             self.external_control_paused_event.set()  # Signal external control paused
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.CompositeCalibrationTask(
                 hexapod, 
                 lights_handler, 
@@ -393,8 +387,6 @@ class TaskInterface:
         """
         try:
             logger.info(f"Executing sequence: {sequence_name}")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.RunSequenceTask(
                 hexapod, 
                 lights_handler, 
@@ -523,8 +515,6 @@ class TaskInterface:
             duration (Optional[float]): Duration of marching in place in seconds. If None, uses default duration.
         """
         try:
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.MarchInPlaceTask(
                 hexapod, 
                 lights_handler,
@@ -547,8 +537,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.IdleStanceTask(
                 hexapod, 
                 lights_handler, 
@@ -574,8 +562,6 @@ class TaskInterface:
             duration (float, optional): Duration to move in seconds.
         """
         try:
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.MoveTask(
                 hexapod,
                 lights_handler,
@@ -604,9 +590,6 @@ class TaskInterface:
             duration (float, optional): Duration to rotate in seconds.
         """
         try:
-            logger.user_info("Initiating rotate.")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.RotateTask(
                 hexapod,
                 lights_handler,
@@ -632,9 +615,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            logger.user_info("Initiating follow.")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.FollowTask(
                 hexapod, 
                 lights_handler, 
@@ -658,8 +638,6 @@ class TaskInterface:
             odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
         """
         try:
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.SoundSourceLocalizationTask(
                 hexapod=hexapod, 
                 lights_handler=lights_handler,
@@ -687,9 +665,6 @@ class TaskInterface:
             stream_type (str): Type of audio stream to play (default: "separated").
         """
         try:
-            logger.user_info("Starting ODAS audio streaming.")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.StreamODASAudioTask(
                 hexapod=hexapod, 
                 lights_handler=lights_handler,
@@ -711,7 +686,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            logger.user_info("Turning on police lights...")
             lights_handler.police()
                 
         except Exception as e:
@@ -727,7 +701,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            logger.user_info("Executing rainbow command")
             lights_handler.rainbow()
 
         except Exception as e:
@@ -746,9 +719,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            logger.user_info("Initiating sit-up routine.")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.SitUpTask(
                 hexapod, 
                 lights_handler, 
@@ -770,9 +740,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            logger.user_info("Initiating dance routine.")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.DanceTask(
                 hexapod, 
                 lights_handler, 
@@ -794,9 +761,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            if self.task:
-                self.task.stop_task()
-
             self.task = task_interface.tasks.HelixTask(
                 hexapod, 
                 lights_handler, 
@@ -819,9 +783,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            logger.user_info("Initiating show-off routine.")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.ShowOffTask(
                 hexapod, 
                 lights_handler, 
@@ -843,9 +804,6 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            logger.user_info("Executing say hello.")
-            if self.task:
-                self.task.stop_task()
             self.task = task_interface.tasks.SayHelloTask(
                 hexapod, 
                 lights_handler, 
@@ -862,13 +820,12 @@ class TaskInterface:
         Stop all current activities: stop the current task, deactivate servos, and turn off lights.
         """
         try:
-            logger.user_info("Executing stop.")
             # Stop any running task
             if self.task:
             # Deactivate servos
                 if hexapod:
-                    logger.user_info("Stopping gait generator and moving hexapod to zero position.")
-                    hexapod.gait_generator.stop()
+                    if hexapod.gait_generator.is_gait_running():
+                        hexapod.gait_generator.stop()
                     self.task.stop_task()
                     hexapod.move_to_position(PredefinedPosition.ZERO)
                     hexapod.wait_until_motion_complete()

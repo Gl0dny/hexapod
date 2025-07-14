@@ -115,6 +115,9 @@ class VoiceControl(threading.Thread):
 
         self.context = self.picovoice.context_info
         self.task_interface.set_task_complete_callback(self.on_task_complete)
+        # Task interface interrupted flag
+        # This flag is used to indicate that the current task was interrupted by a wake word detection
+        self.task_interface_interrupted = False
         self.intent_dispatcher = IntentDispatcher(self.task_interface)
 
         logger.debug(f"Using PvRecorder for audio input with device_index={self.device_index}")
@@ -147,6 +150,12 @@ class VoiceControl(threading.Thread):
         """
         logger.user_info('[wake word]')
         self.task_interface.lights_handler.listen_intent()
+
+        if self.task_interface.task is not None:
+            self.task_interface_interrupted = True
+            logger.user_info(f"Interrupting current task: {self.task_interface.task.__class__.__name__}")
+            self.task_interface.stop()
+
         logger.user_info("Listening for intent...")
 
     def _inference_callback(self, inference: Any) -> None:
@@ -180,11 +189,13 @@ class VoiceControl(threading.Thread):
         logger.user_info(f"Voice control task {task.__class__.__name__} has been completed.")
         
         # Only set lights to listen for wake word if the voice control thread is still running
-        if not self.stop_event.is_set():
+        if not self.stop_event.is_set() and not self.task_interface_interrupted:
             self.task_interface.lights_handler.listen_wakeword()
             logger.user_info("Listening for wake word...")
         else:
             logger.debug("Voice control thread is stopping, canceling the callback for wakeword listening (control task completed)")
+
+        self.task_interface_interrupted = False
 
     def run(self) -> None:
         """

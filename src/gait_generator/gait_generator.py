@@ -373,64 +373,126 @@ class GaitGenerator:
         
         logger.info(f"Executing {num_cycles} gait cycles in background thread")
         
-        # Start gait execution in background thread
-        self.thread = threading.Thread(target=self._run_cycles_thread, args=(num_cycles,))
+        # Start gait execution in background thread using unified loop directly
+        self.thread = threading.Thread(target=self._run_gait_loop, kwargs={'max_cycles': num_cycles})
         rename_thread(self.thread, f"GaitGenerator-Cycles-{num_cycles}")
         self.thread.start()
 
-    def _run_cycles_thread(self, num_cycles: int) -> None:
+    def _run_gait_loop(self, *, 
+                      max_cycles: Optional[int] = None,
+                      max_duration: Optional[float] = None,
+                      handle_direction_changes: bool = False) -> int:
         """
-        Internal method to execute cycles in a background thread.
+        Shared gait execution loop used by all thread methods.
+        
+        This method contains the common logic for executing gait cycles with different
+        termination conditions. It handles cycle execution, stop event checking,
+        error handling, and cleanup.
         
         Args:
-            num_cycles (int): Number of complete cycles to execute
-        """
-        logger.info(f"Starting cycles execution thread for {num_cycles} cycles")
-        cycles_completed = 0
-        
-        while self.is_running and cycles_completed < num_cycles:
-            logger.info(f"Starting cycle {cycles_completed + 1}/{num_cycles}")
-            logger.info(f"Current state before cycle: {self.current_state.phase}")
+            max_cycles: Maximum number of cycles to execute (None for unlimited)
+            max_duration: Maximum duration to run in seconds (None for unlimited)
+            handle_direction_changes: Whether to handle pending direction/rotation changes
             
-            # Check if stop event is set
-            if self.stop_event.is_set():
-                logger.error("Stop event detected during cycle execution - will complete current cycle")
+        Returns:
+            int: Number of cycles completed
+        """
+        logger.info(f"Starting gait loop - max_cycles: {max_cycles}, max_duration: {max_duration}")
+        cycles_completed = 0
+        start_time = time.time()
+        
+        while self.is_running:
+            # Check termination conditions
+            if max_cycles is not None and cycles_completed >= max_cycles:
+                logger.info(f"Reached maximum cycles ({max_cycles}), stopping")
+                break
+                
+            if max_duration is not None:
+                elapsed = time.time() - start_time
+                if elapsed >= max_duration:
+                    logger.warning(f"Time limit reached ({max_duration}s), will finish current cycle and stop")
+                    self.stop_requested = True
+            
+            if self.stop_event.is_set() and not self.stop_requested:
+                logger.error("Stop event detected, will finish current cycle and stop")
                 self.stop_requested = True
             
+            if not self.current_state:
+                logger.error("No current state set, stopping gait")
+                break
+
             try:
-                # Execute one full cycle
+                # Execute full gait cycle
                 cycles_completed += 1
-                logger.info(f"Executing cycle {cycles_completed}/{num_cycles}")
+                logger.info(f"Executing cycle {cycles_completed}")
                 self._execute_full_cycle()
-                logger.info(f"Completed cycle {cycles_completed}/{num_cycles}")
-                logger.info(f"After cycle {cycles_completed} - cycle_count: {self.cycle_count}")
+                logger.info(f"Completed cycle {cycles_completed}")
                 
                 # If stop was requested during the cycle, stop after completing it
                 if self.stop_requested:
-                    logger.error("Stop requested - completed current cycle, stopping execution")
+                    logger.info("Stop requested - completed current cycle, stopping gait")
                     break
+
+                # Handle pending direction/rotation change after cycle (only for continuous mode)
+                if handle_direction_changes and (self.pending_direction is not None or self.pending_rotation is not None):
+                    new_direction = self.pending_direction if self.pending_direction is not None else self.current_gait.direction_input
+                    new_rotation = self.pending_rotation if self.pending_rotation is not None else self.current_gait.rotation_input
+                    logger.info(f"Direction/rotation change requested: {new_direction}, {new_rotation}, returning to neutral before applying.")
+                    self.return_legs_to_neutral()
+                    self.current_gait.set_direction(new_direction, new_rotation)
+                    logger.info(f"Direction/rotation updated to: {new_direction}, rotation: {new_rotation}")
+                    self.pending_direction = None
+                    self.pending_rotation = None
                 
-                # Brief pause between cycles for stability
-                if cycles_completed < num_cycles and self.is_running and not self.stop_event.is_set():
+                # Pause between cycles for stability
+                if self.is_running and not self.stop_event.is_set():
                     dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
                     logger.debug(f"Pause between cycles: {dwell_time}s")
                     time.sleep(dwell_time)
                 
             except Exception as e:
                 logger.error(f"Error in cycle {cycles_completed}: {e}")
+                logger.error(f"Current state: {self.current_state}")
+                logger.error(f"Current leg positions: {self.hexapod.current_leg_positions}")
                 raise
         
-        logger.info(f"Completed {cycles_completed} out of {num_cycles} requested cycles")
-        
-        # Return legs to neutral before stopping
+        # Cleanup
         self.return_legs_to_neutral()
-        # Clean up state without calling self.stop() to avoid deadlock
+        self._cleanup_thread_state()
+        
+        if max_duration is not None:
+            elapsed_time = time.time() - start_time
+            logger.info(f"Completed {cycles_completed} cycles in {elapsed_time:.2f} seconds")
+        else:
+            logger.info(f"Completed {cycles_completed} cycles")
+            
+        return cycles_completed
+
+    def _cleanup_thread_state(self) -> None:
+        """
+        Clean up thread state without calling self.stop() to avoid deadlock.
+        """
         self.is_running = False
         self.current_state = None
         self.current_gait = None
         self.cycle_count = 0
         self.total_phases_executed = 0
         self.stop_requested = False
+
+    def stop(self) -> None:
+        """
+        Stop the gait generation.
+        
+        This method safely stops the gait execution, waits for the thread
+        to finish, and cleans up resources.
+        """
+        if self.is_running:
+            self.is_running = False
+            self.stop_event.set()
+
+            if self.thread:
+                self.thread.join()
+            self._cleanup_thread_state()
 
     def run_for_duration(self, seconds: float) -> None:
         """
@@ -448,56 +510,10 @@ class GaitGenerator:
         
         logger.info(f"Running gait for {seconds:.2f} seconds in background thread")
         
-        # Start gait execution in background thread
-        self.thread = threading.Thread(target=self._run_duration_thread, args=(seconds,))
+        # Start gait execution in background thread using unified loop directly
+        self.thread = threading.Thread(target=self._run_gait_loop, kwargs={'max_duration': seconds})
         rename_thread(self.thread, f"GaitGenerator-Duration-{seconds}s")
         self.thread.start()
-
-    def _run_duration_thread(self, seconds: float) -> None:
-        """
-        Internal method to run gait for duration in a background thread.
-        
-        Args:
-            seconds (float): Duration to run in seconds
-        """
-        logger.info(f"Starting duration execution thread for {seconds:.2f} seconds")
-        cycles_completed = 0
-        start_time = time.time()
-        
-        while self.is_running:
-            now = time.time()
-            elapsed = now - start_time
-            if elapsed >= seconds:
-                logger.warning("Time limit reached, will finish current cycle and stop.")
-                self.stop_requested = True
-            if self.stop_event.is_set():
-                logger.error("Stop event detected, will finish current cycle and stop.")
-                self.stop_requested = True
-            try:
-                self._execute_full_cycle()
-                cycles_completed += 1
-                if self.stop_requested:
-                    logger.warning("Stop requested or time limit reached, stopping after current cycle.")
-                    break
-                # Pause between cycles for stability
-                if self.is_running and not self.stop_event.is_set():
-                    dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
-                    logger.debug(f"Pause between cycles: {dwell_time}s")
-                    time.sleep(dwell_time)
-            except Exception as e:
-                logger.error(f"Error in cycle {cycles_completed}: {e}")
-                break
-        
-        elapsed_time = time.time() - start_time
-        self.return_legs_to_neutral()
-        # Clean up state without calling self.stop() to avoid deadlock
-        self.is_running = False
-        self.current_state = None
-        self.current_gait = None
-        self.cycle_count = 0
-        self.total_phases_executed = 0
-        self.stop_requested = False
-        logger.info(f"Completed {cycles_completed} cycles in {elapsed_time:.2f} seconds")
 
     def start(self) -> None:
         """
@@ -512,74 +528,12 @@ class GaitGenerator:
             self.stop_requested = False  # Reset stop flag when starting
             self.stop_event.clear()
             
-            # Start gait execution in background thread
-            self.thread = threading.Thread(target=self.run_gait)
+            # Start gait execution in background thread using unified loop directly
+            self.thread = threading.Thread(target=self._run_gait_loop, kwargs={'handle_direction_changes': True})
             rename_thread(self.thread, f"GaitGenerator-{self.current_gait.__class__.__name__}")
             self.thread.start()
         elif not self.current_gait:
             raise ValueError("No current gait set. Call create_gait() first.")
-
-    def run_gait(self) -> None:
-        """
-        Execute the gait pattern continuously.
-        
-        This is the main gait execution loop that runs in a separate thread.
-        It continuously executes full gait cycles, handling timing and stability
-        monitoring. Each cycle completes all phases of the gait pattern before
-        starting the next cycle.
-        
-        When a stop event is detected, the current cycle is completed before stopping
-        to ensure graceful termination of the gait pattern.
-        """
-        logger.info("Starting gait generation thread")
-        cycle_count = 0
-        
-        while self.is_running:
-            if not self.current_state:
-                logger.error("No current state set, stopping gait")
-                break
-
-            # Check if stop event is set
-            if self.stop_event.is_set():
-                logger.error("Stop event detected - will complete current cycle before stopping")
-                self.stop_requested = True
-
-            try:
-                # Execute full gait cycle
-                self._execute_full_cycle()
-                
-                # If stop was requested during the cycle, stop after completing it
-                if self.stop_requested:
-                    logger.error("Stop requested - completed current cycle, stopping gait")
-                    break
-
-                # Handle pending direction/rotation change after cycle
-                if self.pending_direction is not None or self.pending_rotation is not None:
-                    new_direction = self.pending_direction if self.pending_direction is not None else self.current_gait.direction_input
-                    new_rotation = self.pending_rotation if self.pending_rotation is not None else self.current_gait.rotation_input
-                    logger.info(f"Direction/rotation change requested: {new_direction}, {new_rotation}, returning to neutral before applying.")
-                    self.return_legs_to_neutral()
-                    self.current_gait.set_direction(new_direction, new_rotation)
-                    logger.info(f"Direction/rotation updated to: {new_direction}, rotation: {new_rotation}")
-                    self.pending_direction = None
-                    self.pending_rotation = None
-                
-                
-                # Pause between cycles for stability
-                if self.is_running and not self.stop_event.is_set():
-                    dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
-                    logger.debug(f"Pause between cycles: {dwell_time}s")
-                    time.sleep(dwell_time)
-                
-            except Exception as e:
-                logger.error(f"\nError in gait generation cycle #{cycle_count}: {e}")
-                logger.error(f"Current state: {self.current_state}")
-                logger.error(f"Current leg positions: {self.hexapod.current_leg_positions}")
-                raise
-        
-        logger.info(f"Gait generation stopped after {cycle_count} cycles")
-        # Return legs to neutral before stopping
-        self.return_legs_to_neutral()
 
     def get_cycle_statistics(self) -> Dict[str, int]:
         """
@@ -606,28 +560,6 @@ class GaitGenerator:
                   after completing the current cycle
         """
         return self.stop_requested
-
-    def stop(self) -> None:
-        """
-        Stop the gait generation.
-        
-        This method safely stops the gait execution, waits for the thread
-        to finish, and cleans up resources.
-        """
-        if self.is_running:
-            self.is_running = False
-            self.stop_event.set()
-
-            if self.thread:
-                self.thread.join()
-                
-            self.current_state = None
-            self.current_gait = None
-
-            # Reset cycle statistics
-            self.cycle_count = 0
-            self.total_phases_executed = 0
-            self.stop_requested = False
 
     def _calculate_rotation_per_cycle(self, step_radius: float) -> float:
         """
@@ -805,3 +737,12 @@ class GaitGenerator:
         if (direction_tuple, rotation) != (current_dir_tuple, current_rot):
             self.pending_direction = direction
             self.pending_rotation = rotation
+
+    def is_gait_running(self) -> bool:
+        """
+        Check if the gait generator is currently running.
+        
+        Returns:
+            bool: True if the gait generator is running, False otherwise
+        """
+        return self.is_running and self.thread is not None and self.thread.is_alive()

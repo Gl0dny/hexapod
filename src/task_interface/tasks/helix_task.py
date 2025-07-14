@@ -26,20 +26,6 @@ class HelixTask(Task):
         self.hexapod = hexapod
         self.lights_handler = lights_handler
 
-        helix_min_positions = []
-        helix_max_positions = []
-        for i in range(6):
-            # Read the current angles
-            _, femur_angle, tibia_angle = self.hexapod.current_leg_angles[i]
-            # Use coxa min or max, keep femur/tibia from the cache
-            helix_min_positions.append((self.hexapod.coxa_params['angle_min']+25, femur_angle, tibia_angle))
-            helix_max_positions.append((self.hexapod.coxa_params['angle_max'], femur_angle, tibia_angle))
-
-        self.helix_positions = {
-            'helix_minimum': helix_min_positions,
-            'helix_maximum': helix_max_positions,
-        }
-
     def _perform_helix(self) -> None:
         """
         Performs the helix maneuver by moving to helix_minimum and then to helix_maximum positions.
@@ -54,6 +40,20 @@ class HelixTask(Task):
         
         self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         self.hexapod.wait_until_motion_complete(self.stop_event)
+
+        helix_min_positions = []
+        helix_max_positions = []
+        for i in range(6):
+            # Read the current angles
+            _, femur_angle, tibia_angle = self.hexapod.current_leg_angles[i]
+            # Use coxa min or max, keep femur/tibia from the cache
+            helix_min_positions.append((self.hexapod.coxa_params['angle_min']+25, femur_angle, tibia_angle))
+            helix_max_positions.append((self.hexapod.coxa_params['angle_max'], femur_angle, tibia_angle))
+
+        self.helix_positions = {
+            'helix_minimum': helix_min_positions,
+            'helix_maximum': helix_max_positions,
+        }
 
         # Parameters for the helix motion
         repetitions = 2  # number of helix cycles to perform
