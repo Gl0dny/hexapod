@@ -86,14 +86,7 @@ def shutdown_cleanup(voice_control, manual_controller, task_interface):
         manual_controller.stop()
         manual_controller.join()
     if task_interface:
-        if task_interface.hexapod.gait_generator:
-            task_interface.hexapod.gait_generator.stop()
-        if task_interface.task:
-            task_interface.stop_task()
-        task_interface.lights_handler.off()
-        task_interface.button_handler.cleanup()
-    # task_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-    task_interface.hexapod.deactivate_all_servos()
+        task_interface.cleanup()
     logger.user_info('Exiting...')
 
     for thread in threading.enumerate():

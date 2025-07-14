@@ -104,7 +104,7 @@ class RotateTask(Task):
             # Wait until externally stopped
             while not self.stop_event.is_set():
                 time.sleep(0.1)
-            logger.warning("Marching task interrupted by external stop.")
+            logger.warning("Rotate task interrupted by external stop.")
 
         # Stop the gait generator
         self.hexapod.gait_generator.stop()

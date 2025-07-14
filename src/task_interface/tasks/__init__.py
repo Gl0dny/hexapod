@@ -14,5 +14,4 @@ from .sit_up_task import SitUpTask
 from .sleep_task import SleepTask
 from .sound_source_localization import SoundSourceLocalizationTask
 from .stream_odas_audio_task import StreamODASAudioTask
-from .stop_task import StopTask
 from .wake_up_task import WakeUpTask

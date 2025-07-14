@@ -9,7 +9,7 @@ from types import MethodType
 from pathlib import Path
 
 from lights import LightsInteractionHandler, ColorRGB
-from robot import Hexapod, ButtonHandler
+from robot import Hexapod, ButtonHandler, PredefinedPosition
 import task_interface.tasks
 from interface import NonBlockingConsoleInputHandler
 from utils import rename_thread
@@ -120,10 +120,8 @@ class TaskInterface:
             try:
                 logger.debug(f"Stopping existing task {self.task}.")
                 self.task.stop_task(timeout=5.0)
-                self.task = None
             except Exception as e:
                 logger.exception(f"Error stopping task: {e}")
-                self.task = None
         else:
             logger.debug("No active task to stop.")
 
@@ -194,6 +192,9 @@ class TaskInterface:
         """
         if self.task_complete_callback:
             self.task_complete_callback(task)
+        # Ensure self.task is cleared if the completed task is the current one
+        if self.task is task:
+            self.task = None
 
     @voice_command
     def hexapod_help(self) -> None:
@@ -591,30 +592,6 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def stop(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
-        """
-        Stop all current activities.
-
-        Args:
-            hexapod (Hexapod): The hexapod instance.
-            lights_handler (LightsInteractionHandler): Handles lights activity.
-        """
-        try:
-            logger.user_info("Executing stop.")
-            if self.task:
-                self.task.stop_task()
-            self.task = task_interface.tasks.StopTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
-            )
-        except Exception as e:
-            logger.exception(f"Stop task failed: {e}")
-
-    @voice_command
-    @task
-    @inject_lights_handler
-    @inject_hexapod
     def rotate(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, angle: float = None, turn_direction: str = None, cycles: int = None, duration: float = None) -> None:
         """
         Rotate the hexapod by a specified angle, direction, cycles, or duration.
@@ -877,3 +854,45 @@ class TaskInterface:
             )
         except Exception as e:
             logger.exception(f"Say hello task failed: {e}")
+
+    @voice_command
+    @inject_lights_handler
+    @inject_hexapod
+    def stop(self, hexapod, lights_handler):
+        """
+        Stop all current activities: stop the current task, deactivate servos, and turn off lights.
+        """
+        try:
+            logger.user_info("Executing stop.")
+            # Stop any running task
+            if self.task:
+                self.task.stop_task()
+            else:
+                lights_handler.listen_wakeword()
+                logger.user_info("No active task to stop.")
+            # Deactivate servos
+            if hexapod:
+                logger.user_info("Moving hexapod to zero position and stopping gait generator.")
+                hexapod.move_to_position(PredefinedPosition.ZERO)
+                hexapod.wait_until_motion_complete()
+                hexapod.gait_generator.stop()
+                logger.info("Hexapod gait generator stopped.")
+        except Exception as e:
+            logger.exception(f"Stop failed: {e}")
+            
+    def cleanup(self):
+        """
+        Clean up the task interface.
+        """
+        self.stop()
+        # Clean up button handler
+        if self.button_handler:
+            self.button_handler.cleanup()
+            logger.info("Button handler cleaned up.")
+        # Turn off lights
+        if self.lights_handler:
+            self.lights_handler.off()
+            logger.info("Lights turned off.")
+        if self.hexapod:
+            self.hexapod.deactivate_all_servos()
+            logger.info("Hexapod servos deactivated.")

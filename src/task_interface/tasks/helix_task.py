@@ -52,6 +52,9 @@ class HelixTask(Task):
         """
         logger.info("Starting helix maneuver")
         
+        self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.hexapod.wait_until_motion_complete(self.stop_event)
+
         # Parameters for the helix motion
         repetitions = 2  # number of helix cycles to perform
         

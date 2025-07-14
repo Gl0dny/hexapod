@@ -59,7 +59,6 @@ class MarchInPlaceTask(Task):
         gait_params = {
             'step_radius': 0.0,      # No forward movement
             'leg_lift_distance': 30.0,       # Lift legs 30mm
-            'leg_lift_incline': 2.0,         # Default incline
             'stance_height': 0.0,            # Default stance
             'dwell_time': 0.3,               # Fast stepping for marching
             'use_full_circle_stance': False

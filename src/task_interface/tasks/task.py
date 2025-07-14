@@ -80,6 +80,10 @@ class Task(threading.Thread, abc.ABC):
                 self.join(timeout=timeout)
                 if self.is_alive():
                     logger.error(f"Task {self.__class__.__name__} did not stop within {timeout}s timeout")
+            
+                if self.callback:
+                    self.callback()
+
             except Exception as e:
                 logger.error(f"Error while stopping task {self.__class__.__name__}: {e}")
 

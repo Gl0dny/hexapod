@@ -57,7 +57,7 @@ class IntentDispatcher:
             # 'march_in_place': self.handle_march_in_place, #TODO train model for this command
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
-            'stop': self.handle_march_in_place,
+            'stop': self.handle_stop,
             'rotate': self.handle_rotate,
             'follow': self.handle_follow,
             'sound_source_localization': self.handle_sound_source_localization,
