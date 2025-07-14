@@ -163,8 +163,8 @@ class LightsInteractionHandler:
     @animation
     def listen_intent(
         self,
-        color_even: ColorRGB = ColorRGB.INDIGO,
-        color_odd: ColorRGB = ColorRGB.GREEN,
+        color_even: ColorRGB = ColorRGB.WHITE,
+        color_odd: ColorRGB = ColorRGB.BLACK,
         delay: float = 0.15
     ) -> None:
         """

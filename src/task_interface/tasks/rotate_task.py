@@ -78,36 +78,46 @@ class RotateTask(Task):
         if self.angle is not None:
             # Use the gait generator's angle-based rotation method
             logger.info(f"Rotating {self.angle} degrees using angle-based rotation")
-            cycles_completed = self.hexapod.gait_generator.execute_rotation_by_angle(
+            self.hexapod.gait_generator.execute_rotation_by_angle(
                 angle_degrees=self.angle,
-                rotation_direction=rotation_direction
-                )
-            logger.info(f"Completed {cycles_completed} cycles for {self.angle} degrees rotation")
+                rotation_direction=rotation_direction,
+                step_radius=gait_params['step_radius']
+            )
+            logger.info(f"Started rotation execution for {self.angle} degrees in background thread")
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info(f"Completed rotation for {self.angle} degrees")
             
         elif self.cycles is not None:
             # Execute specific number of cycles
             logger.info(f"Executing {self.cycles} rotation cycles")
-            cycles_completed = self.hexapod.gait_generator.execute_cycles(self.cycles)
-            logger.info(f"Completed {cycles_completed} rotation cycles")
+            self.hexapod.gait_generator.execute_cycles(self.cycles)
+            logger.info(f"Started execution of {self.cycles} rotation cycles in background thread")
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info(f"Completed {self.cycles} rotation cycles")
             
         elif self.duration is not None:
             # Execute for specific duration
             logger.info(f"Executing rotation for {self.duration} seconds")
-            cycles_completed, elapsed_time = self.hexapod.gait_generator.run_for_duration(self.duration)
-            logger.info(f"Duration-based rotation completed: {cycles_completed} cycles in {elapsed_time:.2f} seconds")
+            self.hexapod.gait_generator.run_for_duration(self.duration)
+            logger.info(f"Started duration-based rotation for {self.duration} seconds in background thread")
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info(f"Completed duration-based rotation")
             
         else:
             # Start infinite gait generation (no angle or cycles or duration specified)
             logger.info("Starting infinite gait generation")
             self.hexapod.gait_generator.start()
             logger.warning("Infinite gait generation started - will continue until stopped externally")
-            # Wait until externally stopped
-            while not self.stop_event.is_set():
-                time.sleep(0.1)
-            logger.warning("Rotate task interrupted by external stop.")
-
-        # Stop the gait generator
-        self.hexapod.gait_generator.stop()
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info("Infinite gait generation completed")
 
     @override
     def execute_task(self) -> None:

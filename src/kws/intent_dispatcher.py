@@ -54,7 +54,7 @@ class IntentDispatcher:
             'set_brightness': self.handle_set_brightness,
             'set_speed': self.handle_set_speed,
             'set_accel': self.handle_set_accel,
-            # 'march_in_place': self.handle_march_in_place, #TODO train model for this command
+            'march_in_place': self.handle_march_in_place,
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
             'stop': self.handle_stop,
@@ -362,6 +362,29 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
+        def parse_angle(slot_value):
+            allowed_words = {
+                "thirty": 30,
+                "sixty": 60,
+                "ninety": 90,
+                "one hundred twenty": 120,
+                "two hundred fifty": 250,
+                "one hundred eighty": 180,
+                "two hundred ten": 210,
+                "two hundred forty": 240,
+                "two hundred seventy": 270,
+                "three hundred": 300,
+                "three hundred thirty": 330,
+                "three hundred sixty": 360
+            }
+            try:
+                return float(slot_value)
+            except Exception:
+                value = allowed_words.get(str(slot_value).lower())
+                if value is not None:
+                    return float(value)
+                raise ValueError(f"Invalid rotate_angle value: {slot_value}")
+
         try:
             turn_direction = slots.get('turn_direction')
             angle = None
@@ -376,7 +399,7 @@ class IntentDispatcher:
 
             if 'rotate_angle' in slots:
                 try:
-                    angle = float(slots['rotate_angle'])
+                    angle = parse_angle(slots['rotate_angle'])
                 except Exception:
                     logger.exception(f"Invalid rotate_angle value: {slots['rotate_angle']}")
             if 'rotate_cycles' in slots:

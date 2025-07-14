@@ -523,7 +523,6 @@ class TaskInterface:
             duration (Optional[float]): Duration of marching in place in seconds. If None, uses default duration.
         """
         try:
-            logger.user_info("Executing march in place.")
             if self.task:
                 self.task.stop_task()
             self.task = task_interface.tasks.MarchInPlaceTask(
@@ -866,17 +865,17 @@ class TaskInterface:
             logger.user_info("Executing stop.")
             # Stop any running task
             if self.task:
-                self.task.stop_task()
+            # Deactivate servos
+                if hexapod:
+                    logger.user_info("Stopping gait generator and moving hexapod to zero position.")
+                    hexapod.gait_generator.stop()
+                    self.task.stop_task()
+                    hexapod.move_to_position(PredefinedPosition.ZERO)
+                    hexapod.wait_until_motion_complete()
+                    logger.info("Hexapod gait generator stopped.")
             else:
                 lights_handler.listen_wakeword()
                 logger.user_info("No active task to stop.")
-            # Deactivate servos
-            if hexapod:
-                logger.user_info("Moving hexapod to zero position and stopping gait generator.")
-                hexapod.move_to_position(PredefinedPosition.ZERO)
-                hexapod.wait_until_motion_complete()
-                hexapod.gait_generator.stop()
-                logger.info("Hexapod gait generator stopped.")
         except Exception as e:
             logger.exception(f"Stop failed: {e}")
             

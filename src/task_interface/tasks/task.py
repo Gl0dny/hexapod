@@ -32,6 +32,7 @@ class Task(threading.Thread, abc.ABC):
 
         self.stop_event: threading.Event = threading.Event()
         self.callback = callback
+        self._callback_called = False
         logger.debug(f"{self.__class__.__name__} initialized successfully.")
 
     def start(self) -> None:
@@ -50,7 +51,8 @@ class Task(threading.Thread, abc.ABC):
         """
         logger.debug(f"Running task: {self.__class__.__name__}")
         self.execute_task()
-        if self.callback:
+        if self.callback and not self._callback_called:
+            self._callback_called = True
             self.callback()
 
     @abc.abstractmethod
@@ -80,10 +82,9 @@ class Task(threading.Thread, abc.ABC):
                 self.join(timeout=timeout)
                 if self.is_alive():
                     logger.error(f"Task {self.__class__.__name__} did not stop within {timeout}s timeout")
-            
-                if self.callback:
-                    self.callback()
-
             except Exception as e:
                 logger.error(f"Error while stopping task {self.__class__.__name__}: {e}")
+        if self.callback and not self._callback_called:
+            self._callback_called = True
+            self.callback()
 

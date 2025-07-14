@@ -349,38 +349,49 @@ class GaitGenerator:
         self.cycle_count += 1
         self.total_phases_executed += phases_executed
 
-    def execute_cycles(self, num_cycles: int) -> int:
+    def execute_cycles(self, num_cycles: int) -> None:
         """
-        Execute a specific number of gait cycles.
+        Execute a specific number of gait cycles in a background thread.
         
         This method executes the specified number of complete gait cycles
-        and then stops. Useful for controlled movement over a specific distance
-        or for testing purposes.
+        in a separate thread and then stops. Useful for controlled movement 
+        over a specific distance or for testing purposes.
         
         When a stop event is detected, the current cycle is completed before stopping
         to ensure graceful termination.
         
         Args:
             num_cycles (int): Number of complete cycles to execute
-            
-        Returns:
-            int: Number of cycles actually completed
         """
+        if num_cycles <= 0:
+            logger.error(f"Invalid number of cycles: {num_cycles}")
+            return
+        
         self.is_running = True
         self.stop_requested = False
         self.stop_event.clear()
-
-        if num_cycles <= 0:
-            logger.error(f"Invalid number of cycles: {num_cycles}")
-            return 0
         
-        logger.info(f"Executing {num_cycles} gait cycles")
+        logger.info(f"Executing {num_cycles} gait cycles in background thread")
+        
+        # Start gait execution in background thread
+        self.thread = threading.Thread(target=self._run_cycles_thread, args=(num_cycles,))
+        rename_thread(self.thread, f"GaitGenerator-Cycles-{num_cycles}")
+        self.thread.start()
+
+    def _run_cycles_thread(self, num_cycles: int) -> None:
+        """
+        Internal method to execute cycles in a background thread.
+        
+        Args:
+            num_cycles (int): Number of complete cycles to execute
+        """
+        logger.info(f"Starting cycles execution thread for {num_cycles} cycles")
         cycles_completed = 0
         
-        # Execute cycles directly without using the background thread
         while self.is_running and cycles_completed < num_cycles:
             logger.info(f"Starting cycle {cycles_completed + 1}/{num_cycles}")
             logger.info(f"Current state before cycle: {self.current_state.phase}")
+            
             # Check if stop event is set
             if self.stop_event.is_set():
                 logger.error("Stop event detected during cycle execution - will complete current cycle")
@@ -413,27 +424,46 @@ class GaitGenerator:
         
         # Return legs to neutral before stopping
         self.return_legs_to_neutral()
-        # Stop the gait generator after completing the cycles
-        self.stop()
-        return cycles_completed
+        # Clean up state without calling self.stop() to avoid deadlock
+        self.is_running = False
+        self.current_state = None
+        self.current_gait = None
+        self.cycle_count = 0
+        self.total_phases_executed = 0
+        self.stop_requested = False
 
-    def run_for_duration(self, seconds: float):
+    def run_for_duration(self, seconds: float) -> None:
         """
-        Run the gait for a specific amount of time (in seconds).
+        Run the gait for a specific amount of time (in seconds) in a background thread.
         The last cycle will always finish, even if the time is up.
         If a stop event is set, it will also stop after the current cycle.
-        Returns (cycles_completed, elapsed_time).
         """
+        if seconds <= 0:
+            logger.error(f"Invalid duration: {seconds}")
+            return
+        
         self.is_running = True
         self.stop_requested = False
         self.stop_event.clear()
         
-        if seconds <= 0:
-            logger.error(f"Invalid duration: {seconds}")
-            return 0, 0.0
-        logger.info(f"Running gait for {seconds:.2f} seconds")
+        logger.info(f"Running gait for {seconds:.2f} seconds in background thread")
+        
+        # Start gait execution in background thread
+        self.thread = threading.Thread(target=self._run_duration_thread, args=(seconds,))
+        rename_thread(self.thread, f"GaitGenerator-Duration-{seconds}s")
+        self.thread.start()
+
+    def _run_duration_thread(self, seconds: float) -> None:
+        """
+        Internal method to run gait for duration in a background thread.
+        
+        Args:
+            seconds (float): Duration to run in seconds
+        """
+        logger.info(f"Starting duration execution thread for {seconds:.2f} seconds")
         cycles_completed = 0
         start_time = time.time()
+        
         while self.is_running:
             now = time.time()
             elapsed = now - start_time
@@ -457,11 +487,17 @@ class GaitGenerator:
             except Exception as e:
                 logger.error(f"Error in cycle {cycles_completed}: {e}")
                 break
+        
         elapsed_time = time.time() - start_time
         self.return_legs_to_neutral()
-        self.stop()
+        # Clean up state without calling self.stop() to avoid deadlock
+        self.is_running = False
+        self.current_state = None
+        self.current_gait = None
+        self.cycle_count = 0
+        self.total_phases_executed = 0
+        self.stop_requested = False
         logger.info(f"Completed {cycles_completed} cycles in {elapsed_time:.2f} seconds")
-        return cycles_completed, elapsed_time
 
     def start(self) -> None:
         """
@@ -581,10 +617,13 @@ class GaitGenerator:
         if self.is_running:
             self.is_running = False
             self.stop_event.set()
+
             if self.thread:
                 self.thread.join()
+                
             self.current_state = None
             self.current_gait = None
+
             # Reset cycle statistics
             self.cycle_count = 0
             self.total_phases_executed = 0
@@ -645,20 +684,17 @@ class GaitGenerator:
         
         return max(1, cycles_needed)  # Minimum 1 cycle
 
-    def execute_rotation_by_angle(self, angle_degrees: float, rotation_direction: float, step_radius: float) -> int:
+    def execute_rotation_by_angle(self, angle_degrees: float, rotation_direction: float, step_radius: float) -> None:
         """
         Execute rotation by a specific angle using the current gait.
         
         This method calculates the required number of cycles based on the hexapod's
-        physical geometry and executes the rotation using the current gait.
+        physical geometry and executes the rotation using the current gait in a background thread.
         
         Args:
             angle_degrees: Target rotation angle in degrees (positive = clockwise)
             rotation_direction: Rotation direction multiplier (1.0 = clockwise, -1.0 = counterclockwise)
             step_radius: Gait step radius in mm (uses current gait's step_radius)
-            
-        Returns:
-            int: Number of cycles actually completed
         """
         if not self.current_gait:
             raise ValueError("No current gait set. Call create_gait() first.")
@@ -672,12 +708,11 @@ class GaitGenerator:
         # Set rotation direction on the current gait
         self.current_gait.set_direction('neutral', rotation=rotation_direction)
         
-        # Execute the calculated number of cycles
-        logger.info(f"Executing {cycles_needed} cycles for {angle_degrees}° rotation")
-        cycles_completed = self.execute_cycles(cycles_needed)
+        # Execute the calculated number of cycles in background thread
+        logger.info(f"Executing {cycles_needed} cycles for {angle_degrees}° rotation in background thread")
+        self.execute_cycles(cycles_needed)
         
-        logger.info(f"Completed {cycles_completed} cycles for {angle_degrees}° rotation")
-        return cycles_completed
+        logger.info(f"Started rotation execution for {angle_degrees}° rotation")
 
     def return_legs_to_neutral(self):
         """

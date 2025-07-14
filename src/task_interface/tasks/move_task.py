@@ -72,27 +72,32 @@ class MoveTask(Task):
         if self.cycles is not None:
             # Execute specific number of cycles
             logger.info(f"Executing {self.cycles} gait cycles")
-            cycles_completed = self.hexapod.gait_generator.execute_cycles(self.cycles)
-            logger.info(f"Completed {cycles_completed} cycles")
+            self.hexapod.gait_generator.execute_cycles(self.cycles)
+            logger.info(f"Started execution of {self.cycles} cycles in background thread")
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info(f"Completed {self.cycles} cycles")
             
         elif self.duration is not None:
             # Execute for specific duration
             logger.info(f"Executing gait for {self.duration} seconds")
-            cycles_completed, elapsed_time = self.hexapod.gait_generator.run_for_duration(self.duration)
-            logger.info(f"Duration-based movement completed: {cycles_completed} cycles in {elapsed_time:.2f} seconds")
+            self.hexapod.gait_generator.run_for_duration(self.duration)
+            logger.info(f"Started duration-based movement for {self.duration} seconds in background thread")
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info(f"Completed duration-based movement")
             
         else:
             # Start infinite gait generation (no cycles or duration specified)
             logger.info("Starting infinite gait generation")
             self.hexapod.gait_generator.start()
             logger.warning("Infinite gait generation started - will continue until stopped externally")
-            # Wait until externally stopped
-            while not self.stop_event.is_set():
-                time.sleep(0.1)
-            logger.warning("Move task interrupted by external stop.")
-
-        # Stop the gait generator
-        self.hexapod.gait_generator.stop()
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info("Infinite gait generation completed")
 
     @override
     def execute_task(self) -> None:

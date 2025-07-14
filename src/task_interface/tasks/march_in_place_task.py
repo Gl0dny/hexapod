@@ -69,20 +69,21 @@ class MarchInPlaceTask(Task):
         if self.duration is not None:
             # March for specified duration
             logger.info(f"Marching in place for {self.duration} seconds")
-            cycles_completed, elapsed_time = self.hexapod.gait_generator.run_for_duration(self.duration)
-            logger.info(f"Marching completed: {cycles_completed} cycles in {elapsed_time:.2f} seconds")
+            self.hexapod.gait_generator.run_for_duration(self.duration)
+            logger.info(f"Started marching in place for {self.duration} seconds in background thread")
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info(f"Completed marching in place for {self.duration} seconds")
         else:
             # Start infinite marching
             logger.info("Starting infinite marching in place")
             self.hexapod.gait_generator.start()
             logger.warning("Infinite marching started - will continue until stopped externally")
-            # Wait until externally stopped
-            while not self.stop_event.is_set():
-                time.sleep(0.1)
-            logger.warning("Marching task interrupted by external stop.")
-        
-        # Stop the gait generator
-        self.hexapod.gait_generator.stop()
+            # Wait for the gait generator thread to finish
+            if self.hexapod.gait_generator.thread:
+                self.hexapod.gait_generator.thread.join()
+            logger.info("Infinite marching completed")
 
     @override
     def execute_task(self) -> None:
