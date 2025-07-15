@@ -71,8 +71,29 @@ def add_odas_user_info() -> None:
 
     logging.Logger.odas_user_info = odas_user_info
 
+def add_gamepad_mode_info_level() -> None:
+    """
+    Initialize and add a custom logging level 'GAMEPAD_MODE_INFO' to the logging module.
+    This function sets up a new logging level with a numeric value of 27 and 
+    associates it with the name "GAMEPAD_MODE_INFO". It also adds the `gamepad_mode_info` method 
+    to the `logging.Logger` class for ease of logging at this level.
+    """
+    GAMEPAD_MODE_INFO_LEVEL = 27
+    logging.addLevelName(GAMEPAD_MODE_INFO_LEVEL, "GAMEPAD_MODE_INFO")
+    logging.GAMEPAD_MODE_INFO = GAMEPAD_MODE_INFO_LEVEL
+
+    def gamepad_mode_info(self, message: str, *args: Any, **kwargs: Any) -> None:
+        """
+        Log a gamepad mode info message.
+        """
+        if self.isEnabledFor(GAMEPAD_MODE_INFO_LEVEL):
+            self._log(GAMEPAD_MODE_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
+
+    logging.Logger.gamepad_mode_info = gamepad_mode_info
+
 add_user_info_level()
 add_odas_user_info()
+add_gamepad_mode_info_level()
 
 
 class MyJSONFormatter(logging.Formatter):
@@ -187,6 +208,7 @@ class ColoredTerminalFormatter(logging.Formatter):
         'MAGENTA': '\033[95m',
         'ORANGE': '\033[38;5;208m',
         'PINK': '\033[38;5;205m',
+        'PURPLE': '\033[35m',
     }
 
     # Reset color code to default
@@ -201,6 +223,7 @@ class ColoredTerminalFormatter(logging.Formatter):
         logging.INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
         logging.USER_INFO: f"{ANSI_COLORS['CYAN']}{FMT}{RESET_COLOR}",
         logging.ODAS_USER_INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
+        logging.GAMEPAD_MODE_INFO: f"{ANSI_COLORS['PURPLE']}{FMT}{RESET_COLOR}",
         logging.WARNING: f"{ANSI_COLORS['YELLOW']}{FMT}{RESET_COLOR}",
         logging.ERROR: f"{ANSI_COLORS['RED']}{FMT}{RESET_COLOR}",
         logging.CRITICAL: f"{ANSI_COLORS['BOLD_RED']}{FMT}{RESET_COLOR}",

@@ -45,7 +45,7 @@ try:
     PYGAME_AVAILABLE = True
 except ImportError:
     PYGAME_AVAILABLE = False
-    print("pygame not available. Install with: pip install pygame")
+    logger.error("pygame not available. Install with: pip install pygame")
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -90,7 +90,7 @@ class GamepadHexapodController(ManualHexapodController):
                 pygame.quit()
                 return False
         except Exception as e:
-            print(f"Error checking/finding gamepad: {e}")
+            logger.exception(f"Error checking/finding gamepad: {e}")
             return False if check_only else None
         return None
 
@@ -143,6 +143,9 @@ class GamepadHexapodController(ManualHexapodController):
         if not self.gamepad:
             raise RuntimeError(f"Gamepad not found. This script only supports: {', '.join(input_mapping.get_interface_names())}")
         
+        logger.gamepad_mode_info(f"Gamepad '{self.gamepad.get_name()}' initialized successfully")
+        logger.gamepad_mode_info(f"Current mode: {self.current_mode}")
+
         # Deadzone for analog sticks (specific to gamepad hardware)
         self.deadzone = 0.1
         
@@ -150,24 +153,17 @@ class GamepadHexapodController(ManualHexapodController):
         if self.led_controller is not None:
             if self.led_controller.is_available():
                 # Set initial LED animation based on controller type
-                print(self.gamepad.get_name().lower())
                 if "dualsense" or "ps5" in self.gamepad.get_name().lower():
                     self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)  # Infinite blue pulse
-                    print("Gamepad LED initialized with blue pulse animation")
                 else:
                     self.led_controller.pulse(GamepadLEDColor.GREEN, duration=2.0, cycles=0)  # Infinite green pulse
-                    print("Gamepad LED initialized with green pulse animation")
             else:
-                print("Gamepad LED control not available")
-                print("Make sure:")
-                print("1. PS5 DualSense controller is connected")
-                print("2. dualsense-controller library is installed")
+                logger.warning("Gamepad LED control not available")
+                logger.warning("Make sure:")
+                logger.warning("1. PS5 DualSense controller is connected")
+                logger.warning("2. dualsense-controller library is installed")
         else:
-            print("Gamepad LED control disabled")
-        
-        print(f"Gamepad '{self.gamepad.get_name()}' initialized successfully")
-        print(f"Current mode: {self.current_mode}")
-        print("Press OPTIONS button to toggle between body control and gait control modes")
+            logger.warning("Gamepad LED control disabled")
 
     def _start_initial_animation(self):
         """
@@ -426,56 +422,60 @@ class GamepadHexapodController(ManualHexapodController):
         }
 
     def print_help(self):
-        """Print the help menu."""
+        """Print the help menu using a single gamepad_mode_info log message."""
         controller_type = type(self.input_mapping).__name__.replace('Mappings', '').replace('_', ' ')
-        print("\n" + "="*60)
-        print(f"{controller_type.upper()} GAMEPAD HEXAPOD CONTROLLER")
-        print("="*60)
-        print("MODE CONTROLS:")
-        print("  Options Button - Toggle between Body Control and Gait Control modes")
-        print("  Create Button  - Toggle Voice Control mode (enable/disable voice commands)")
-        print()
-        print("BODY CONTROL MODE (Inverse Kinematics):")
-        print("  Left Stick X    - Left/Right translation")
-        print("  Left Stick Y    - Forward/Backward translation")
-        print("  L2/R2 Triggers  - Down/Up translation")
-        print("  Right Stick X   - Roll rotation (left/right)")
-        print("  Right Stick Y   - Pitch rotation (forward/backward)")
-        print("  L1/R1           - Yaw left/right")
-        print()
-        print("GAIT CONTROL MODE (Walking):")
-        print("  Left Stick      - Movement direction (forward/backward/left/right/diagonal directions)")
-        print("  Right Stick X   - Rotation (clockwise/counterclockwise)")
-        print("  The hexapod will walk using its gait generator")
-        print("  Different gait parameters are used for translation vs rotation movements")
-        print()
-        print("COMMON BUTTON CONTROLS:")
-        print("  Triangle        - Reset to start position")
-        print("  Square          - Show current position")
-        print("  Circle          - Show this help menu")
-        print("  PS5             - Shutdown entire program")
-        print()
-        print("SENSITIVITY CONTROLS (D-Pad):")
-        print("  D-Pad Left/Right - Decrease/Increase translation/gait direction sensitivity")
-        print("  D-Pad Down/Up   - Decrease/Increase rotation/gait rotation sensitivity")
-        print("  (Sensitivity type depends on current mode)")
-        print()
-        print("LED INDICATORS:")
-        print("  Blue Pulse      - Body control mode (idle)")
-        print("  Purple Pulse    - Gait control mode (idle)")
-        print("  Lime Pulse      - Movement detected (both modes)")
-        print("="*60)
+        help_message = (
+            "\n" + "="*60 + "\n"
+            f"{controller_type.upper()} GAMEPAD HEXAPOD CONTROLLER\n"
+            + "="*60 + "\n"
+            "MODE CONTROLS:\n"
+            "  Options Button - Toggle between Body Control and Gait Control modes\n"
+            "  Create Button  - Toggle Voice Control mode (enable/disable voice commands)\n"
+            "\n"
+            "BODY CONTROL MODE (Inverse Kinematics):\n"
+            "  Left Stick X    - Left/Right translation\n"
+            "  Left Stick Y    - Forward/Backward translation\n"
+            "  L2/R2 Triggers  - Down/Up translation\n"
+            "  Right Stick X   - Roll rotation (left/right)\n"
+            "  Right Stick Y   - Pitch rotation (forward/backward)\n"
+            "  L1/R1           - Yaw left/right\n"
+            "\n"
+            "GAIT CONTROL MODE (Walking):\n"
+            "  Left Stick      - Movement direction (forward/backward/left/right/diagonal directions)\n"
+            "  Right Stick X   - Rotation (clockwise/counterclockwise)\n"
+            "  The hexapod will walk using its gait generator\n"
+            "  Different gait parameters are used for translation vs rotation movements\n"
+            "\n"
+            "COMMON BUTTON CONTROLS:\n"
+            "  Triangle        - Reset to start position\n"
+            "  Square          - Show current position\n"
+            "  Circle          - Show this help menu\n"
+            "  PS5             - Shutdown entire program\n"
+            "\n"
+            "SENSITIVITY CONTROLS (D-Pad):\n"
+            "  D-Pad Left/Right - Decrease/Increase translation/gait direction sensitivity\n"
+            "  D-Pad Down/Up   - Decrease/Increase rotation/gait rotation sensitivity\n"
+            "  (Sensitivity type depends on current mode)\n"
+            "\n"
+            "LED INDICATORS:\n"
+            "  Blue Pulse      - Body control mode (idle)\n"
+            "  Purple Pulse    - Gait control mode (idle)\n"
+            "  Lime Pulse      - Movement detected (both modes)\n"
+            + "="*60
+        )
+        logger.gamepad_mode_info(help_message)
     
     def cleanup_controller(self):
         """Clean up gamepad-specific resources."""
         # Cleanup LED controller
         if hasattr(self, 'led_controller') and self.led_controller:
             try:
-                self.led_controller.turn_off()
-                self.led_controller.cleanup()
-                print("Gamepad LED turned off")
+                if self.led_controller:
+                    self.led_controller.turn_off()
+                    self.led_controller.cleanup()
+                    logger.debug("Gamepad LED turned off")
             except Exception as e:
-                print(f"Error during LED cleanup: {e}")
+                logger.exception(f"Error during LED cleanup: {e}")
         
         # Cleanup pygame
         if PYGAME_AVAILABLE:
@@ -502,7 +502,7 @@ def main():
         controller.start()
         controller.join()  # Wait for the thread to finish
     except Exception as e:
-        print(f"Movement controller execution failed: {e}")
+        logger.exception(f"Movement controller execution failed: {e}")
         if controller:
             controller.stop()
             controller.join()

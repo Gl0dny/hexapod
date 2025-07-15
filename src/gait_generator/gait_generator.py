@@ -242,7 +242,7 @@ class GaitGenerator:
                 logger.debug(f"    All legs moved successfully to waypoint {waypoint_idx + 1}")
                 
             except Exception as e:
-                logger.error(f"    Error moving legs to waypoint {waypoint_idx + 1}: {e}")
+                logger.exception(f"    Error moving legs to waypoint {waypoint_idx + 1}: {e}")
                 logger.error(f"    Attempting to return to safe position...")
                 from robot.hexapod import PredefinedPosition
                 self.hexapod.move_to_position(PredefinedPosition.HIGH_PROFILE)
@@ -289,13 +289,13 @@ class GaitGenerator:
         
         # Check if stop was requested before starting this cycle
         if self.stop_event.is_set() and not self.stop_requested:
-            logger.error("Stop event detected before cycle start - completing current cycle")
+            logger.warning("Stop event detected before cycle start - completing current cycle")
             self.stop_requested = True
         
         while self.is_running:
             # Check if stop event is set during cycle execution
             if self.stop_event.is_set() and not self.stop_requested:
-                logger.error("Stop event detected during cycle execution - will complete current cycle")
+                logger.warning("Stop event detected during cycle execution - will complete current cycle")
                 self.stop_requested = True
             
             try:
@@ -317,18 +317,18 @@ class GaitGenerator:
                        self._check_stability()):
                     # Check stop event during dwell time
                     if self.stop_event.is_set() and not self.stop_requested:
-                        logger.error("Stop event detected during dwell time - will complete current cycle")
+                        logger.warning("Stop event detected during dwell time - will complete current cycle")
                         self.stop_requested = True
                     time.sleep(0.01)  # Small sleep to prevent CPU hogging
                 
                 # Check stop event before transitioning
                 if self.stop_event.is_set() and not self.stop_requested:
-                    logger.error("Stop event detected before state transition - will complete current cycle")
+                    logger.warning("Stop event detected before state transition - will complete current cycle")
                     self.stop_requested = True
                 
                 # If stop was requested, complete the cycle but don't start a new one
                 if self.stop_requested:
-                    logger.error("Stop requested - completing current cycle before stopping")
+                    logger.warning("Stop requested - completing current cycle before stopping")
                     # Continue to complete the current cycle
                 
                 # Transition to next state
@@ -337,7 +337,7 @@ class GaitGenerator:
                 self.current_state = self.current_gait.get_state(next_phases[0])
                 
             except Exception as e:
-                logger.error(f"Error in cycle execution: {e}")
+                logger.exception(f"Error in cycle execution: {e}")
                 logger.error(f"Current state: {self.current_state}")
                 logger.error(f"Phases executed: {phases_executed}")
                 logger.error(f"Current leg positions: {self.hexapod.current_leg_positions}")
@@ -414,7 +414,7 @@ class GaitGenerator:
                     self.stop_requested = True
             
             if self.stop_event.is_set() and not self.stop_requested:
-                logger.error("Stop event detected, will finish current cycle and stop")
+                logger.warning("Stop event detected, will finish current cycle and stop")
                 self.stop_requested = True
             
             if not self.current_state:
@@ -451,7 +451,7 @@ class GaitGenerator:
                     time.sleep(dwell_time)
                 
             except Exception as e:
-                logger.error(f"Error in cycle {cycles_completed}: {e}")
+                logger.exception(f"Error in cycle {cycles_completed}: {e}")
                 logger.error(f"Current state: {self.current_state}")
                 logger.error(f"Current leg positions: {self.hexapod.current_leg_positions}")
                 raise

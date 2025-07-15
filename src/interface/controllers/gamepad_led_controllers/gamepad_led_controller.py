@@ -95,7 +95,7 @@ class BaseGamepadLEDController(ABC):
             return success
             
         except Exception as e:
-            print(f"Failed to set LED color: {e}")
+            logger.exception(f"Failed to set LED color: {e}")
             return False
     
     def set_color_rgb(self, rgb: Tuple[int, int, int], brightness: Optional[float] = None) -> bool:
@@ -127,7 +127,7 @@ class BaseGamepadLEDController(ABC):
             return success
             
         except Exception as e:
-            print(f"Failed to set LED color: {e}")
+            logger.exception(f"Failed to set LED color: {e}")
             return False
     
     def set_brightness(self, brightness: float) -> bool:
@@ -353,8 +353,8 @@ class BaseGamepadLEDController(ABC):
             try:
                 self.turn_off()
                 self._cleanup_internal()
-                print(f"{self.get_control_method()} LED controller cleaned up")
+                logger.debug(f"{self.get_control_method()} LED controller cleaned up")
             except Exception as e:
-                print(f"Error during LED controller cleanup: {e}")
+                logger.exception(f"Error during LED controller cleanup: {e}")
             finally:
                 self.is_connected = False
