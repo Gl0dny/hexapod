@@ -41,6 +41,9 @@ class ManualHexapodController(threading.Thread, ABC):
     PITCH_STEP = 2.0         # degrees per analog unit (if you want to use a different step)
     YAW_STEP = 4.0           # degrees per analog unit (if you want to use a different step)
     Z_STEP = 4.0             # mm per analog unit (for up/down)
+    GAIT_STANCE_HEIGHT_STEP = 2.0 # mm per L3/R3 press
+    GAIT_MIN_STANCE_HEIGHT = -40.0
+    GAIT_MAX_STANCE_HEIGHT = 40.0
     
     # Sensitivity constants
     DEFAULT_TRANSLATION_SENSITIVITY = 0.5
@@ -103,6 +106,14 @@ class ManualHexapodController(threading.Thread, ABC):
         self.pause_event.clear()  # Start unpaused (event is set when paused)
         self._previous_manual_mode = self.DEFAULT_MODE
         self.voice_control: Optional['VoiceControl'] = voice_control
+        self.marching_enabled = False  # Marching (neutral gait) is off by default; set by subclass
+        
+        # Gait stance height (mm)
+        # Try to get default from config, else 0.0
+        try:
+            self.gait_stance_height = float(self.task_interface.hexapod.gait_params.get('translation', {}).get('stance_height', 0.0))
+        except Exception:
+            self.gait_stance_height = 0.0
     
     @abstractmethod
     def get_inputs(self):
@@ -149,7 +160,7 @@ class ManualHexapodController(threading.Thread, ABC):
         logger.user_info(f"Switched to mode: {self.current_mode}")
 
     def reset_position(self):
-        """Reset hexapod to reset position."""
+        """Reset hexapod to reset position. Also resets stance height and gait instance in gait mode."""
         def _get_reset_position():
             """Return the PredefinedPosition to use for reset_position. Can be mode-dependent."""
             if self.current_mode == self.GAIT_CONTROL_MODE:
@@ -160,7 +171,7 @@ class ManualHexapodController(threading.Thread, ABC):
             reset_position = _get_reset_position()
             self.task_interface.hexapod.move_to_position(reset_position)
             self.task_interface.hexapod.wait_until_motion_complete()
-            
+
             # Reset current state
             self.current_tx = 0.0
             self.current_ty = 0.0
@@ -168,6 +179,25 @@ class ManualHexapodController(threading.Thread, ABC):
             self.current_roll = 0.0
             self.current_pitch = 0.0
             self.current_yaw = 0.0
+
+            # If in gait control mode, reset stance height and gait instance
+            if self.current_mode == self.GAIT_CONTROL_MODE:
+                # Enforce stance height 0
+                self.gait_stance_height = 0.0
+                gait_params = self.task_interface.hexapod.gait_params
+                if 'translation' in gait_params:
+                    gait_params['translation']['stance_height'] = 0.0
+                if 'rotation' in gait_params:
+                    gait_params['rotation']['stance_height'] = 0.0
+                translation_params = gait_params.get('translation', {}).copy()
+                rotation_params = gait_params.get('rotation', {}).copy()
+                translation_params['stance_height'] = 0.0
+                rotation_params['stance_height'] = 0.0
+                self.task_interface.hexapod.gait_generator.create_gait('tripod', **translation_params)
+                self.translation_gait = self.task_interface.hexapod.gait_generator.current_gait
+                self.task_interface.hexapod.gait_generator.create_gait('tripod', **rotation_params)
+                self.rotation_gait = self.task_interface.hexapod.gait_generator.current_gait
+                self.current_gait = self.translation_gait
 
             logger.debug("Reset position completed")
         except Exception as e:
@@ -223,6 +253,32 @@ class ManualHexapodController(threading.Thread, ABC):
         """Return True if gait generator is running."""
         return self.task_interface.hexapod.gait_generator.is_gait_running()
     
+    def _process_stance_height_delta(self, inputs):
+        """Process gait stance height delta: only affect gait control mode."""
+        stance_height_delta = inputs.get('stance_height_delta', 0.0)
+        if abs(stance_height_delta) > 0.0 and self.current_mode == self.GAIT_CONTROL_MODE:
+            old_stance = self.gait_stance_height
+            self.gait_stance_height = max(self.GAIT_MIN_STANCE_HEIGHT, min(self.GAIT_MAX_STANCE_HEIGHT, self.gait_stance_height + stance_height_delta))
+            logger.gamepad_mode_info(f"Gait stance height: {self.gait_stance_height:.1f} mm")
+            if self.current_gait is not None:
+                self.current_gait.stance_height = self.gait_stance_height
+            # Also update config so new gait instances use the new value
+            gait_params = self.task_interface.hexapod.gait_params
+            if 'translation' in gait_params:
+                gait_params['translation']['stance_height'] = self.gait_stance_height
+            if 'rotation' in gait_params:
+                gait_params['rotation']['stance_height'] = self.gait_stance_height
+            # Restart the gait generator to apply the new stance height immediately
+            if self.is_gait_control_active():
+                self.stop_gait_control()
+                translation_params = gait_params.get('translation', {}).copy()
+                rotation_params = gait_params.get('rotation', {}).copy()
+                self.start_gait_control(
+                    gait_type=self.gait_type,
+                    translation_params=translation_params,
+                    rotation_params=rotation_params
+                )
+
     def process_movement_inputs(self, inputs):
         """
         Process movement inputs and apply them based on current mode.
@@ -236,7 +292,8 @@ class ManualHexapodController(threading.Thread, ABC):
         """
         # Handle D-pad sensitivity deltas
         self._process_sensitivity_deltas(inputs)
-        
+        # Handle stance height steering
+        self._process_stance_height_delta(inputs)
         # Route to appropriate processing based on mode
         if self.current_mode == self.BODY_CONTROL_MODE:
             self._process_body_control(inputs)
@@ -278,16 +335,31 @@ class ManualHexapodController(threading.Thread, ABC):
             """Update the gait direction and rotation input."""
             if self.current_gait:
                 self.task_interface.hexapod.gait_generator.queue_direction(direction, rotation)
-        
+
         # Extract gait control values and apply sensitivity
         direction_x = inputs.get('direction_x', 0.0) * self.gait_direction_sensitivity
         direction_y = inputs.get('direction_y', 0.0) * self.gait_direction_sensitivity
         rotation = inputs.get('rotation', 0.0) * self.gait_rotation_sensitivity
-        
+
+        # If marching is disabled and all movement is neutral, stop gait generator if running and do not update gait
+        if not self.marching_enabled and abs(direction_x) < 0.01 and abs(direction_y) < 0.01 and abs(rotation) < 0.01:
+            if self.is_gait_control_active():
+                self.stop_gait_control()
+            return
+        # If gait is not running, start it now (first nonzero input or marching enabled)
+        if not self.is_gait_control_active():
+            translation_params = self.task_interface.hexapod.gait_params.get('translation', {}).copy()
+            rotation_params = self.task_interface.hexapod.gait_params.get('rotation', {}).copy()
+            self.start_gait_control(
+                gait_type=self.gait_type,
+                translation_params=translation_params,
+                rotation_params=rotation_params
+            )
+
         # Determine if we need to switch gait instances based on movement type
         has_translation = abs(direction_x) > 0.01 or abs(direction_y) > 0.01
         has_rotation = abs(rotation) > 0.01
-        
+
         # Switch gait instance if needed
         if has_rotation and not has_translation:
             # Pure rotation - use rotation gait
@@ -311,7 +383,7 @@ class ManualHexapodController(threading.Thread, ABC):
                     translation_params = self.task_interface.hexapod.gait_params.get('translation', {}).copy()
                     self.task_interface.hexapod.gait_generator.create_gait('tripod', **translation_params)
                     self.task_interface.hexapod.gait_generator.start()
-        
+
         # Update gait direction and rotation
         if hasattr(self, 'current_gait') and self.current_gait is not None:
             # Update gait direction and rotation (no normalization - magnitude affects step size)
@@ -426,6 +498,7 @@ class ManualHexapodController(threading.Thread, ABC):
         rotation_name = _get_rotation_name(rotation)
         lines.append(f"- Current Direction: X={x:.2f}, Y={y:.2f} ({direction_name})")
         lines.append(f"- Current Rotation: {rotation:.2f} ({rotation_name})")
+        lines.append(f"- Gait Stance Height: {self.gait_stance_height:.1f} mm")
         # Display all leg positions
         lines.append("- Leg Positions:")
         for i, pos in enumerate(self.task_interface.hexapod.current_leg_positions):
@@ -444,7 +517,7 @@ class ManualHexapodController(threading.Thread, ABC):
         msg = (
             f"\nCurrent Position:\n"
             f" Translation: X={self.current_tx:4.1f}, Y={self.current_ty:4.1f}, Z={self.current_tz:4.1f} mm\n"
-            f"  Rotation:    Roll={self.current_roll:4.1f}, Pitch={self.current_pitch:4.1f}, Yaw={self.current_yaw:4.1f}°"
+            f"  Rotation:    Roll={self.current_roll:4.1f}, Pitch={self.current_pitch:4.1f}, Yaw={self.current_yaw:4.1f}°\n"
         )
         logger.gamepad_mode_info(msg)
 
@@ -513,7 +586,7 @@ class ManualHexapodController(threading.Thread, ABC):
         Toggle between body control and gait control modes.
         Handles all printouts, state changes, and gait start/stop.
         Calls _on_mode_toggled(new_mode) for subclass-specific actions (e.g., LED feedback).
-        """        
+        """
         if self.current_mode == self.BODY_CONTROL_MODE:
             # Switch to gait control mode
             self.set_mode(self.GAIT_CONTROL_MODE)
@@ -526,12 +599,16 @@ class ManualHexapodController(threading.Thread, ABC):
             )
             logger.gamepad_mode_info(msg)
             self.reset_position()
-            # Start gait control with class-level parameters
-            self.start_gait_control(
-                gait_type=self.gait_type,
-                translation_params=self.TRANSLATION_GAIT_PARAMS.copy(),
-                rotation_params=self.ROTATION_GAIT_PARAMS.copy()
-            )
+            # Only start gait control if marching is enabled or there is a nonzero input
+            # (We can't check stick input here, so only allow auto-start if marching is enabled)
+            if self.marching_enabled:
+                translation_params = self.task_interface.hexapod.gait_params.get('translation', {}).copy()
+                rotation_params = self.task_interface.hexapod.gait_params.get('rotation', {}).copy()
+                self.start_gait_control(
+                    gait_type=self.gait_type,
+                    translation_params=translation_params,
+                    rotation_params=rotation_params
+                )
         else:
             # Switch to body control mode
             self.set_mode(self.BODY_CONTROL_MODE)
@@ -609,10 +686,12 @@ class ManualHexapodController(threading.Thread, ABC):
             self.unpause()
             # If returning to gait control mode, restart gait generation
             if self.current_mode == self.GAIT_CONTROL_MODE:
+                translation_params = self.task_interface.hexapod.gait_params.get('translation', {}).copy()
+                rotation_params = self.task_interface.hexapod.gait_params.get('rotation', {}).copy()
                 self.start_gait_control(
                     gait_type=self.gait_type,
-                    translation_params=self.TRANSLATION_GAIT_PARAMS.copy(),
-                    rotation_params=self.ROTATION_GAIT_PARAMS.copy()
+                    translation_params=translation_params,
+                    rotation_params=rotation_params
                 )
         self._on_mode_toggled(self.current_mode)
 

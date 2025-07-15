@@ -129,6 +129,7 @@ class GamepadHexapodController(ManualHexapodController):
         self.last_button_states = {}
         self._button_last_press_time = {}
         self.current_led_state = None
+        self.marching_enabled = False  # Marching (neutral gait) is off by default
         
         # Set display environment for headless systems
         os.environ['SDL_VIDEODRIVER'] = 'dummy'
@@ -164,6 +165,11 @@ class GamepadHexapodController(ManualHexapodController):
                 logger.warning("2. dualsense-controller library is installed")
         else:
             logger.warning("Gamepad LED control disabled")
+
+        # For buffered stance height adjustment
+        self._stance_height_buffer = 0.0
+        self._stance_height_hold_start = {'l2': None, 'r2': None}
+        self._stance_height_last_increment = {'l2': None, 'r2': None}
 
     def _start_initial_animation(self):
         """
@@ -227,6 +233,7 @@ class GamepadHexapodController(ManualHexapodController):
         
         # Get buttons using input mapping
         button_mappings = self.input_mapping.get_button_mappings()
+        axis_mappings = self.input_mapping.get_axis_mappings()
         buttons = {
             'square': self.gamepad.get_button(button_mappings['square']),
             'x': self.gamepad.get_button(button_mappings['x']),
@@ -245,7 +252,11 @@ class GamepadHexapodController(ManualHexapodController):
             'dpad_left': self.gamepad.get_button(button_mappings['dpad_left']),
             'dpad_right': self.gamepad.get_button(button_mappings['dpad_right'])
         }
-        
+        # Treat L2/R2 as digital buttons: pressed if axis > 0.5
+        l2_axis = self.gamepad.get_axis(axis_mappings['l2']) if 'l2' in axis_mappings else 0.0
+        r2_axis = self.gamepad.get_axis(axis_mappings['r2']) if 'r2' in axis_mappings else 0.0
+        buttons['l2'] = l2_axis > 0.5
+        buttons['r2'] = r2_axis > 0.5
         return buttons
     
     def _check_button_press(self, button_name):
@@ -308,6 +319,64 @@ class GamepadHexapodController(ManualHexapodController):
         else:
             return {}  # No manual input in voice control mode
 
+    def _process_stance_height_l2_r2(self):
+        """Handle L2/R2 stance height adjustment with buffering, timing, and preview printing. Returns stance_height_delta."""
+        now = time.time()
+        debounce = self.BUTTON_DEBOUNCE_INTERVAL
+        l2_held = self.button_states.get('l2', False)
+        r2_held = self.button_states.get('r2', False)
+        preview_printed = False
+        # Track hold start times and last increment times
+        for btn, held in [('l2', l2_held), ('r2', r2_held)]:
+            if held:
+                if self._stance_height_hold_start[btn] is None:
+                    self._stance_height_hold_start[btn] = now
+                    self._stance_height_last_increment[btn] = now
+            else:
+                # If released before debounce, treat as a single click
+                start = self._stance_height_hold_start[btn]
+                if start is not None and (now - start) < debounce:
+                    if btn == 'l2' and not r2_held:
+                        self._stance_height_buffer -= self.GAIT_STANCE_HEIGHT_STEP
+                        preview_printed = True
+                    elif btn == 'r2' and not l2_held:
+                        self._stance_height_buffer += self.GAIT_STANCE_HEIGHT_STEP
+                        preview_printed = True
+                self._stance_height_hold_start[btn] = None
+                self._stance_height_last_increment[btn] = None
+        # Accumulate buffer only if held long enough, and repeat every debounce interval
+        if l2_held and not r2_held:
+            start = self._stance_height_hold_start['l2']
+            last = self._stance_height_last_increment['l2']
+            if start is not None and (now - start) >= debounce:
+                if last is None or (now - last) >= debounce:
+                    self._stance_height_buffer -= self.GAIT_STANCE_HEIGHT_STEP
+                    self._stance_height_last_increment['l2'] = now
+                    preview_printed = True
+        elif r2_held and not l2_held:
+            start = self._stance_height_hold_start['r2']
+            last = self._stance_height_last_increment['r2']
+            if start is not None and (now - start) >= debounce:
+                if last is None or (now - last) >= debounce:
+                    self._stance_height_buffer += self.GAIT_STANCE_HEIGHT_STEP
+                    self._stance_height_last_increment['r2'] = now
+                    preview_printed = True
+        # Print preview if buffer changed this tick
+        if preview_printed:
+            from interface.controllers.base_manual_controller import logger
+            try:
+                base = self.gait_stance_height
+            except AttributeError:
+                base = 0.0
+            preview = base + self._stance_height_buffer
+            logger.gamepad_mode_info(f"Gait stance height: {preview:.1f} mm (pending)")
+        # When both released, output buffer and reset
+        stance_height_delta = 0.0
+        if not l2_held and not r2_held and self._stance_height_buffer != 0.0:
+            stance_height_delta = self._stance_height_buffer
+            self._stance_height_buffer = 0.0
+        return stance_height_delta
+
     def _get_body_control_inputs(self):
         """Process inputs for body control mode."""
         # Process analog inputs for movement (raw values, sensitivity applied in base class)
@@ -319,6 +388,7 @@ class GamepadHexapodController(ManualHexapodController):
         yaw = 0.0
         
         # Process button inputs
+        stance_height_delta = 0.0  # Stance height is only for gait mode
         if self._check_button_press('triangle'):
             self.reset_position()
         elif self._check_button_press('square'):
@@ -352,8 +422,6 @@ class GamepadHexapodController(ManualHexapodController):
         if self._check_button_press('dpad_up'):
             sensitivity_deltas['rotation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
         
-
-        
         # Update button states for next frame
         self.last_button_states = self.button_states.copy()
         
@@ -364,22 +432,34 @@ class GamepadHexapodController(ManualHexapodController):
             'roll': roll,
             'pitch': pitch,
             'yaw': yaw,
-            'sensitivity_deltas': sensitivity_deltas
+            'sensitivity_deltas': sensitivity_deltas,
+            'stance_height_delta': stance_height_delta
         }
     
     def _get_gait_control_inputs(self):
         """Process inputs for gait control mode - returns raw input values."""
+        
         # Process analog inputs for gait control (raw values, sensitivity applied in base class)
         # Left stick controls movement direction
         direction_x = self.analog_inputs['left_x']
         direction_y = -self.analog_inputs['left_y']  # Invert Y axis
-        
+
+        # Marching toggle logic: just toggle marching_enabled and print status
+        if self._check_button_press('x'):
+            self.marching_enabled = not self.marching_enabled
+            if self.marching_enabled:
+                logger.gamepad_mode_info("Marching (neutral gait) ENABLED. Press X again to stop.")
+            else:
+                logger.gamepad_mode_info("Marching (neutral gait) DISABLED. Press X to start.")
+
         # Right stick X controls rotation
         rotation = self.analog_inputs['right_x']
-        
+
+        # Process L2/R2 stance height adjustment
+        stance_height_delta = self._process_stance_height_l2_r2()
+
         # Process button inputs
         if self._check_button_press('triangle'):
-            # Stop movement and return to home position
             self.reset_position()
         elif self._check_button_press('square'):
             self.show_current_position()
@@ -408,8 +488,6 @@ class GamepadHexapodController(ManualHexapodController):
         if self._check_button_press('dpad_up'):
             sensitivity_deltas['rotation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
         
-
-        
         # Update button states for next frame
         self.last_button_states = self.button_states.copy()
         
@@ -418,7 +496,8 @@ class GamepadHexapodController(ManualHexapodController):
             'direction_x': direction_x,
             'direction_y': direction_y,
             'rotation': rotation,
-            'sensitivity_deltas': sensitivity_deltas
+            'sensitivity_deltas': sensitivity_deltas,
+            'stance_height_delta': stance_height_delta
         }
 
     def print_help(self):
@@ -443,6 +522,7 @@ class GamepadHexapodController(ManualHexapodController):
             "GAIT CONTROL MODE (Walking):\n"
             "  Left Stick      - Movement direction (forward/backward/left/right/diagonal directions)\n"
             "  Right Stick X   - Rotation (clockwise/counterclockwise)\n"
+            "  L2/R2           - Raise/Lower gait stance height (body up/down)\n"
             "  The hexapod will walk using its gait generator\n"
             "  Different gait parameters are used for translation vs rotation movements\n"
             "\n"
