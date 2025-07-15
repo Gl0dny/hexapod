@@ -50,13 +50,7 @@ class MoveTask(Task):
         logger.info(f"Starting movement in {self.direction} direction")
         
         # Define gait parameters
-        gait_params = {
-            'step_radius': 20.0,
-            'leg_lift_distance': 20.0,
-            'stance_height': 0.0,
-            'dwell_time': 0.3,
-            'use_full_circle_stance': False
-        }
+        gait_params = self.hexapod.gait_params.get('translation', {})
 
         # Start in a stable position
         self.hexapod.move_to_position(PredefinedPosition.ZERO)

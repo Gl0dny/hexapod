@@ -52,13 +52,7 @@ class RotateTask(Task):
         logger.info(f"Starting rotation with direction: {self.turn_direction}")
         
         # Define gait parameters for rotation
-        gait_params = {
-            'step_radius': 20.0,
-            'leg_lift_distance': 10.0,
-            'stance_height': 0.0,
-            'dwell_time': 0.3,
-            'use_full_circle_stance': False
-        }
+        gait_params = self.hexapod.gait_params.get('rotation', {})
 
         # Start in a stable position
         self.hexapod.move_to_position(PredefinedPosition.ZERO)

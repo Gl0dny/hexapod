@@ -59,19 +59,6 @@ class ManualHexapodController(threading.Thread, ABC):
     VOICE_CONTROL_MODE = "voice_control"
     DEFAULT_MODE = BODY_CONTROL_MODE
     
-    # Gait parameters
-    TRANSLATION_GAIT_PARAMS = {
-        'step_radius': 20.0,
-        'leg_lift_distance': 30.0,
-        'dwell_time': 0.15
-    }
-    
-    ROTATION_GAIT_PARAMS = {
-        'step_radius': 20.0,
-        'leg_lift_distance': 20.0,
-        'dwell_time': 0.15
-    }
-    
     def __init__(self, task_interface: 'TaskInterface', voice_control: Optional['VoiceControl'] = None, shutdown_callback: Optional[callable] = None):
         """Initialize the hexapod controller."""
         super().__init__(daemon=True)
@@ -200,12 +187,11 @@ class ManualHexapodController(threading.Thread, ABC):
         if gait_type is not None:
             self.gait_type = gait_type
         
-        # Default parameters if not provided
+        # Use global gait params from hexapod if available
         if translation_params is None:
-            translation_params = self.TRANSLATION_GAIT_PARAMS.copy()
-        
+            translation_params = self.task_interface.hexapod.gait_params.get('translation', {}).copy()
         if rotation_params is None:
-            rotation_params = self.ROTATION_GAIT_PARAMS.copy()
+            rotation_params = self.task_interface.hexapod.gait_params.get('rotation', {}).copy()
         
         # Create separate gait instances for translation and rotation using the new API
         self.task_interface.hexapod.gait_generator.create_gait('tripod', **translation_params)
@@ -311,7 +297,7 @@ class ManualHexapodController(threading.Thread, ABC):
                 if self.is_gait_control_active():
                     self.task_interface.hexapod.gait_generator.stop()
                     # Create the rotation gait in the generator
-                    rotation_params = self.ROTATION_GAIT_PARAMS.copy()
+                    rotation_params = self.task_interface.hexapod.gait_params.get('rotation', {}).copy()
                     self.task_interface.hexapod.gait_generator.create_gait('tripod', **rotation_params)
                     self.task_interface.hexapod.gait_generator.start()
         elif has_translation:
@@ -322,7 +308,7 @@ class ManualHexapodController(threading.Thread, ABC):
                 if self.is_gait_control_active():
                     self.task_interface.hexapod.gait_generator.stop()
                     # Create the translation gait in the generator
-                    translation_params = self.TRANSLATION_GAIT_PARAMS.copy()
+                    translation_params = self.task_interface.hexapod.gait_params.get('translation', {}).copy()
                     self.task_interface.hexapod.gait_generator.create_gait('tripod', **translation_params)
                     self.task_interface.hexapod.gait_generator.start()
         

@@ -64,7 +64,6 @@ class FollowTask(Task):
         azimuth = list(azimuths.values())[0]
         # Normalize to 0-360 range
         azimuth_degrees = azimuth % 360
-        print(f"Azimuth: {azimuth_degrees}")
 
         # Centered sector mapping
         if (azimuth_degrees >= 330 or azimuth_degrees < 30):
@@ -95,18 +94,10 @@ class FollowTask(Task):
         """
         if not self.hexapod.gait_generator.current_gait:
             # Create a gait if none exists
-            gait_params = {
-                'step_radius': 20.0,
-                'leg_lift_distance': 20.0,
-                'stance_height': 0.0,
-                'dwell_time': 0.15,
-                'use_full_circle_stance': False
-            }
+            gait_params = self.hexapod.gait_params.get('translation', {})
             self.hexapod.gait_generator.create_gait('tripod', **gait_params)
         # Queue the movement direction on the current gait using direction name
         self.hexapod.gait_generator.queue_direction(direction_name)
-
-        print(f"Setting direction to {direction_name}")
 
         # Start gait generation if not already running
         if not self.hexapod.gait_generator.is_running:

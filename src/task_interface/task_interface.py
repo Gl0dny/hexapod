@@ -50,7 +50,7 @@ class TaskInterface:
             lights_handler=self.lights_handler,
             tracked_sources_port=9000,
             potential_sources_port=9001,
-            debug_mode=False,
+            debug_mode=True,
             gui_config=odas_gui_config,
             data_config=odas_data_config
         )

@@ -56,13 +56,10 @@ class MarchInPlaceTask(Task):
             return
         
         # Configure tripod gait for marching in place
-        gait_params = {
-            'step_radius': 0.0,      # No forward movement
-            'leg_lift_distance': 30.0,       # Lift legs 30mm
-            'stance_height': 0.0,            # Default stance
-            'dwell_time': 0.3,               # Fast stepping for marching
-            'use_full_circle_stance': False
-        }
+        gait_params = self.hexapod.gait_params.get('translation', {}).copy()
+        gait_params['step_radius'] = 0.0  # No forward movement
+        gait_params['leg_lift_distance'] = 30.0  # Lift legs 30mm
+        gait_params['dwell_time'] = 0.3  # Fast stepping for marching
         
         self.hexapod.gait_generator.create_gait('tripod', **gait_params)
         

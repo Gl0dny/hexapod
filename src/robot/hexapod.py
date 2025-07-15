@@ -138,6 +138,9 @@ class Hexapod:
             for key, value in config['predefined_angle_positions'].items()
         }
 
+        # Load global gait parameters
+        self.gait_params = config.get('gait', {})
+
         # Create deep copies to avoid modifying the original predefined positions
         self.current_leg_angles: List[Tuple[float, float, float]] = [tuple(pos) for pos in self.predefined_angle_positions['low_profile']]
         self.current_leg_positions: List[Tuple[float, float, float]] = [tuple(pos) for pos in self.predefined_positions['low_profile']]
