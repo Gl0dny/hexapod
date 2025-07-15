@@ -63,13 +63,13 @@ class ManualHexapodController(threading.Thread, ABC):
     TRANSLATION_GAIT_PARAMS = {
         'step_radius': 20.0,
         'leg_lift_distance': 30.0,
-        'dwell_time': 0.1
+        'dwell_time': 0.15
     }
     
     ROTATION_GAIT_PARAMS = {
         'step_radius': 20.0,
         'leg_lift_distance': 20.0,
-        'dwell_time': 0.1
+        'dwell_time': 0.15
     }
     
     def __init__(self, task_interface: 'TaskInterface', voice_control: Optional['VoiceControl'] = None, shutdown_callback: Optional[callable] = None):

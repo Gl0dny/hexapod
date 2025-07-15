@@ -50,44 +50,31 @@ class DirectionOfArrivalAnimation(Animation):
         self.active_leds: set[int] = set()  # Keep track of currently lit LEDs
         self.source_colors: list[ColorRGB] = source_colors
 
-    def update_sources(self, tracked_sources: Dict[int, Dict]) -> None:
+    def update_sources(self, azimuths: Dict[int, float]) -> None:
         """
-        Update the current sound sources with their direction of arrival.
+        Update the current sound sources with their azimuths.
 
         Args:
-            tracked_sources (Dict[int, Dict]): Dictionary of tracked sound sources with their DoA data.
+            azimuths (Dict[int, float]): Dictionary of tracked sound sources with their azimuths (degrees).
         """
-        self.tracked_sources = tracked_sources
+        self.azimuths = azimuths
 
-    def _get_led_indices_from_angle(self, x: float, y: float) -> set[int]:
+    def _get_led_indices_from_azimuth(self, azimuth: float) -> set[int]:
         """
-        Convert sound source coordinates to a set of LED indices, including adjacent LEDs.
+        Convert azimuth (degrees) to a set of LED indices, including adjacent LEDs.
 
         Args:
-            x (float): X coordinate (-1.0 to 1.0), where 1.0 is right.
-            y (float): Y coordinate (-1.0 to 1.0), where 1.0 is front.
+            azimuth (float): Azimuth angle in degrees (0-360).
 
         Returns:
             set[int]: Set of LED indices to light up (main direction and adjacent LEDs).
         """
-        # Convert Cartesian coordinates to angle
-        angle = math.atan2(y, x)
-        
-        # Adjust angle to match hexapod orientation:
-        # - Front of hexapod is at π/2 (positive y-axis)
-        # - Right of hexapod is at 0 (positive x-axis)
-        # - LED 12 is at the front (π/2)
-        # - LED 3 is at the right (0)
-        angle = (math.pi/2 - angle) % (2 * math.pi)  # Rotate and normalize angle
-        
-        # Convert angle to main LED index
-        # Map 0 to 2π to 0 to num_led-1
+        angle = math.radians(azimuth)
+        # Adjust angle to match hexapod orientation (front at pi/2)
+        angle = (math.pi/2 - angle) % (2 * math.pi)
         main_index = int((angle / (2 * math.pi)) * self.lights.num_led)
-        
-        # Get adjacent LED indices
         left_index = (main_index - 1) % self.lights.num_led
         right_index = (main_index + 1) % self.lights.num_led
-        
         return {main_index, left_index, right_index}
 
     @override
@@ -103,14 +90,13 @@ class DirectionOfArrivalAnimation(Animation):
             current_active_leds: set[int] = set()
 
             # Light up LEDs for tracked sources
-            for i, (source_id, source) in enumerate(self.tracked_sources.items()):
-                if source.get('id', 0) > 0:  # Only process active sources
-                    # Get color for this source (cycle through colors if more than 4 sources)
-                    color = self.source_colors[i % len(self.source_colors)]
-                    led_indices = self._get_led_indices_from_angle(source.get('x', 0), source.get('y', 0))
-                    for led_index in led_indices:
-                        self.lights.set_color(color, led_index=led_index)
-                        current_active_leds.add(led_index)
+            for i, (source_id, azimuth) in enumerate(getattr(self, 'azimuths', {}).items()):
+                # Get color for this source (cycle through colors if more than 4 sources)
+                color = self.source_colors[i % len(self.source_colors)]
+                led_indices = self._get_led_indices_from_azimuth(azimuth)
+                for led_index in led_indices:
+                    self.lights.set_color(color, led_index=led_index)
+                    current_active_leds.add(led_index)
 
             # Update the set of active LEDs
             self.active_leds = current_active_leds

@@ -50,7 +50,7 @@ class TaskInterface:
             lights_handler=self.lights_handler,
             tracked_sources_port=9000,
             potential_sources_port=9001,
-            debug_mode=True,
+            debug_mode=False,
             gui_config=odas_gui_config,
             data_config=odas_data_config
         )
@@ -616,8 +616,10 @@ class TaskInterface:
         """
         try:
             self.task = task_interface.tasks.FollowTask(
-                hexapod, 
-                lights_handler, 
+                hexapod,
+                lights_handler,
+                self.odas_processor,
+                self.external_control_paused_event,
                 callback=lambda: self._notify_task_completion(self.task)
             )
         except Exception as e:
