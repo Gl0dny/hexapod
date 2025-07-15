@@ -51,7 +51,13 @@ def main():
         
         # Example: Create tripod gait
         # gait = TripodGait(hexapod, step_radius=30.0, leg_lift_distance=10.0, dwell_time=0.1)
-        gait = TripodGait(hexapod, step_radius=22.0, leg_lift_distance=20.0, dwell_time=0.1)
+        hexapod.gait_generator.create_gait(
+            gait_type='tripod',
+            step_radius=22.0,
+            leg_lift_distance=20.0,
+            dwell_time=0.1
+        )
+        gait = hexapod.gait_generator.current_gait
         print("✓ Created TripodGait")
         
         # Example: Set forward movement (+Y direction)

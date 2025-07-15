@@ -5,6 +5,10 @@ DualSense LED controller implementation.
 This module provides LED control functionality specifically for the PS5 DualSense controller.
 """
 
+import logging
+
+logger = logging.getLogger("interface_logger")
+
 from .gamepad_led_controller import BaseGamepadLEDController
 
 class DualSenseLEDController(BaseGamepadLEDController):
@@ -18,7 +22,7 @@ class DualSenseLEDController(BaseGamepadLEDController):
             from dualsense_controller import DualSenseController
             self.DualSenseController = DualSenseController
         except ImportError:
-            print("dualsense-controller library not available. Install with: pip install dualsense-controller")
+            logger.exception("dualsense-controller library not available. Install with: pip install dualsense-controller")
             self.DualSenseController = None
             return
         
@@ -34,7 +38,7 @@ class DualSenseLEDController(BaseGamepadLEDController):
             # Check if devices are available first
             device_infos = self.DualSenseController.enumerate_devices()
             if len(device_infos) < 1:
-                print("No DualSense devices found. Make sure the controller is connected via USB or Bluetooth")
+                logger.warning("No DualSense devices found. Make sure the controller is connected via USB or Bluetooth")
                 return False
             
             self.dualsense_controller = self.DualSenseController(
@@ -48,15 +52,15 @@ class DualSenseLEDController(BaseGamepadLEDController):
             self.dualsense_controller.wait_until_updated()
             
             self.is_connected = True
-            print("Connected to DualSense controller for LED control")
+            logger.info("Connected to DualSense controller for LED control")
             
             # Set initial color
             self.set_color(self.current_color)
             return True
             
         except Exception as e:
-            print(f"Failed to connect to DualSense controller: {e}")
-            print("Make sure the controller is connected via USB or Bluetooth")
+            logger.exception(f"Failed to connect to DualSense controller: {e}")
+            logger.error("Make sure the controller is connected via USB or Bluetooth")
             return False
     
     def _set_color_internal(self, r: int, g: int, b: int) -> bool:
@@ -65,7 +69,7 @@ class DualSenseLEDController(BaseGamepadLEDController):
             self.dualsense_controller.lightbar.set_color(r, g, b)
             return True
         except Exception as e:
-            print(f"Failed to set DualSense LED color: {e}")
+            logger.exception(f"Failed to set DualSense LED color: {e}")
             return False
     
     def _cleanup_internal(self):
@@ -74,4 +78,4 @@ class DualSenseLEDController(BaseGamepadLEDController):
             try:
                 self.dualsense_controller.deactivate()
             except Exception as e:
-                print(f"Error deactivating DualSense controller: {e}") 
+                logger.exception(f"Error deactivating DualSense controller: {e}")

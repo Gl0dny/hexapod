@@ -6,12 +6,16 @@ This module provides LED control functionality for various gamepad controllers
 using inheritance to support different controller types.
 """
 
+import logging
 import time
 import threading
 import math
 from typing import Optional, Tuple, Dict, Any
 from enum import Enum
 from abc import ABC, abstractmethod
+from utils import rename_thread
+
+logger = logging.getLogger("interface_logger")
 
 class GamepadLEDColor(Enum):
     """Enumeration of LED colors for the gamepad."""
@@ -91,7 +95,7 @@ class BaseGamepadLEDController(ABC):
             return success
             
         except Exception as e:
-            print(f"Failed to set LED color: {e}")
+            logger.exception(f"Failed to set LED color: {e}")
             return False
     
     def set_color_rgb(self, rgb: Tuple[int, int, int], brightness: Optional[float] = None) -> bool:
@@ -123,7 +127,7 @@ class BaseGamepadLEDController(ABC):
             return success
             
         except Exception as e:
-            print(f"Failed to set LED color: {e}")
+            logger.exception(f"Failed to set LED color: {e}")
             return False
     
     def set_brightness(self, brightness: float) -> bool:
@@ -146,6 +150,7 @@ class BaseGamepadLEDController(ABC):
         Returns:
             True if successful, False otherwise
         """
+        self.stop_animation()
         return self.set_color(GamepadLEDColor.BLACK)
     
     def pulse(self, color: GamepadLEDColor, duration: float = 1.0, cycles: int = 1) -> bool:
@@ -177,6 +182,7 @@ class BaseGamepadLEDController(ABC):
     
     def _pulse_animation(self, color: GamepadLEDColor, duration: float, cycles: int):
         """Internal method for pulse animation."""
+        rename_thread(threading.current_thread(), "GamepadLEDPulseAnimation")
         cycle_count = 0
         
         while self.animation_running and (cycles == 0 or cycle_count < cycles):
@@ -192,6 +198,69 @@ class BaseGamepadLEDController(ABC):
                 # Convert sine wave to brightness (0 to 1)
                 brightness = (1 + math.sin(angle)) / 2
                 self.set_color(color, brightness)
+                time.sleep(duration / steps)
+            
+            cycle_count += 1
+    
+    def pulse_two_colors(self, color1: GamepadLEDColor, color2: GamepadLEDColor, duration: float = 2.0, cycles: int = 0) -> bool:
+        """
+        Create a pulsing animation effect that transitions between two colors.
+        
+        Args:
+            color1: The first color to pulse from
+            color2: The second color to pulse to
+            duration: Duration of each pulse cycle in seconds
+            cycles: Number of pulse cycles (0 for infinite)
+            
+        Returns:
+            True if animation started successfully, False otherwise
+        """
+        if not self.is_connected:
+            return False
+        
+        if self.animation_running:
+            self.stop_animation()
+        
+        self.animation_running = True
+        self.animation_thread = threading.Thread(
+            target=self._pulse_two_colors_animation,
+            args=(color1, color2, duration, cycles),
+            daemon=True
+        )
+        self.animation_thread.start()
+        return True
+    
+    def _pulse_two_colors_animation(self, color1: GamepadLEDColor, color2: GamepadLEDColor, duration: float, cycles: int):
+        """Internal method for two-color pulse animation."""
+        rename_thread(threading.current_thread(), "GamepadLEDTwoColorPulseAnimation")
+        cycle_count = 0
+        
+        # Get RGB values for both colors
+        rgb1 = color1.rgb
+        rgb2 = color2.rgb
+        
+        while self.animation_running and (cycles == 0 or cycle_count < cycles):
+            # Use sine wave for smooth transition between colors
+            # One complete sine wave cycle for color1 -> color2 -> color1
+            steps = 60  # Much more steps for smoother animation
+            
+            for i in range(steps):
+                if not self.animation_running:
+                    break
+                # Use sine wave: 0 to 2π for complete color transition cycle
+                angle = (i / steps) * 2 * math.pi
+                # Convert sine wave to interpolation factor (0 to 1)
+                # This creates a smooth transition: color1 -> color2 -> color1
+                factor = (1 + math.sin(angle)) / 2
+                
+                # Interpolate between the two colors
+                interp_rgb = (
+                    int(rgb1[0] + (rgb2[0] - rgb1[0]) * factor),
+                    int(rgb1[1] + (rgb2[1] - rgb1[1]) * factor),
+                    int(rgb1[2] + (rgb2[2] - rgb1[2]) * factor)
+                )
+                
+                self.set_color_rgb(interp_rgb)
                 time.sleep(duration / steps)
             
             cycle_count += 1
@@ -284,8 +353,8 @@ class BaseGamepadLEDController(ABC):
             try:
                 self.turn_off()
                 self._cleanup_internal()
-                print(f"{self.get_control_method()} LED controller cleaned up")
+                logger.debug(f"{self.get_control_method()} LED controller cleaned up")
             except Exception as e:
-                print(f"Error during LED controller cleanup: {e}")
+                logger.exception(f"Error during LED controller cleanup: {e}")
             finally:
                 self.is_connected = False

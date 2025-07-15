@@ -8,7 +8,7 @@ controller:
 
 # Servo settings
 speed: 25                   # Default speed percentage for servos
-accel: 10                   # Default acceleration percentage for servos
+accel: 20                   # Default acceleration percentage for servos
 
 # Coxa joint parameters
 coxa_params:
@@ -101,3 +101,18 @@ predefined_angle_positions:
     - [0.0, 35, -35]
     - [0.0, 35, -35]
     - [0.0, 35, -35]
+
+# Gait parameters
+gait:
+  translation:
+    step_radius: 20.0
+    leg_lift_distance: 20.0
+    stance_height: 0.0
+    dwell_time: 0.15
+    use_full_circle_stance: false
+  rotation:
+    step_radius: 20.0
+    leg_lift_distance: 20.0
+    stance_height: 0.0
+    dwell_time: 0.15
+    use_full_circle_stance: true

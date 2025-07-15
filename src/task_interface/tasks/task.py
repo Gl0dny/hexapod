@@ -9,11 +9,11 @@ from utils import rename_thread
 if TYPE_CHECKING:
     from typing import Optional, Callable
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class ControlTask(threading.Thread, abc.ABC):
+class Task(threading.Thread, abc.ABC):
     """
-    Abstract base class for control tasks executed by the hexapod.
+    Abstract base class for tasks executed by the hexapod.
 
     Attributes:
         stop_event (threading.Event): Event to signal the task to stop.
@@ -22,7 +22,7 @@ class ControlTask(threading.Thread, abc.ABC):
 
     def __init__(self, callback: Optional[Callable] = None) -> None:
         """
-        Initializes the ControlTask with threading.Thread.
+        Initializes the Task with threading.Thread.
 
         Args:
             callback (Optional[Callable]): Function to execute after task completion.
@@ -32,11 +32,12 @@ class ControlTask(threading.Thread, abc.ABC):
 
         self.stop_event: threading.Event = threading.Event()
         self.callback = callback
+        self._callback_called = False
         logger.debug(f"{self.__class__.__name__} initialized successfully.")
 
     def start(self) -> None:
         """
-        Start the control task in a separate thread.
+        Start the task in a separate thread.
 
         Clears the stop event and initiates the thread's run method.
         """
@@ -50,7 +51,8 @@ class ControlTask(threading.Thread, abc.ABC):
         """
         logger.debug(f"Running task: {self.__class__.__name__}")
         self.execute_task()
-        if self.callback:
+        if self.callback and not self._callback_called:
+            self._callback_called = True
             self.callback()
 
     @abc.abstractmethod
@@ -82,4 +84,7 @@ class ControlTask(threading.Thread, abc.ABC):
                     logger.error(f"Task {self.__class__.__name__} did not stop within {timeout}s timeout")
             except Exception as e:
                 logger.error(f"Error while stopping task {self.__class__.__name__}: {e}")
+        if self.callback and not self._callback_called:
+            self._callback_called = True
+            self.callback()
 

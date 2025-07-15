@@ -26,6 +26,7 @@ class ColorRGB(Enum):
     
     Each member represents a specific color with its corresponding RGB values.
     """
+    BLACK = (0, 0, 0)
     BLUE = (0, 0, 255)
     TEAL = (0, 128, 128)
     GREEN = (0, 255, 0)
@@ -172,7 +173,7 @@ class Lights:
                 self.driver.set_pixel(
                     i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
         self.driver.show()
-        logger.info(f"{'LED ' + str(led_index) if led_index is not None else 'All LEDs'} set to RGB {rgb_tuple}.")
+        logger.debug(f"{'LED ' + str(led_index) if led_index is not None else 'All LEDs'} set to RGB {rgb_tuple}.")
 
     def rotate(self, positions: int = 1) -> None:
         """
@@ -188,7 +189,7 @@ class Lights:
         """
         self.driver.rotate(positions)
         self.driver.show()
-        logger.info(f"Rotated LEDs by {positions} positions.")
+        logger.debug(f"Rotated LEDs by {positions} positions.")
 
     def get_wheel_color(self, wheel_pos: int) -> Tuple[int, int, int]:
         """

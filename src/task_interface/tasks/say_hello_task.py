@@ -4,7 +4,7 @@ import logging
 import time
 import math
 
-from control.tasks import ControlTask
+from task_interface.tasks import Task
 from robot import PredefinedPosition
 
 if TYPE_CHECKING:
@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from robot import Hexapod
     from lights import LightsInteractionHandler
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class SayHelloTask(ControlTask):
+class SayHelloTask(Task):
     """
     Task for the hexapod to say hello by waving one leg in an infinity sign pattern.
     """

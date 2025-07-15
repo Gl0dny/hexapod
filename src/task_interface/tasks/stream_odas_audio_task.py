@@ -15,7 +15,7 @@ import time
 import paramiko
 from pathlib import Path
 
-from control.tasks import ControlTask
+from task_interface.tasks import Task
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
@@ -23,9 +23,9 @@ if TYPE_CHECKING:
     from lights import LightsInteractionHandler
     from odas import ODASDoASSLProcessor
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class StreamODASAudioTask(ControlTask):
+class StreamODASAudioTask(Task):
     """
     Task for streaming audio from ODAS in real-time.
     Extends sound source localization functionality to include audio streaming.

@@ -44,22 +44,21 @@ def main():
         
         # Create the appropriate gait instance with configured parameters
         gait_params = {
-            'swing_distance': args.swing_distance,
-            'swing_height': args.swing_height,
-            'stance_distance': args.stance_distance,
-            'stability_threshold': args.stability_threshold
+            'step_radius': args.swing_distance,  # swing_distance as step_radius
+            'leg_lift_distance': args.swing_height,
+        
+            'stance_height': 0.0,     # Default stance
+            'dwell_time': args.dwell_time,
+            'stability_threshold': args.stability_threshold,
+            'use_full_circle_stance': False
         }
-        
-        # Use default dwell time if not specified
-        if args.dwell_time is not None:
-            gait_params['dwell_time'] = args.dwell_time
-        
         if args.gait == "tripod":
-            gait = TripodGait(hexapod, **gait_params)
+            hexapod.gait_generator.create_gait('tripod', **gait_params)
             print("Created TripodGait instance with parameters:")
         else:  # wave
-            gait = WaveGait(hexapod, **gait_params)
+            hexapod.gait_generator.create_gait('wave', **gait_params)
             print("Created WaveGait instance with parameters:")
+        gait = hexapod.gait_generator.current_gait
         
         # Print the configured parameters
         print(f"  Swing distance: {gait.swing_distance}mm")

@@ -324,9 +324,9 @@ pytest tests/
 # Run specific test suite
 pytest tests/test_robot.py
 pytest tests/test_audio.py
-pytest tests/test_imu.py
+pytest tests/test_robot/test_sensors/test_imu.py
 ```
-
+-->
 ## License
 
-Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved. -->
+Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved. 

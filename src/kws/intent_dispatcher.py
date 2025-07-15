@@ -3,7 +3,7 @@ Module: intent_dispatcher
 
 This module defines the IntentDispatcher class, which is responsible for
 dispatching intents to their corresponding handler methods. It interacts
-with the ControlInterface to execute actions based on the received intents
+with the TaskInterface to execute actions based on the received intents
 and associated slots.
 """
 
@@ -32,14 +32,14 @@ class IntentDispatcher:
     Dispatches intents to their corresponding handler methods.
     """
 
-    def __init__(self, control_interface_module: Any) -> None:
+    def __init__(self, task_interface: Any) -> None:
         """
-        Initialize the IntentDispatcher with a control interface module.
+        Initialize the IntentDispatcher with a task interface module.
         
         Args:
-            control_interface_module (Any): The control interface module to handle intents.
+            task_interface (Any): The task interface module to handle intents.
         """
-        self.control_interface = control_interface_module
+        self.task_interface = task_interface
         self.intent_handlers: Dict[str, Callable[[Dict[str, Any]], None]] = {
             'help': self.handle_help,
             'system_status': self.handle_system_status,
@@ -54,7 +54,7 @@ class IntentDispatcher:
             'set_brightness': self.handle_set_brightness,
             'set_speed': self.handle_set_speed,
             'set_accel': self.handle_set_accel,
-            # 'march_in_place': self.handle_march_in_place, #TODO train model for this command
+            'march_in_place': self.handle_march_in_place,
             'idle_stance': self.handle_idle_stance,
             'move': self.handle_move,
             'stop': self.handle_stop,
@@ -91,6 +91,23 @@ class IntentDispatcher:
         else:
             raise NotImplementedError(f"No handler for intent: {intent}")
 
+    def _parse_duration_in_seconds(self, value, unit):
+        """Helper to convert value and time_unit to seconds."""
+        if value is None or unit is None:
+            return None
+        try:
+            value = float(value)
+            unit = unit.lower()
+            if unit in ["second", "seconds"]:
+                return value
+            elif unit in ["minute", "minutes"]:
+                return value * 60
+            elif unit in ["hour", "hours"]:
+                return value * 3600
+        except Exception:
+            logger.exception(f"Invalid duration or time unit: {value}, {unit}")
+        return None
+
     @handler
     def handle_help(self, slots: Dict[str, Any]) -> None:
         """
@@ -99,7 +116,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.hexapod_help()
+        self.task_interface.hexapod_help()
             
     @handler
     def handle_system_status(self, slots: Dict[str, Any]) -> None:
@@ -109,7 +126,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.system_status()
+        self.task_interface.system_status()
             
     @handler
     def handle_shut_down(self, slots: Dict[str, Any]) -> None:
@@ -119,7 +136,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.shut_down()
+        self.task_interface.shut_down()
 
     @handler
     def handle_wake_up(self, slots: Dict[str, Any]) -> None:
@@ -129,7 +146,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.wake_up()
+        self.task_interface.wake_up()
 
     @handler
     def handle_sleep(self, slots: Dict[str, Any]) -> None:
@@ -139,7 +156,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.sleep()
+        self.task_interface.sleep()
 
     @handler
     def handle_calibrate(self, slots: Dict[str, Any]) -> None:
@@ -149,7 +166,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.calibrate()
+        self.task_interface.calibrate()
 
     @handler
     def handle_run_sequence(self, slots: Dict[str, Any]) -> None:
@@ -161,7 +178,7 @@ class IntentDispatcher:
         """
         try:
             sequence_name = slots['sequence_name']
-            self.control_interface.run_sequence(sequence_name=sequence_name)
+            self.task_interface.run_sequence(sequence_name=sequence_name)
         except KeyError:
             logger.exception("No sequence_name provided for run_sequence command.")
 
@@ -173,7 +190,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.repeat_last_command()
+        self.task_interface.repeat_last_command()
 
     @handler
     def handle_turn_lights(self, slots: Dict[str, Any]) -> None:
@@ -184,7 +201,7 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         switch_state = slots.get('switch_state')
-        self.control_interface.turn_lights(switch_state)
+        self.task_interface.turn_lights(switch_state)
 
     @handler
     def handle_change_color(self, slots: Dict[str, Any]) -> None:
@@ -195,7 +212,7 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         color = slots.get('color')
-        self.control_interface.change_color(color=color)
+        self.task_interface.change_color(color=color)
 
     @handler
     def handle_set_brightness(self, slots: Dict[str, Any]) -> None:
@@ -208,7 +225,7 @@ class IntentDispatcher:
         try:
             brightness_percentage = slots['brightness_percentage']
             brightness_value = parse_percentage(brightness_percentage)
-            self.control_interface.set_brightness(brightness_value)
+            self.task_interface.set_brightness(brightness_value)
         except KeyError:
             logger.exception("No brightness_percentage provided for set_brightness command.")
         except ValueError:
@@ -225,7 +242,7 @@ class IntentDispatcher:
         try:
             speed_percentage = slots['speed_percentage']
             speed_value = parse_percentage(speed_percentage)
-            self.control_interface.set_speed(speed_value)
+            self.task_interface.set_speed(speed_value)
         except KeyError:
             logger.exception("No speed_percentage provided for set_speed command.")
         except ValueError:
@@ -242,7 +259,7 @@ class IntentDispatcher:
         try:
             accel_percentage = slots['accel_percentage']
             accel_value = parse_percentage(accel_percentage)
-            self.control_interface.set_accel(accel_value)
+            self.task_interface.set_accel(accel_value)
         except KeyError:
             logger.exception("No accel_percentage provided for set_accel command.")
         except ValueError:
@@ -251,19 +268,27 @@ class IntentDispatcher:
     @handler
     def handle_march_in_place(self, slots: Dict[str, Any]) -> None:
         """
-        Handle the 'march_in_place' intent.
-        
+        Handle the 'march_in_place' intent, supporting duration and time-based marching.
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         try:
-            duration = None
+            march_time = None
+            time_unit = None
             if 'march_time' in slots:
-                duration = float(slots['march_time'])
-            self.control_interface.march_in_place(duration=duration)
-        except (ValueError, TypeError) as e:
-            logger.exception(f"Invalid duration value: {e}")
-            self.control_interface.march_in_place()  # Use default duration
+                try:
+                    march_time = float(slots['march_time'])
+                except Exception:
+                    logger.exception(f"Invalid march_time value: {slots['march_time']}")
+            if 'time_unit' in slots:
+                time_unit = slots['time_unit']
+            duration_seconds = self._parse_duration_in_seconds(march_time, time_unit) if march_time and time_unit else None
+            if duration_seconds is not None:
+                self.task_interface.march_in_place(duration=duration_seconds)
+            else:
+                self.task_interface.march_in_place()
+        except Exception as e:
+            logger.exception(f"Error handling march_in_place intent: {e}")
 
     @handler
     def handle_idle_stance(self, slots: Dict[str, Any]) -> None:
@@ -273,21 +298,52 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.idle_stance()
+        self.task_interface.idle_stance()
 
     @handler
     def handle_move(self, slots: Dict[str, Any]) -> None:
         """
-        Handle the 'move' intent.
-        
+        Handle the 'move' intent, supporting direction, cycles, and time-based movement.
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         try:
-            direction = slots['direction']
-            self.control_interface.move(direction=direction)
-        except KeyError:
-            logger.exception("No direction provided for move command.")
+            direction = slots.get('move_direction')
+            if not direction:
+                logger.exception("No direction provided for move command.")
+                return
+
+            from gait_generator.base_gait import BaseGait
+            if direction not in BaseGait.DIRECTION_MAP:
+                logger.exception(f"Invalid direction '{direction}' for move command.")
+                return
+
+            move_cycles = None
+            move_time = None
+            time_unit = None
+            if 'move_cycles' in slots:
+                try:
+                    move_cycles = int(slots['move_cycles'])
+                except Exception:
+                    logger.exception(f"Invalid move_cycles value: {slots['move_cycles']}")
+            if 'move_time' in slots:
+                try:
+                    move_time = int(slots['move_time'])
+                except Exception:
+                    logger.exception(f"Invalid move_time value: {slots['move_time']}")
+            if 'time_unit' in slots:
+                time_unit = slots['time_unit']
+
+            duration_seconds = self._parse_duration_in_seconds(move_time, time_unit) if move_time and time_unit else None
+
+            if move_cycles is not None:
+                self.task_interface.move(direction=direction, cycles=move_cycles)
+            elif duration_seconds is not None:
+                self.task_interface.move(direction=direction, duration=duration_seconds)
+            else:
+                self.task_interface.move(direction=direction)
+        except Exception as e:
+            logger.exception(f"Error handling move intent: {e}")
 
     @handler
     def handle_stop(self, slots: Dict[str, Any]) -> None:
@@ -297,17 +353,80 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.stop()
+        self.task_interface.stop()
             
     @handler
     def handle_rotate(self, slots: Dict[str, Any]) -> None:
         """
-        Handle the 'rotate' intent.
-        
+        Handle the 'rotate' intent, supporting direction, cycles, time, and angle-based rotation.
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.rotate()
+        def parse_angle(slot_value):
+            allowed_words = {
+                "thirty": 30,
+                "sixty": 60,
+                "ninety": 90,
+                "one hundred twenty": 120,
+                "two hundred fifty": 250,
+                "one hundred eighty": 180,
+                "two hundred ten": 210,
+                "two hundred forty": 240,
+                "two hundred seventy": 270,
+                "three hundred": 300,
+                "three hundred thirty": 330,
+                "three hundred sixty": 360
+            }
+            try:
+                return float(slot_value)
+            except Exception:
+                value = allowed_words.get(str(slot_value).lower())
+                if value is not None:
+                    return float(value)
+                raise ValueError(f"Invalid rotate_angle value: {slot_value}")
+
+        try:
+            turn_direction = slots.get('turn_direction')
+            angle = None
+            rotate_cycles = None
+            rotate_time = None
+            time_unit = None
+
+            valid_turn_directions = {'left', 'right', 'clockwise', 'counterclockwise'}
+            if turn_direction and turn_direction not in valid_turn_directions:
+                logger.exception(f"Invalid turn_direction '{turn_direction}' for rotate command.")
+                return
+
+            if 'rotate_angle' in slots:
+                try:
+                    angle = parse_angle(slots['rotate_angle'])
+                except Exception:
+                    logger.exception(f"Invalid rotate_angle value: {slots['rotate_angle']}")
+            if 'rotate_cycles' in slots:
+                try:
+                    rotate_cycles = int(slots['rotate_cycles'])
+                except Exception:
+                    logger.exception(f"Invalid rotate_cycles value: {slots['rotate_cycles']}")
+            if 'rotate_time' in slots:
+                try:
+                    rotate_time = int(slots['rotate_time'])
+                except Exception:
+                    logger.exception(f"Invalid rotate_time value: {slots['rotate_time']}")
+            if 'time_unit' in slots:
+                time_unit = slots['time_unit']
+
+            duration_seconds = self._parse_duration_in_seconds(rotate_time, time_unit) if rotate_time and time_unit else None
+
+            if angle is not None:
+                self.task_interface.rotate(turn_direction=turn_direction, angle=angle)
+            elif rotate_cycles is not None:
+                self.task_interface.rotate(turn_direction=turn_direction, cycles=rotate_cycles)
+            elif duration_seconds is not None:
+                self.task_interface.rotate(turn_direction=turn_direction, duration=duration_seconds)
+            else:
+                self.task_interface.rotate(turn_direction=turn_direction)
+        except Exception as e:
+            logger.exception(f"Error handling rotate intent: {e}")
 
     @handler
     def handle_follow(self, slots: Dict[str, Any]) -> None:
@@ -317,7 +436,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.follow()
+        self.task_interface.follow()
 
     @handler
     def handle_sound_source_localization(self, slots: Dict[str, Any]) -> None:
@@ -327,7 +446,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.sound_source_localization()
+        self.task_interface.sound_source_localization()
 
     @handler
     def handle_stream_odas_audio(self, slots: Dict[str, Any]) -> None:
@@ -344,7 +463,7 @@ class IntentDispatcher:
             # Convert "post filtered" to "postfiltered" to match the expected format
             if stream_type == "post filtered":
                 stream_type = "postfiltered"
-            self.control_interface.stream_odas_audio(stream_type=stream_type)
+            self.task_interface.stream_odas_audio(stream_type=stream_type)
         except Exception as e:
             logger.exception(f"Error handling stream_odas_audio intent: {e}")
 
@@ -356,7 +475,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.police()
+        self.task_interface.police()
 
     @handler
     def handle_rainbow(self, slots: Dict[str, Any]) -> None:
@@ -366,7 +485,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.rainbow()
+        self.task_interface.rainbow()
             
     @handler
     def handle_sit_up(self, slots: Dict[str, Any]) -> None:
@@ -376,7 +495,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.sit_up()
+        self.task_interface.sit_up()
 
     @handler
     def handle_dance(self, slots: Dict[str, Any]) -> None:
@@ -386,7 +505,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.dance()
+        self.task_interface.dance()
 
     @handler
     def handle_helix(self, slots: Dict[str, Any]) -> None:
@@ -396,7 +515,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.helix()
+        self.task_interface.helix()
 
     @handler
     def handle_show_off(self, slots: Dict[str, Any]) -> None:
@@ -406,7 +525,7 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.show_off()
+        self.task_interface.show_off()
 
     @handler
     def handle_hello(self, slots: Dict[str, Any]) -> None:
@@ -416,4 +535,4 @@ class IntentDispatcher:
         Args:
             slots (Dict[str, Any]): Additional data for the intent.
         """
-        self.control_interface.say_hello()
+        self.task_interface.say_hello()

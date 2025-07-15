@@ -327,7 +327,8 @@ class ODASDoASSLProcessor:
                 tracked_sources_copy = dict(self.tracked_sources)
             
             if hasattr(self.lights_handler.animation, 'update_sources'):
-                self.lights_handler.animation.update_sources(tracked_sources_copy)
+                azimuths = self.get_tracked_sources_azimuths()
+                self.lights_handler.animation.update_sources(azimuths)
                 
         except Exception as e:
             logger.error(f"Error processing JSON data: {str(e)}")
@@ -406,6 +407,20 @@ class ODASDoASSLProcessor:
         directions = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE']
         index = round(azimuth / 45) % 8
         return directions[index]
+
+    def get_tracked_sources_azimuths(self) -> Dict[int, float]:
+        """
+        Return a dictionary mapping source_id to azimuth (in degrees) for all current tracked sources.
+        Azimuth is calculated from x, y coordinates as in _get_direction, but as a float (0-360).
+        """
+        azimuths = {}
+        with self.sources_lock:
+            for sid, src in self.tracked_sources.items():
+                x = src.get('x', 0)
+                y = src.get('y', 0)
+                azimuth = (math.degrees(math.atan2(y, x)) + 360) % 360
+                azimuths[sid] = azimuth
+        return azimuths
 
     def _print_debug_info(self, active_sources: Dict[int, Dict]) -> None:
         """Print active sources in a multi-line format that updates in-place."""

@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 
-from control.tasks import ControlTask
+from task_interface.tasks import Task
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from lights import LightsInteractionHandler
     from odas import ODASDoASSLProcessor
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class SoundSourceLocalizationTask(ControlTask):
+class SoundSourceLocalizationTask(Task):
     """
     Task to analyze sound sources and manage related lights.
 

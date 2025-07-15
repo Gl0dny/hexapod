@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, override
 import logging
 import time
 
-from control.tasks import ControlTask
+from task_interface.tasks import Task
 from robot import PredefinedPosition, PredefinedAnglePosition
 
 if TYPE_CHECKING:
@@ -11,9 +11,9 @@ if TYPE_CHECKING:
     from robot import Hexapod
     from lights import LightsInteractionHandler
 
-logger = logging.getLogger("control_logger")
+logger = logging.getLogger("task_interface_logger")
 
-class HelixTask(ControlTask):
+class HelixTask(Task):
     """
     Task to perform a helix maneuver with the hexapod and manage lights.
     """
@@ -25,6 +25,21 @@ class HelixTask(ControlTask):
         super().__init__(callback)
         self.hexapod = hexapod
         self.lights_handler = lights_handler
+
+    def _perform_helix(self) -> None:
+        """
+        Performs the helix maneuver by moving to helix_minimum and then to helix_maximum positions.
+        The motion consists of:
+        1. Moving to helix_maximum position
+        2. Moving to helix_minimum position
+        3. Repeating the cycle
+        
+        This creates a twisting motion that resembles a helix pattern.
+        """
+        logger.info("Starting helix maneuver")
+        
+        self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
+        self.hexapod.wait_until_motion_complete(self.stop_event)
 
         helix_min_positions = []
         helix_max_positions = []
@@ -40,18 +55,6 @@ class HelixTask(ControlTask):
             'helix_maximum': helix_max_positions,
         }
 
-    def _perform_helix(self) -> None:
-        """
-        Performs the helix maneuver by moving to helix_minimum and then to helix_maximum positions.
-        The motion consists of:
-        1. Moving to helix_maximum position
-        2. Moving to helix_minimum position
-        3. Repeating the cycle
-        
-        This creates a twisting motion that resembles a helix pattern.
-        """
-        logger.info("Starting helix maneuver")
-        
         # Parameters for the helix motion
         repetitions = 2  # number of helix cycles to perform
         

@@ -11,34 +11,34 @@ import logging
 
 import pytest
 
-from control import ControlInterface
+from task_interface import TaskInterface
 from kws.intent_dispatcher import IntentDispatcher
 
 @pytest.fixture
-def control_interface_mock(mocker):
+def task_interface_mock(mocker):
     """
-    Fixture to create a mock of the ControlInterface.
+    Fixture to create a mock of the TaskInterface.
 
     Args:
         mocker: The pytest-mock mocker fixture.
 
     Returns:
-        Mocked ControlInterface instance.
+        Mocked TaskInterface instance.
     """
-    return mocker.Mock(spec=ControlInterface)
+    return mocker.Mock(spec=TaskInterface)
 
 @pytest.fixture
-def dispatcher(control_interface_mock):
+def dispatcher(task_interface_mock):
     """
-    Fixture to create an instance of IntentDispatcher with a mocked ControlInterface.
+    Fixture to create an instance of IntentDispatcher with a mocked TaskInterface.
 
     Args:
-        control_interface_mock (Mock): The mocked ControlInterface.
+        task_interface_mock (Mock): The mocked TaskInterface.
 
     Returns:
         IntentDispatcher instance.
     """
-    return IntentDispatcher(control_interface_mock)
+    return IntentDispatcher(task_interface_mock)
 
 # INTENT_HANDLERS mapping intents to their corresponding test parameters.
 # Structure:
@@ -78,14 +78,14 @@ INTENT_HANDLERS = {
 }
 
 class TestIntentDispatcher:
-    def test_intent_dispatcher_init(self, dispatcher, control_interface_mock):
+    def test_intent_dispatcher_init(self, dispatcher, task_interface_mock):
         """
         Test the initialization of IntentDispatcher.
 
         Ensures that the control_interface is assigned correctly and
         all intent handlers are properly set up.
         """
-        assert dispatcher.control_interface is control_interface_mock
+        assert dispatcher.control_interface is task_interface_mock
         assert set(dispatcher.intent_handlers.keys()) == set(INTENT_HANDLERS.keys())
 
         for handler in dispatcher.intent_handlers.values():
@@ -95,12 +95,12 @@ class TestIntentDispatcher:
         "intent, handler, slots, expected_args, expected_kwargs",
         [(intent, *params) for intent, params in INTENT_HANDLERS.items()]
     )
-    def test_dispatch_intents(self, dispatcher, control_interface_mock, intent, handler, slots, expected_args, expected_kwargs):
+    def test_dispatch_intents(self, dispatcher, task_interface_mock, intent, handler, slots, expected_args, expected_kwargs):
         """
         Test that dispatching each intent calls the correct handler with expected arguments.
         """
         dispatcher.dispatch(intent, slots)
-        getattr(control_interface_mock, handler).assert_called_once_with(*expected_args, **expected_kwargs)
+        getattr(task_interface_mock, handler).assert_called_once_with(*expected_args, **expected_kwargs)
 
     @pytest.mark.parametrize(
         "intent, slots, expected_exception",
@@ -108,13 +108,13 @@ class TestIntentDispatcher:
             ('unknown_intent', {}, NotImplementedError),
         ]
     )
-    def test_dispatch_intent_exceptions(self, dispatcher, control_interface_mock, intent, slots, expected_exception):
+    def test_dispatch_intent_exceptions(self, dispatcher, task_interface_mock, intent, slots, expected_exception):
         """
         Verify that dispatching intents with missing or invalid slots raises the appropriate exceptions.
 
         Args:
             dispatcher (IntentDispatcher): The dispatcher instance.
-            control_interface_mock (Mock): The mocked control interface.
+            task_interface_mock (Mock): The mocked control interface.
             intent (str): The intent to dispatch.
             slots (dict): The slots associated with the intent.
             expected_exception (Exception): The exception expected to be raised.
@@ -135,13 +135,13 @@ class TestIntentDispatcher:
             ('move',           {},                                   "No direction provided for move command."),
         ]
     )
-    def test_dispatch_intent_errors_logging(self, dispatcher, control_interface_mock, caplog, intent, slots, expected_log):
+    def test_dispatch_intent_errors_logging(self, dispatcher, task_interface_mock, caplog, intent, slots, expected_log):
         """
         Verify that dispatching intents with missing or invalid slots logs the appropriate error messages.
 
         Args:
             dispatcher (IntentDispatcher): The dispatcher instance.
-            control_interface_mock (Mock): The mocked ControlInterface.
+            task_interface_mock (Mock): The mocked TaskInterface.
             caplog: Pytest's fixture to capture log output.
             intent (str): The intent to dispatch.
             slots (dict): The slots associated with the intent.
