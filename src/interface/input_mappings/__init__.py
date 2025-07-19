@@ -7,9 +7,11 @@ and interfaces used with hexapod controllers.
 """
 
 from .base_input_mapping import InputMapping
-from .dual_sense_mapping import DualSenseMapping
+from .dual_sense_usb_mapping import DualSenseUSBMapping
+from .dual_sense_bluetooth_mapping import DualSenseBluetoothMapping
 
 __all__ = [
     'InputMapping',
-    'DualSenseMapping'
+    'DualSenseUSBMapping',
+    'DualSenseBluetoothMapping'
 ]

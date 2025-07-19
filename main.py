@@ -16,7 +16,7 @@ from kws import VoiceControl
 from task_interface import TaskInterface
 from robot import PredefinedPosition
 from interface import setup_logging, clean_logs
-from interface import DualSenseMapping, DualSenseLEDController, GamepadHexapodController
+from interface import GamepadHexapodController
 
 if TYPE_CHECKING:
     from typing import Optional
