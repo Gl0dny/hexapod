@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Abstract gamepad LED controller implementation.
 

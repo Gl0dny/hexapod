@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
  Estimate time delay using GCC-PHAT
 """

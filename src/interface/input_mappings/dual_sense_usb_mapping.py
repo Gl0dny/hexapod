@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Gamepad input mappings for hexapod controllers.
 

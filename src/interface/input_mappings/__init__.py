@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Input mappings package for hexapod controllers.
 

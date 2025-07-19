@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Simple script to test PS5 controller detection and show available inputs.
 

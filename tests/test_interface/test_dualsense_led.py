@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Comprehensive test script for GamepadLEDController functionality.
 
