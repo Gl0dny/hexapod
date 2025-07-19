@@ -2,11 +2,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Callable
 import logging
 import threading
+import time
 from pathlib import Path
 import numpy as np
+import pyaudio
+import contextlib
+import os
 
 from picovoice import Picovoice
-from pvrecorder import PvRecorder
 
 from kws import IntentDispatcher
 from task_interface import TaskInterface
@@ -34,9 +37,6 @@ class VoiceControl(threading.Thread):
             device_index: int,
             porcupine_sensitivity: float = 0.75,
             rhino_sensitivity: float = 0.25,
-            log_dir: Optional[Path] = None,
-            log_config_file: Optional[Path] = None,
-            clean: bool = False,
             print_context: bool = False) -> None:
         """
         Initialize the VoiceControl thread.
@@ -46,12 +46,9 @@ class VoiceControl(threading.Thread):
             context_path (Path): Path to the language context file.
             access_key (str): Access key for Picovoice services.
             task_interface (TaskInterface): Task interface instance.
-            device_index (int): Index of the audio input device for PvRecorder.
+            device_index (int): Index of the audio input device.
             porcupine_sensitivity (float, optional): Sensitivity for wake word detection.
             rhino_sensitivity (float, optional): Sensitivity for intent recognition.
-            log_dir (Optional[Path]): Directory for log files.
-            log_config_file (Optional[Path]): Path to log configuration file.
-            clean (bool): Whether to clean log files before starting.
             print_context (bool): Whether to print context information.
         """
         super().__init__(daemon=True)
@@ -77,21 +74,18 @@ class VoiceControl(threading.Thread):
         self.device_index = device_index
         self.porcupine_sensitivity = porcupine_sensitivity
         self.rhino_sensitivity = rhino_sensitivity
-        self.log_dir = log_dir
-        self.log_config_file = log_config_file
-        self.clean = clean
         self.print_context = print_context
 
-        # Determine device index: use external if specified, else auto-detect Built-in Audio Multichannel
+        # Determine device index: use external if specified, else auto-detect ReSpeaker 6
         auto_device_index = device_index
         if device_index is None or device_index == -1:
-            auto_device_index = self.find_builtin_audio_multichannel_index()
-            logger.info(f"Found Built-in Audio Multichannel at index {auto_device_index}")
+            auto_device_index = self.find_respeaker6_index()
+            logger.info(f"Found ReSpeaker 6 at index {auto_device_index}")
             logger.info(f"Available audio devices:")
-            for idx, name in enumerate(PvRecorder.get_available_devices()):
+            for idx, name in enumerate(self.get_available_devices()):
                 logger.info(f"  [{idx}] {name}")
             if auto_device_index == -1:
-                logger.warning("'Built-in Audio Multichannel' not found, using default device (-1)")
+                logger.warning("ReSpeaker 6 not found, using default device (-1)")
                 auto_device_index = -1
         self.device_index = auto_device_index
 
@@ -110,7 +104,7 @@ class VoiceControl(threading.Thread):
             rhino_sensitivity=rhino_sensitivity,
         )
 
-        # Store Picovoice frame length for PvRecorder reinitialization
+        # Store Picovoice frame length for audio processing
         self.frame_length = self.picovoice.frame_length
 
         self.context = self.picovoice.context_info
@@ -120,23 +114,178 @@ class VoiceControl(threading.Thread):
         self.task_interface_interrupted = False
         self.intent_dispatcher = IntentDispatcher(self.task_interface)
 
-        logger.debug(f"Using PvRecorder for audio input with device_index={self.device_index}")
-        # Initialize PvRecorder
-        self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.picovoice.frame_length)
+        # Audio objects (initialized in run())
+        self.pyaudio_instance = None
+        self.audio_stream = None
         
-        # Set up logging
-        if self.log_dir:
-            self.log_dir.mkdir(parents=True, exist_ok=True)
-            if self.clean:
-                for log_file in self.log_dir.glob("*.log"):
-                    log_file.unlink()
-            if self.log_config_file:
-                logging.config.fileConfig(self.log_config_file)
-                
+        # Audio processing thread control
+        self.audio_thread = None
+        self.audio_stop_event = threading.Event()
+        
         if self.print_context:
             self.print_context()
         
         logger.debug("VoiceControl thread initialized successfully")
+
+    @staticmethod
+    @contextlib.contextmanager
+    def _suppress_alsa_warnings():
+        """Context manager to suppress ALSA warnings at file descriptor level."""
+        # Save original stderr file descriptor
+        original_stderr_fd = os.dup(2)  # stderr is file descriptor 2
+        
+        # Open /dev/null for writing
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        
+        try:
+            # Redirect stderr to /dev/null at file descriptor level
+            os.dup2(devnull_fd, 2)
+            yield
+        finally:
+            # Restore original stderr
+            os.dup2(original_stderr_fd, 2)
+            
+            # Close file descriptors
+            os.close(devnull_fd)
+            os.close(original_stderr_fd)
+
+    @staticmethod
+    def get_available_devices() -> list[str]:
+        """
+        Get list of available audio devices.
+        
+        Returns:
+            list[str]: List of available audio device names
+        """
+        try:
+            # Suppress ALSA warnings by redirecting stderr at file descriptor level
+            with VoiceControl._suppress_alsa_warnings():
+                p = pyaudio.PyAudio()
+                devices = []
+                for i in range(p.get_device_count()):
+                    device_info = p.get_device_info_by_index(i)
+                    if device_info['maxInputChannels'] > 0:  # Only input devices
+                        devices.append(device_info['name'])
+                p.terminate()
+                return devices
+        except Exception as e:
+            logger.error(f"Error getting available devices: {e}")
+            return []
+
+    @staticmethod
+    def find_respeaker6_index():
+        """
+        Search for the device index of ReSpeaker 6 in the available devices list.
+        Returns the index if found, else returns -1.
+        """
+        try:
+            devices = VoiceControl.get_available_devices()
+            for idx, name in enumerate(devices):
+                if 'seeed-8mic-voicecard' in name.lower():
+                    return idx
+        except Exception as e:
+            logger.error(f"[VoiceControl] Could not search for ReSpeaker 6: {e}")
+        return -1
+
+    def _initialize_audio(self):
+        """Initialize PyAudio and audio stream."""
+        try:
+            # Suppress ALSA warnings by redirecting stderr at file descriptor level
+            with self._suppress_alsa_warnings():
+                self.pyaudio_instance = pyaudio.PyAudio()
+            
+            device_info = self.pyaudio_instance.get_device_info_by_index(self.device_index)
+            logger.debug(f"Using audio device: {device_info['name']}")
+            
+            frames_per_buffer = 512
+            
+            # Open stream - use 8 channels for ReSpeaker, extract first channel for Picovoice
+            self.audio_stream = self.pyaudio_instance.open(
+                rate=16000,
+                format=pyaudio.paInt16,
+                channels=8,
+                input=True,
+                input_device_index=self.device_index,
+                frames_per_buffer=frames_per_buffer
+            )
+            
+            logger.debug(f"Audio stream opened successfully with frames_per_buffer={frames_per_buffer}")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize audio: {e}")
+            raise
+
+    def _audio_processor(self):
+        """Process audio in separate thread."""
+        logger.debug("Audio processing thread started")
+        
+        try:
+            while not self.audio_stop_event.is_set():
+                # Only process audio if not paused and resources are available
+                if self.pause_event.is_set() and self.audio_stream and self.picovoice:
+                    try:
+                        # Read audio data directly from PyAudio stream
+                        data = self.audio_stream.read(512, exception_on_overflow=False)
+                        
+                        # Convert to numpy array
+                        audio_array = np.frombuffer(data, dtype=np.int16)
+                        
+                        # Extract first channel for Picovoice (8-channel to single channel)
+                        if len(audio_array) >= 8:
+                            first_channel = audio_array[::8]  # Take first channel
+                        else:
+                            first_channel = audio_array
+                        
+                        # Process with Picovoice
+                        # If more data than Picovoice needs, process in chunks
+                        if len(first_channel) >= self.frame_length:
+                            # Process the exact frame length that Picovoice expects
+                            pcm_data = first_channel[:self.frame_length].astype(np.int16)
+                            self.picovoice.process(pcm_data)
+                        else:
+                            # If we have less data, pad with zeros (shouldn't happen with 512 frames)
+                            pcm_data = np.zeros(self.frame_length, dtype=np.int16)
+                            pcm_data[:len(first_channel)] = first_channel.astype(np.int16)
+                            self.picovoice.process(pcm_data)
+                    except Exception as e:
+                        logger.error(f"Audio processing error: {e}")
+                        # Brief pause on error to prevent tight error loops
+                        time.sleep(0.01)
+                else:
+                    # If paused or resources not available, just sleep briefly
+                    time.sleep(0.01)
+                
+        except Exception as e:
+            logger.error(f"Audio processing thread error: {e}")
+        finally:
+            logger.debug("Audio processing thread finished")
+
+    def _cleanup_audio(self):
+        """Clean up audio resources."""
+        try:
+            # Stop audio processing thread first
+            if self.audio_thread and self.audio_thread.is_alive():
+                logger.debug("Stopping audio processing thread")
+                self.audio_stop_event.set()
+                self.audio_thread.join()
+                self.audio_thread = None
+            
+            # Clean up audio stream
+            if self.audio_stream:
+                try:
+                    logger.debug("Stopping audio stream")
+                    self.audio_stream.stop_stream()
+                    self.audio_stream.close()
+                except Exception as e:
+                    logger.warning(f"Error closing audio stream: {e}")
+                finally:
+                    self.audio_stream = None
+                
+            if self.pyaudio_instance:
+                self.pyaudio_instance = None
+                
+        except Exception as e:
+            logger.error(f"Error during audio cleanup: {e}")
 
     def print_context(self) -> None:
         """
@@ -205,10 +354,15 @@ class VoiceControl(threading.Thread):
         try:
             self.task_interface.voice_control_context_info = self.context
 
-            # Start PvRecorder
-            logger.debug("Starting PvRecorder")
-            self.recorder.start()
-            # rename_thread(self.recorder._thread, "PvRecorder")
+            # Initialize audio
+            logger.debug("Initializing audio")
+            self._initialize_audio()
+            
+            # Start audio processing thread (like interactive test)
+            logger.debug("Starting audio processing thread")
+            self.audio_stop_event.clear()
+            self.audio_thread = threading.Thread(target=self._audio_processor, daemon=True)
+            self.audio_thread.start()
             
             self.task_interface.lights_handler.listen_wakeword()
             logger.user_info("Listening for wake word...")
@@ -223,25 +377,19 @@ class VoiceControl(threading.Thread):
                     self.unpause()
                     paused = False
                 
-                # pause_event.wait() blocks until the event is set (unpaused) or timeout occurs
-                # - If paused (event cleared): wait() returns False, no audio processing
-                # - If unpaused (event set): wait() returns True, process audio normally
-                if self.pause_event.wait(timeout=0.1):
-                    pcm = self.recorder.read()
-                    self.picovoice.process(pcm)
+                # Main thread just handles pause/unpause logic
+                # Audio processing happens in separate thread
+                time.sleep(0.1)
 
         except Exception as e:
             logger.exception(f"Unexpected error: {e}")
         
         finally:
             try:
-                if self.recorder and self.recorder.is_recording:
-                    logger.debug("Stopping PvRecorder")
-                    self.recorder.stop()
-                if self.recorder is not None:
-                    self.recorder.delete()
+                self._cleanup_audio()
                 if self.picovoice is not None:
                     self.picovoice.delete()
+                    self.picovoice = None
             except Exception as e:
                 logger.exception(f"Error during cleanup: {e}")
             logger.debug("VoiceControl thread finished")
@@ -252,18 +400,42 @@ class VoiceControl(threading.Thread):
         """
         with self.pause_lock:
             self.pause_event.clear()
-            if self.recorder:
-                if self.recorder.is_recording:
-                    logger.debug("Stopping PvRecorder")
-                    self.recorder.stop()
-                logger.debug("Deleting PvRecorder")
-                self.recorder.delete()  # Release the audio device - it is needed to wait (for other threads) for ~4 seconds to release resources by PvRecorder
-                self.recorder = None
+            
+            # Stop audio processing thread
+            if self.audio_thread and self.audio_thread.is_alive():
+                logger.debug("Stopping audio processing thread")
+                self.audio_stop_event.set()
+                self.audio_thread.join()
+                self.audio_thread = None
+            
+            # Clean up audio resources manually
+            if self.audio_stream:
+                try:
+                    logger.debug("Stopping audio stream")
+                    self.audio_stream.stop_stream()
+                    self.audio_stream.close()
+                except Exception as e:
+                    logger.warning(f"Error closing audio stream during pause: {e}")
+                finally:
+                    self.audio_stream = None
+                    
+            if self.pyaudio_instance:
+                try:
+                    logger.debug("Clearing PyAudio reference during pause (not terminating)")
+                    self.pyaudio_instance = None
+                except Exception as e:
+                    logger.warning(f"Error clearing PyAudio reference during pause: {e}")
+            
             # Release Picovoice resources - resets Picovoice object so that it doesn't process the same audio data again (pausing mid-command)
             if self.picovoice:
-                logger.debug("Deleting Picovoice resources")
-                self.picovoice.delete()
-                self.picovoice = None
+                try:
+                    logger.debug("Deleting Picovoice resources")
+                    self.picovoice.delete()
+                except Exception as e:
+                    logger.warning(f"Error deleting Picovoice during pause: {e}")
+                finally:
+                    self.picovoice = None
+                    
             logger.user_info('Voice control paused')
             self.task_interface.lights_handler.off()
 
@@ -272,9 +444,15 @@ class VoiceControl(threading.Thread):
         Unpauses the voice control processing and reinitializes the audio device.
         """
         with self.pause_lock:
-            # Reinitialize PvRecorder
-            self.recorder = PvRecorder(device_index=self.device_index, frame_length=self.frame_length)
-            self.recorder.start()
+            # Reinitialize audio
+            self._initialize_audio()
+            
+            # Start audio processing thread
+            logger.debug("Starting audio processing thread")
+            self.audio_stop_event.clear()
+            self.audio_thread = threading.Thread(target=self._audio_processor, daemon=True)
+            self.audio_thread.start()
+            
             # Reinitialize Picovoice
             if not self.picovoice:
                 self.picovoice = Picovoice(
@@ -293,21 +471,4 @@ class VoiceControl(threading.Thread):
     def stop(self):
         """Signal the thread to stop."""
         self.stop_event.set()
-        if self.recorder and self.recorder.is_recording:
-            self.recorder.stop()
         logger.user_info('Voice control thread stopped')
-
-    @staticmethod
-    def find_builtin_audio_multichannel_index():
-        """
-        Search for the device index of 'Built-in Audio Multichannel' in the available devices list.
-        Returns the index if found, else returns -1.
-        """
-        try:
-            devices = PvRecorder.get_available_devices()
-            for idx, name in enumerate(devices):
-                if name.strip() == 'Built-in Audio Multichannel':
-                    return idx
-        except Exception as e:
-            logger.error(f"[VoiceControl] Could not search for Built-in Audio Multichannel: {e}")
-        return -1
