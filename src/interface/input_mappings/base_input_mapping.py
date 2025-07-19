@@ -21,6 +21,11 @@ class InputMapping(ABC):
         pass
     
     @abstractmethod
+    def get_hat_mappings(self):
+        """Return a dictionary of hat mappings."""
+        pass
+    
+    @abstractmethod
     def get_interface_names(self):
         """Return a list of interface names this mapping supports."""
         pass

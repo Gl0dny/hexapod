@@ -16,6 +16,7 @@ import os
 import warnings
 from pathlib import Path
 import time
+from enum import Enum
 
 # Silence pygame warnings and welcome message BEFORE importing pygame
 import os
@@ -35,7 +36,7 @@ if str(SRC_DIR) not in sys.path:
 
 # Import base classes and mappings
 from interface.controllers.base_manual_controller import ManualHexapodController
-from interface.input_mappings import InputMapping, DualSenseMapping
+from interface.input_mappings import InputMapping, DualSenseUSBMapping
 from interface.controllers.gamepad_led_controllers.gamepad_led_controller import BaseGamepadLEDController, GamepadLEDColor
 from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
 from utils import rename_thread
@@ -56,6 +57,14 @@ logger = logging.getLogger("interface_logger")
 
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""
+
+    class LEDControllerType(Enum):
+        NONE = 0
+        DUALSENSE = 1
+
+    class InputMappingType(Enum):
+        DUALSENSE_USB = 1
+        DUALSENSE_BLUETOOTH = 2
     
     BUTTON_DEBOUNCE_INTERVAL = 0.3  # seconds
     
@@ -94,22 +103,32 @@ class GamepadHexapodController(ManualHexapodController):
             return False if check_only else None
         return None
 
+    @staticmethod
+    def get_gamepad_connection_type(gamepad):
+        """Return 'bluetooth' if the gamepad name contains 'wireless' or 'bluetooth', else 'usb'. Accepts a gamepad object."""
+        if not gamepad:
+            return None
+        name_lower = gamepad.get_name().lower()
+        if "wireless" in name_lower or "bluetooth" in name_lower:
+            return "bluetooth"
+        return "usb"
+
     def __init__(
             self, 
-            input_mapping: InputMapping,
             task_interface: 'TaskInterface',
             voice_control: Optional['VoiceControl'] = None,
-            led_controller: Optional['BaseGamepadLEDController'] = None,
+            input_mapping_type: 'GamepadHexapodController.InputMappingType' = None,
+            led_controller_type: 'GamepadHexapodController.LEDControllerType' = None,
             shutdown_callback: Optional[callable] = None
             ):
         """
         Initialize the gamepad hexapod controller.
 
         Args:
-            input_mapping: Input mapping for the specific controller type
+            input_mapping_type: Enum specifying which input mapping to use
             task_interface: Task interface for hexapod operations
             voice_control: Optional voice control mode
-            led_controller: Optional LED controller for visual feedback
+            led_controller_type: Enum specifying which LED controller to use
             shutdown_callback: Optional callback function to call when PS5 button is pressed
         """
         super().__init__(task_interface=task_interface, voice_control=voice_control, shutdown_callback=shutdown_callback)
@@ -118,9 +137,23 @@ class GamepadHexapodController(ManualHexapodController):
         if not PYGAME_AVAILABLE:
             raise ImportError("pygame is required for gamepad support")
         
-        # Store parameters
-        self.input_mapping = input_mapping
-        self.led_controller = led_controller
+        # Set defaults to DUALSENSE if not provided
+        if input_mapping_type is None:
+            input_mapping_type = self.InputMappingType.DUALSENSE_BLUETOOTH
+        if led_controller_type is None:
+            led_controller_type = self.LEDControllerType.DUALSENSE
+
+        # Try Bluetooth mapping first (default), fallback to USB if needed
+        self.input_mapping = None
+        if input_mapping_type == self.InputMappingType.DUALSENSE_BLUETOOTH:
+            from interface.input_mappings import DualSenseBluetoothMapping
+            self.input_mapping = DualSenseBluetoothMapping()
+        elif input_mapping_type == self.InputMappingType.DUALSENSE_USB:
+            from interface.input_mappings import DualSenseUSBMapping
+            self.input_mapping = DualSenseUSBMapping()
+        
+        if self.input_mapping is None:
+            raise ValueError("No valid input mapping type provided or mapping instantiation failed.")
         
         # Initialize gamepad state
         self.gamepad = None
@@ -140,9 +173,36 @@ class GamepadHexapodController(ManualHexapodController):
         pygame.joystick.init()
         
         # Find and initialize gamepad
-        self.gamepad = self.find_gamepad(input_mapping, check_only=False)
+        self.gamepad = self.find_gamepad(self.input_mapping, check_only=False)
         if not self.gamepad:
-            raise RuntimeError(f"Gamepad not found. This script only supports: {', '.join(input_mapping.get_interface_names())}")
+            # If Bluetooth mapping failed, try USB mapping as fallback
+            if input_mapping_type == self.InputMappingType.DUALSENSE_BLUETOOTH:
+                logger.user_info("Bluetooth mapping failed, trying USB mapping as fallback...")
+                from interface.input_mappings import DualSenseUSBMapping
+                self.input_mapping = DualSenseUSBMapping()
+                self.gamepad = self.find_gamepad(self.input_mapping, check_only=False)
+            
+            if not self.gamepad:
+                logger.user_info("No compatible gamepad found - falling back to voice control mode")
+                raise RuntimeError(f"Gamepad not found. This script only supports: {', '.join(self.input_mapping.get_interface_names())}")
+            else:
+                logger.user_info("Compatible gamepad found (USB mode) - starting manual control mode")
+        else:
+            logger.user_info("Compatible gamepad found (Bluetooth mode) - starting manual control mode")
+
+        # Now it's safe to get connection_type
+        connection_type = self.get_gamepad_connection_type(self.gamepad)
+
+        self.led_controller = None
+        if connection_type != "bluetooth" and led_controller_type is not None:
+            if led_controller_type == self.LEDControllerType.DUALSENSE:
+                try:
+                    from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
+                    self.led_controller = DualSenseLEDController()
+                except Exception as e:
+                    logger.warning(f"Failed to initialize DualSense LED controller: {e}")
+        elif connection_type == "bluetooth" and led_controller_type is not None and led_controller_type != self.LEDControllerType.NONE:
+            logger.warning("Gamepad is in Bluetooth mode: Gamepad LED controller is not supported and will not be initialized.")
         
         logger.gamepad_mode_info(f"Gamepad '{self.gamepad.get_name()}' initialized successfully")
         logger.gamepad_mode_info(f"Current mode: {self.current_mode}")
@@ -246,19 +306,51 @@ class GamepadHexapodController(ManualHexapodController):
             'l3': self.gamepad.get_button(button_mappings['l3']),
             'r3': self.gamepad.get_button(button_mappings['r3']),
             'ps5': self.gamepad.get_button(button_mappings['ps5']),
-            'touchpad': self.gamepad.get_button(button_mappings['touchpad']),
-            'dpad_up': self.gamepad.get_button(button_mappings['dpad_up']),
-            'dpad_down': self.gamepad.get_button(button_mappings['dpad_down']),
-            'dpad_left': self.gamepad.get_button(button_mappings['dpad_left']),
-            'dpad_right': self.gamepad.get_button(button_mappings['dpad_right'])
+            'touchpad': self.gamepad.get_button(button_mappings['touchpad'])
         }
+        
+        # Handle D-pad based on mapping type
+        dpad_states = self._get_dpad_states(button_mappings)
+        buttons.update(dpad_states)
+        
         # Treat L2/R2 as digital buttons: pressed if axis > 0.5
         l2_axis = self.gamepad.get_axis(axis_mappings['l2']) if 'l2' in axis_mappings else 0.0
         r2_axis = self.gamepad.get_axis(axis_mappings['r2']) if 'r2' in axis_mappings else 0.0
         buttons['l2'] = l2_axis > 0.5
         buttons['r2'] = r2_axis > 0.5
         return buttons
-    
+
+    def _get_dpad_states(self, button_mappings):
+        """Get D-pad button states based on mapping type."""
+        hat_mappings = self.input_mapping.get_hat_mappings()
+        if hat_mappings and 'dpad' in hat_mappings:
+            dpad_mapping = hat_mappings['dpad']
+            if dpad_mapping == 'buttons':
+                # USB mode: D-pad as buttons
+                return {
+                    'dpad_up': self.gamepad.get_button(button_mappings['dpad_up']),
+                    'dpad_down': self.gamepad.get_button(button_mappings['dpad_down']),
+                    'dpad_left': self.gamepad.get_button(button_mappings['dpad_left']),
+                    'dpad_right': self.gamepad.get_button(button_mappings['dpad_right'])
+                }
+            elif dpad_mapping == 'hat':
+                # Bluetooth mode: D-pad as actual hat
+                hat_value = self.gamepad.get_hat(0)
+                return {
+                    'dpad_up': hat_value[1] == 1,
+                    'dpad_down': hat_value[1] == -1,
+                    'dpad_left': hat_value[0] == -1,
+                    'dpad_right': hat_value[0] == 1
+                }
+        
+        # Fallback: D-pad as buttons
+        return {
+            'dpad_up': self.gamepad.get_button(button_mappings.get('dpad_up', 0)),
+            'dpad_down': self.gamepad.get_button(button_mappings.get('dpad_down', 0)),
+            'dpad_left': self.gamepad.get_button(button_mappings.get('dpad_left', 0)),
+            'dpad_right': self.gamepad.get_button(button_mappings.get('dpad_right', 0))
+        }
+
     def _check_button_press(self, button_name):
         """Check if a button was just pressed (not held), with debounce."""
         current = self.button_states.get(button_name, False)
@@ -523,11 +615,14 @@ class GamepadHexapodController(ManualHexapodController):
             "  Left Stick      - Movement direction (forward/backward/left/right/diagonal directions)\n"
             "  Right Stick X   - Rotation (clockwise/counterclockwise)\n"
             "  L2/R2           - Raise/Lower gait stance height (body up/down)\n"
+            "  X (Cross)       - Toggle marching in place (neutral gait) ON/OFF (default: OFF)\n"
+            "      - When marching is OFF, robot stands still when stick is centered.\n"
+            "      - When marching is ON, robot marches in place when stick is centered.\n"
             "  The hexapod will walk using its gait generator\n"
             "  Different gait parameters are used for translation vs rotation movements\n"
             "\n"
             "COMMON BUTTON CONTROLS:\n"
-            "  Triangle        - Reset to start position\n"
+            "  Triangle        - Reset to start position (also resets stance height to 0 in gait mode)\n"
             "  Square          - Show current position\n"
             "  Circle          - Show this help menu\n"
             "  PS5             - Shutdown entire program\n"
@@ -543,6 +638,7 @@ class GamepadHexapodController(ManualHexapodController):
             "  Lime Pulse      - Movement detected (both modes)\n"
             + "="*60
         )
+        from interface.controllers.base_manual_controller import logger
         logger.gamepad_mode_info(help_message)
     
     def cleanup_controller(self):
@@ -560,33 +656,3 @@ class GamepadHexapodController(ManualHexapodController):
         # Cleanup pygame
         if PYGAME_AVAILABLE:
             pygame.quit()
-
-def main():
-    """Main function to run the hexapod movement controller."""
-    controller = None
-    try:
-        # Choose your input interface mapping here:
-        # For PS5 DualSense controller:
-        input_mapping = DualSenseMapping()
-        # For other interfaces, create a new mapping class that inherits from InputMapping
-
-        # Create task interface
-        from task_interface import TaskInterface
-        task_interface = TaskInterface()
-
-        # Optional: Create LED controller for visual feedback
-        led_controller = DualSenseLEDController()  # Create DualSense LED controller
-        
-        # controller = GamepadHexapodController(input_mapping, task_interface)  # No LED controller
-        controller = GamepadHexapodController(input_mapping, task_interface, led_controller=led_controller)  # With LED controller
-        controller.start()
-        controller.join()  # Wait for the thread to finish
-    except Exception as e:
-        logger.exception(f"Movement controller execution failed: {e}")
-        if controller:
-            controller.stop()
-            controller.join()
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main() 
