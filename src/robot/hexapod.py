@@ -145,7 +145,7 @@ class Hexapod:
         self.current_leg_angles: List[Tuple[float, float, float]] = [tuple(pos) for pos in self.predefined_angle_positions['low_profile']]
         self.current_leg_positions: List[Tuple[float, float, float]] = [tuple(pos) for pos in self.predefined_positions['low_profile']]
 
-        self.gait_generator = GaitGenerator(self) #TODO: Optional IMU-based gait generator
+        self.gait_generator = GaitGenerator(self)
 
         self.set_all_servos_speed(self.speed)
         self.set_all_servos_accel(self.accel)

@@ -47,13 +47,11 @@ class GaitState:
         swing_legs (List[int]): List of leg indices currently in swing phase
         stance_legs (List[int]): List of leg indices currently in stance phase
         dwell_time (float): Time to spend in this state (seconds)
-        stability_threshold (float): Maximum allowed IMU deviation for stability
     """
     phase: GaitPhase
     swing_legs: List[int]  # List of leg indices in swing phase
     stance_legs: List[int]  # List of leg indices in stance phase
     dwell_time: float  # Time to spend in this state
-    stability_threshold: float  # Maximum allowed IMU deviation
 
 class BaseGait(ABC):
     """
@@ -155,7 +153,6 @@ class BaseGait(ABC):
                  leg_lift_distance: float = 10.0,
                  stance_height: float = 0.0,  # Height of stance legs above ground (mm), 0.0 = reference position
                  dwell_time: float = 0.5,
-                 stability_threshold: float = 0.2,
                  use_full_circle_stance: bool = False) -> None:
         """
         Initialize the base gait with circle-based parameters.
@@ -168,7 +165,6 @@ class BaseGait(ABC):
                                  A value of 0.0 matches the reference position (starting/home position).
                                  Positive values lower legs (raise body), negative values raise legs (lower body).
             dwell_time (float): Time to spend in each gait phase (seconds)
-            stability_threshold (float): Maximum IMU deviation for stability check
             use_full_circle_stance (bool): Stance leg movement pattern
                 - False (default): Half circle behavior - stance legs move from current position back to center (0,0)
                 - True: Full circle behavior - stance legs move from current position to opposite side of circle
@@ -189,7 +185,7 @@ class BaseGait(ABC):
         """
         logger.info(f"Initializing BaseGait with step_radius={step_radius}, leg_lift_distance={leg_lift_distance}, "
                     f"stance_height={stance_height}, dwell_time={dwell_time}, "
-                    f"stability_threshold={stability_threshold}, use_full_circle_stance={use_full_circle_stance}")
+                    f"use_full_circle_stance={use_full_circle_stance}")
         self.hexapod = hexapod
         self.gait_graph: Dict[GaitPhase, List[GaitPhase]] = {}
         
@@ -198,7 +194,6 @@ class BaseGait(ABC):
         self.leg_lift_distance = leg_lift_distance
         self.stance_height = stance_height
         self.dwell_time = dwell_time
-        self.stability_threshold = stability_threshold
         self.use_full_circle_stance = use_full_circle_stance
         
         # Movement parameters - set by user to control robot movement

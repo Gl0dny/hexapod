@@ -24,7 +24,6 @@ class TripodGait(BaseGait):
                  leg_lift_distance: float = 20.0,
                  stance_height: float = 0.0,
                  dwell_time: float = 0.5,
-                 stability_threshold: float = 0.2,
                  use_full_circle_stance: bool = False) -> None:
         """
         Initialize tripod gait with circle-based parameters.
@@ -41,7 +40,6 @@ class TripodGait(BaseGait):
                                  A value of 0.0 matches the reference position (starting/home position).
                                  Positive values lower legs (raise body), negative values raise legs (lower body).
             dwell_time (float): Time in each phase (seconds)
-            stability_threshold (float): Maximum IMU deviation allowed
             use_full_circle_stance (bool): Stance leg movement pattern
                 - False (default): Half circle behavior - stance legs move from current position back to center (0,0)
                 - True: Full circle behavior - stance legs move from current position to opposite side of circle
@@ -61,7 +59,7 @@ class TripodGait(BaseGait):
                 Half circle is more efficient as stance legs move half the distance.
         """
         super().__init__(hexapod, step_radius, leg_lift_distance,
-                        stance_height, dwell_time, stability_threshold, use_full_circle_stance)
+                        stance_height, dwell_time, use_full_circle_stance)
 
     def _setup_gait_graph(self) -> None:
         """
@@ -88,14 +86,12 @@ class TripodGait(BaseGait):
                 phase=phase,
                 swing_legs=[0, 2, 4],  # Right, Left Front, Left Back
                 stance_legs=[1, 3, 5],  # Right Front, Left, Right Back
-                dwell_time=self.dwell_time,
-                stability_threshold=self.stability_threshold
+                dwell_time=self.dwell_time
             )
         else:  # TRIPOD_B
             return GaitState(
                 phase=phase,
                 swing_legs=[1, 3, 5],  # Right Front, Left, Right Back
                 stance_legs=[0, 2, 4],  # Right, Left Front, Left Back
-                dwell_time=self.dwell_time,
-                stability_threshold=self.stability_threshold
+                dwell_time=self.dwell_time
             ) 

@@ -4,7 +4,6 @@ import logging
 import threading
 import time
 import math
-import numpy as np
 
 from utils import rename_thread, Vector3D
 from .base_gait import BaseGait, GaitPhase, GaitState
@@ -15,30 +14,26 @@ logger = logging.getLogger("gait_generator_logger")
 
 if TYPE_CHECKING:
     from robot import Hexapod
-    from robot.sensors import Imu
 
 class GaitGenerator:
     """
     Main gait generator that manages the execution of gait patterns.
     
     This class coordinates the gait state machine, executes leg movements,
-    and handles timing and stability monitoring. It runs the gait in a
-    separate thread to allow continuous movement while the main program
-    continues to run.
+    and handles timing. It runs the gait in a separate thread to allow 
+    continuous movement while the main program continues to run.
     """
     DEFAULT_DWELL_TIME = 1.0  # seconds
 
-    def __init__(self, hexapod: Hexapod, imu: Optional[Imu] = None, stop_event: Optional[threading.Event] = None) -> None:
+    def __init__(self, hexapod: Hexapod, stop_event: Optional[threading.Event] = None) -> None:
         """
-        Initialize the GaitGenerator with references to the hexapod and IMU.
+        Initialize the GaitGenerator with references to the hexapod.
 
         Args:
             hexapod (Hexapod): The Hexapod instance to control
-            imu (IMU, optional): The IMU instance for stability monitoring
             stop_event (threading.Event, optional): Event to signal stopping the gait
         """
         self.hexapod = hexapod
-        self.imu = imu
         self.is_running = False
         self.thread = None
         self.current_state: Optional[GaitState] = None
@@ -55,7 +50,6 @@ class GaitGenerator:
                     leg_lift_distance: float = 20.0,
                     stance_height: float = 0.0,
                     dwell_time: float = 0.5,
-                    stability_threshold: float = 0.2,
                     use_full_circle_stance: bool = False) -> None:
         """
         Factory method to create and set the current gait instance. Supports 'tripod' and 'wave'.
@@ -67,13 +61,12 @@ class GaitGenerator:
             leg_lift_distance (float): Height legs lift during swing (mm)
             stance_height (float): Height above ground for stance (mm)
             dwell_time (float): Time in each phase (seconds)
-            stability_threshold (float): Maximum IMU deviation allowed
             use_full_circle_stance (bool): Stance leg movement pattern (half or full circle)
         """
         if gait_type == 'tripod':
-            gait = TripodGait(self.hexapod, step_radius, leg_lift_distance, stance_height, dwell_time, stability_threshold, use_full_circle_stance)
+            gait = TripodGait(self.hexapod, step_radius, leg_lift_distance, stance_height, dwell_time, use_full_circle_stance)
         elif gait_type == 'wave':
-            gait = WaveGait(self.hexapod, step_radius, leg_lift_distance, stance_height, dwell_time, stability_threshold, use_full_circle_stance)
+            gait = WaveGait(self.hexapod, step_radius, leg_lift_distance, stance_height, dwell_time, use_full_circle_stance)
         else:
             raise ValueError(f"Unknown gait type: {gait_type}")
         
@@ -86,30 +79,6 @@ class GaitGenerator:
             self.current_state = self.current_gait.get_state(GaitPhase.WAVE_1)
         else:
             raise ValueError(f"Unknown gait type: {gait_type}")
-
-    def _check_stability(self) -> bool:
-        """
-        Check if the robot is stable based on IMU readings.
-        
-        This method monitors accelerometer and gyroscope data to detect
-        instability that might cause the robot to fall over.
-        
-        Returns:
-            bool: True if robot is stable, False if instability detected
-        """
-        if not self.imu:
-            return True  # If no IMU, assume stable
-        
-        # Get current IMU readings
-        accel = self.imu.get_acceleration()
-        gyro = self.imu.get_gyroscope()
-        
-        # Simple stability check - can be enhanced based on specific requirements
-        accel_magnitude = np.linalg.norm(accel)
-        gyro_magnitude = np.linalg.norm(gyro)
-        
-        return (abs(accel_magnitude - 9.81) < self.current_state.stability_threshold and
-                gyro_magnitude < self.current_state.stability_threshold)
 
     def _execute_phase(self, state: GaitState) -> None:
         """
@@ -263,7 +232,6 @@ class GaitGenerator:
         
         The method handles:
         - Phase transitions through the complete cycle
-        - Stability monitoring throughout the cycle
         - Stop event checking between phases (completes current cycle if stop requested)
         - Error handling and recovery
         """
@@ -310,11 +278,10 @@ class GaitGenerator:
                     logger.info(f"Cycle completed - phases_executed: {phases_executed}, phases_per_cycle: {phases_per_cycle}")
                     break
                 
-                # Wait for dwell time or until stability is compromised
+                # Wait for dwell time
                 logger.debug(f"Waiting for dwell time: {self.current_state.dwell_time}s")
                 start_time = time.time()
-                while (time.time() - start_time < self.current_state.dwell_time and
-                       self._check_stability()):
+                while time.time() - start_time < self.current_state.dwell_time:
                     # Check stop event during dwell time
                     if self.stop_event.is_set() and not self.stop_requested:
                         logger.warning("Stop event detected during dwell time - will complete current cycle")
@@ -444,7 +411,7 @@ class GaitGenerator:
                     self.pending_direction = None
                     self.pending_rotation = None
                 
-                # Pause between cycles for stability
+                # Pause between cycles
                 if self.is_running and not self.stop_event.is_set():
                     dwell_time = self.current_gait.dwell_time if self.current_gait and hasattr(self.current_gait, 'dwell_time') else self.DEFAULT_DWELL_TIME
                     logger.debug(f"Pause between cycles: {dwell_time}s")
