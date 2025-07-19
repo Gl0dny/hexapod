@@ -93,10 +93,8 @@ def shutdown_cleanup(voice_control, manual_controller, task_interface):
         logger.user_info(f"{thread.name}, {thread.is_alive()}")
     print("---")
 
-def main() -> None:
-    """Main entry point."""
-    args = parse_arguments()
-    
+def initialize_application(args) -> TaskInterface:
+    """Initialize the application and return the task interface."""
     # Clean logs if requested
     if args.clean:
         clean_logs()
@@ -109,7 +107,10 @@ def main() -> None:
 
     # Initialize control interface
     task_interface = TaskInterface()
-        
+    return task_interface
+
+def initialize_voice_control(args, task_interface) -> VoiceControl:
+    """Initialize voice control and return the voice control instance."""
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
     
@@ -127,44 +128,34 @@ def main() -> None:
         logger.debug("Print context flag detected, printing context")
         voice_control.print_context()
 
-    manual_controller = None
-    
     voice_control.start()
-    
+    return voice_control
+
+def initialize_manual_controller(task_interface, voice_control) -> Optional[GamepadHexapodController]:
+    """Initialize manual controller and return it, or None if failed."""
     try:
-        input_mapping = DualSenseMapping()
-        gamepad_led_controller = DualSenseLEDController()
-        
-        # Check if gamepad is available
-        if GamepadHexapodController.find_gamepad(input_mapping, check_only=True):
-            logger.user_info("Compatible gamepad found - starting manual control mode")
-            manual_controller = GamepadHexapodController(
-                input_mapping=input_mapping,
-                task_interface=task_interface,
-                voice_control=voice_control,
-                led_controller=gamepad_led_controller,
-                shutdown_callback=shutdown_callback
-            )
-            manual_controller.start()
-            # Ensure voice control is paused in manual mode
-            voice_control.pause()
-            logger.user_info("Manual controller started successfully")
-        else:
-            logger.user_info("No compatible gamepad found - falling back to voice control mode")
-            if not voice_control.pause_event.is_set():
-                voice_control.unpause()  # Unpause voice control for fallback mode
-            
+        manual_controller = GamepadHexapodController(
+            task_interface=task_interface,
+            voice_control=voice_control,
+            shutdown_callback=shutdown_callback
+        )
+        manual_controller.start()
+        # Ensure voice control is paused in manual mode
+        voice_control.pause()
+        logger.user_info("Manual controller started successfully")
+        return manual_controller
     except Exception as e:
         logger.warning(f"Failed to initialize manual controller: {e}")
         logger.user_info("Falling back to voice control mode")
         if not voice_control.pause_event.is_set():
-            voice_control.unpause()
+            voice_control.unpause()  # Unpause voice control for fallback mode
+        return None
 
-    try:        
-        # logger.debug("Entering main loop to monitor controller errors")
-        logger.debug("Waiting for button press to start the system")
-        cleanup_done = False
-        
+def run_main_loop(voice_control, manual_controller, task_interface) -> None:
+    """Run the main application loop."""
+    cleanup_done = False
+    
+    try:
         while True:
             # Check for shutdown event (triggered by PS5 button)
             if shutdown_event.is_set():
@@ -206,6 +197,18 @@ def main() -> None:
     finally:
         if not cleanup_done:
             shutdown_cleanup(voice_control, manual_controller, task_interface)
+
+def main() -> None:
+    """Main entry point."""
+    args = parse_arguments()
+    
+    # Initialize application components
+    task_interface = initialize_application(args)
+    voice_control = initialize_voice_control(args, task_interface)
+    manual_controller = initialize_manual_controller(task_interface, voice_control)
+    
+    # Run main loop
+    run_main_loop(voice_control, manual_controller, task_interface)
 
 if __name__ == '__main__':
     main()
