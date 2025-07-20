@@ -69,12 +69,10 @@ class StreamODASAudioTask(Task):
     def _initialize_odas_processor(self) -> None:
         """
         Initialize and start the ODAS processor.
-        Handles the setup phase including pausing external control and starting the processor.
+        Handles the setup phase including starting the processor.
         """
         self.lights_handler.think()
-        # Set external control paused to pause voice control
-        self.external_control_paused_event.set()
-        time.sleep(4)  # Wait for Voice Control to pause and release resources by PvRecorder
+        time.sleep(4)  # Wait for Voice Control to pause and release resources
         self.lights_handler.off()
         # Start ODAS processor
         self.odas_processor.start()
@@ -82,12 +80,10 @@ class StreamODASAudioTask(Task):
     def _cleanup_odas_processor(self) -> None:
         """
         Clean up ODAS processor resources.
-        Ensures proper shutdown of the processor and resumption of external control.
+        Ensures proper shutdown of the processor.
         """
         if hasattr(self, 'odas_processor'):
             self.odas_processor.close()
-        # Clear external control paused to resume voice control
-        self.external_control_paused_event.clear()
 
     def _verify_ssh_connection(self) -> bool:
         """

@@ -58,7 +58,7 @@ def parse_arguments() -> argparse.Namespace:
     
     return parser.parse_args()
 
-def handle_button_interactions(task_interface, voice_control):
+def handle_button_interactions(task_interface):
     """Handle button interactions for voice control mode."""
     action, is_running = task_interface.button_handler.check_button()
     
@@ -69,13 +69,19 @@ def handle_button_interactions(task_interface, voice_control):
         if is_running:
             logger.user_info("Starting system...")
             task_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-            voice_control.unpause()
+            task_interface.request_unpause_voice_control()
         else:
             logger.user_info("Stopping system...")
-            voice_control.pause()
+            task_interface.request_pause_voice_control()
             task_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
             time.sleep(0.5)
             task_interface.hexapod.deactivate_all_servos()
+    elif action == 'stop_task':
+        logger.user_info("Button pressed during blocking task, stopping current task...")
+        task_interface.stop_task()
+        # Unpause external control and voice control after stopping the task
+        task_interface.request_unblock_voice_control_pausing()
+        task_interface.request_unpause_voice_control()
 
 def shutdown_cleanup(voice_control, manual_controller, task_interface):
     """Perform cleanup when shutting down the program."""
@@ -144,21 +150,20 @@ def create_application_components(args) -> tuple[TaskInterface, VoiceControl]:
 def initialize_manual_controller(task_interface, voice_control) -> Optional[GamepadHexapodController]:
     """Initialize manual controller and return it, or None if failed."""
     try:
+        # Ensure voice control is paused in manual mode
+        task_interface.request_pause_voice_control()
         manual_controller = GamepadHexapodController(
             task_interface=task_interface,
             voice_control=voice_control,
             shutdown_callback=shutdown_callback
         )
         manual_controller.start()
-        # Ensure voice control is paused in manual mode
-        voice_control.pause()
         logger.user_info("Manual controller started successfully")
         return manual_controller
     except Exception as e:
         logger.warning(f"Failed to initialize manual controller: {e}")
         logger.user_info("Falling back to voice control mode")
-        if voice_control.pause_event.is_set():
-            voice_control.unpause()  # Unpause voice control for fallback mode
+        task_interface.request_unpause_voice_control()  # Unpause voice control for fallback mode
         return None
 
 def run_main_loop(voice_control, manual_controller, task_interface) -> None:
@@ -188,14 +193,14 @@ def run_main_loop(voice_control, manual_controller, task_interface) -> None:
                 # Manual control mode - check if in voice control mode
                 if manual_controller.current_mode == manual_controller.VOICE_CONTROL_MODE:
                     # Manual controller is in voice control mode - handle button interactions
-                    handle_button_interactions(task_interface, voice_control)
+                    handle_button_interactions(task_interface)
                 else:
                     # Manual controller is in body/gait control mode - just monitor for shutdown
                     # The manual controller runs independently, just need to keep the main thread alive
                     pass
             else:
                 # No manual controller - voice control mode only - handle button interactions
-                handle_button_interactions(task_interface, voice_control)
+                handle_button_interactions(task_interface)
             
             time.sleep(0.1)  # Small delay to prevent CPU overuse
             

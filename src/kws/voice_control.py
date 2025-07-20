@@ -344,8 +344,10 @@ class VoiceControl(threading.Thread):
             self.intent_dispatcher.dispatch(inference.intent, inference.slots)
         else:
             logger.error("Inference not understood")
-            self.task_interface.lights_handler.listen_wakeword(base_color=ColorRGB.RED, pulse_color=ColorRGB.GOLDEN)
-            logger.user_info("Listening for wake word...")
+            # Only set lights and print message if voice control is not paused
+            if not self.task_interface.voice_control_paused_event.is_set():
+                self.task_interface.lights_handler.listen_wakeword(base_color=ColorRGB.RED, pulse_color=ColorRGB.GOLDEN)
+                logger.user_info("Listening for wake word...")
 
     def on_task_complete(self, task: Task) -> None:
         """
@@ -356,12 +358,12 @@ class VoiceControl(threading.Thread):
         """
         logger.user_info(f"Voice control task {task.__class__.__name__} has been completed.")
         
-        # Only set lights to listen for wake word if the voice control thread is still running
-        if not self.stop_event.is_set() and not self.task_interface_interrupted:
+        # Only set lights to listen for wake word if the voice control thread is still running and not paused
+        if not self.stop_event.is_set() and not self.task_interface_interrupted and not self.task_interface.voice_control_paused_event.is_set():
             self.task_interface.lights_handler.listen_wakeword()
             logger.user_info("Listening for wake word...")
         else:
-            logger.debug("Voice control thread is stopping, canceling the callback for wakeword listening (control task completed)")
+            logger.debug("Voice control thread is stopping or paused, canceling the callback for wakeword listening")
 
         self.task_interface_interrupted = False
 
@@ -383,16 +385,18 @@ class VoiceControl(threading.Thread):
             self.audio_thread = threading.Thread(target=self._audio_processor, daemon=True)
             self.audio_thread.start()
             
-            self.task_interface.lights_handler.listen_wakeword()
-            logger.user_info("Listening for wake word...")
+            # Only set lights and print message if voice control is not paused
+            if not self.task_interface.voice_control_paused_event.is_set():
+                self.task_interface.lights_handler.listen_wakeword()
+                logger.user_info("Listening for wake word...")
             
             paused = False
 
             while not self.stop_event.is_set():
-                if self.task_interface.external_control_paused_event.is_set() and not paused:
+                if self.task_interface.voice_control_paused_event.is_set() and not paused:
                     self.pause()
                     paused = True
-                elif not self.task_interface.external_control_paused_event.is_set() and paused:
+                elif not self.task_interface.voice_control_paused_event.is_set() and paused:
                     self.unpause()
                     paused = False
                 
@@ -489,6 +493,7 @@ class VoiceControl(threading.Thread):
             self.pause_event.clear()
             logger.user_info('Voice control unpaused')
             self.task_interface.lights_handler.listen_wakeword()
+            logger.user_info("Listening for wake word...")
 
     def start_recording(self, filename: str = None, duration: Optional[float] = None) -> str:
         """

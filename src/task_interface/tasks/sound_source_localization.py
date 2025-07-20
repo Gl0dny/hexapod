@@ -57,10 +57,7 @@ class SoundSourceLocalizationTask(Task):
         try:
             self.lights_handler.think()
 
-            # Set external control paused to pause voice control
-            self.external_control_paused_event.set()
-
-            time.sleep(4)  # Wait for Voice Control to pause and release resources by PvRecorder
+            time.sleep(4)  # Wait for Voice Control to pause and release resources
 
             self.lights_handler.off()
             
@@ -77,6 +74,4 @@ class SoundSourceLocalizationTask(Task):
             # Ensure ODAS processor is closed
             if hasattr(self, 'odas_processor'):
                 self.odas_processor.close()
-            # Clear external control paused to resume voice control
-            self.external_control_paused_event.clear()
             logger.info("SoundSourceLocalizationTask completed")

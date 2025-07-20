@@ -66,12 +66,53 @@ class TaskInterface:
         self.status_reporter = StatusReporter()
         self._last_args = None
         self._last_kwargs = None
-        # Event to pause external control (button, voice commands) during particular operations
+        # Event to pause voice control
+        self.voice_control_paused_event = threading.Event()
+        
+        # Event to pause external control (button interactions) during particular operations
         # like calibration, shutdown, or other maintenance tasks
         self.external_control_paused_event = threading.Event()
         self.button_handler = ButtonHandler(pin=26, external_control_paused_event=self.external_control_paused_event)
         self.task_complete_callback: Optional[Callable[[Task], None]] = None
         logger.debug("TaskInterface initialized successfully.")
+
+    def request_pause_voice_control(self) -> None:
+        """
+        Request to pause voice control.
+        The voice control thread will monitor this request and pause accordingly.
+        """
+        self.voice_control_paused_event.set()
+        time.sleep(0.1)
+        logger.debug("Voice control pause requested")
+
+    def request_unpause_voice_control(self) -> None:
+        """
+        Request to unpause voice control.
+        The voice control thread will monitor this request and unpause accordingly.
+        """
+        self.voice_control_paused_event.clear()
+        time.sleep(0.1)
+        logger.debug("Voice control unpause requested")
+
+    def request_block_voice_control_pausing(self) -> None:
+        """
+        Request to block voice control pausing/unpausing via button during critical tasks.
+        This prevents toggling voice control on/off during tasks like ODAS or calibration.
+        The button handler will monitor this request and block accordingly.
+        """
+        self.external_control_paused_event.set()
+        time.sleep(0.1)
+        logger.debug("Voice control pausing blocking requested")
+
+    def request_unblock_voice_control_pausing(self) -> None:
+        """
+        Request to unblock voice control pausing/unpausing via button.
+        This allows normal voice control toggle functionality to resume.
+        The button handler will monitor this request and unblock accordingly.
+        """
+        self.external_control_paused_event.clear()
+        time.sleep(0.1)
+        logger.debug("Voice control pausing unblocking requested")
 
     def inject_hexapod(func: Callable[..., Any]) -> Callable[..., Any]:
         """
@@ -125,7 +166,18 @@ class TaskInterface:
         if hasattr(self, 'task') and self.task:
             try:
                 logger.debug(f"Stopping existing task {self.task}.")
+                
+                # Check if this is a task that needs unpausing (ODAS tasks and calibration)
+                task_name = self.task.__class__.__name__
+                needs_unpausing = task_name in ['SoundSourceLocalizationTask', 'FollowTask', 'StreamODASAudioTask', 'CompositeCalibrationTask']
+                
                 self.task.stop_task(timeout=5.0)
+                
+                # Unpause controls for tasks that were stopped manually
+                if needs_unpausing:
+                    self.request_unpause_voice_control()
+                    self.request_unblock_voice_control_pausing()
+                    
             except Exception as e:
                 logger.exception(f"Error stopping task: {e}")
         else:
@@ -198,6 +250,13 @@ class TaskInterface:
         """
         if self.task_complete_callback:
             self.task_complete_callback(task)
+        
+        # Unpause controls for tasks that were paused before starting
+        task_name = task.__class__.__name__
+        if task_name in ['SoundSourceLocalizationTask', 'FollowTask', 'StreamODASAudioTask', 'CompositeCalibrationTask']:
+            self.request_unpause_voice_control()
+            self.request_unblock_voice_control_pausing()
+        
         # Ensure self.task is cleared if the completed task is the current one
         if self.task is task:
             self.task = None
@@ -245,7 +304,8 @@ class TaskInterface:
             rename_thread(input_handler, "ShutdownInputHandler")
             input_handler.start()
 
-            self.external_control_paused_event.set()  # Signal external control paused
+            self.request_pause_voice_control()  # Signal voice control paused
+            self.request_block_voice_control_pausing()  # Signal voice control pausing blocked
 
             shutdown_delay = 15.0  # seconds
             lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
@@ -281,7 +341,8 @@ class TaskInterface:
                 user_input = input_handler.get_input()
                 if user_input:
                     shutdown_timer.cancel()
-                    self.external_control_paused_event.clear()
+                    self.request_unpause_voice_control()
+                    self.request_unblock_voice_control_pausing()
                     input_handler.shutdown()
                     input_handler = None
                     logger.user_info("Shutdown canceled by user.")
@@ -367,7 +428,8 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.external_control_paused_event.set()  # Signal external control paused
+            self.request_pause_voice_control()  # Signal voice control paused
+            self.request_block_voice_control_pausing()  # Signal voice control pausing blocked
             self.task = task_interface.tasks.CompositeCalibrationTask(
                 hexapod, 
                 lights_handler, 
@@ -620,6 +682,10 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
+            # Pause both voice control and external control before starting ODAS task
+            self.request_pause_voice_control()
+            self.request_block_voice_control_pausing()
+            
             self.task = task_interface.tasks.FollowTask(
                 hexapod,
                 lights_handler,
@@ -645,6 +711,10 @@ class TaskInterface:
             odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
         """
         try:
+            # Pause both voice control and external control before starting ODAS task
+            self.request_pause_voice_control()
+            self.request_block_voice_control_pausing()
+            
             self.task = task_interface.tasks.SoundSourceLocalizationTask(
                 hexapod=hexapod, 
                 lights_handler=lights_handler,
@@ -672,6 +742,10 @@ class TaskInterface:
             stream_type (str): Type of audio stream to play (default: "separated").
         """
         try:
+            # Pause both voice control and external control before starting ODAS task
+            self.request_pause_voice_control()
+            self.request_block_voice_control_pausing()
+            
             self.task = task_interface.tasks.StreamODASAudioTask(
                 hexapod=hexapod, 
                 lights_handler=lights_handler,

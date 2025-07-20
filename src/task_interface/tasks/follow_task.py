@@ -114,10 +114,7 @@ class FollowTask(Task):
         logger.info("FollowTask started")
         self._odas_thread = None
         try:
-            # Set external control paused to pause voice control
-            self.external_control_paused_event.set()
-
-            time.sleep(4)  # Wait for Voice Control to pause and release resources by PvRecorder
+            time.sleep(4)  # Wait for Voice Control to pause and release resources
 
             # self.lights_handler.off()
             
@@ -169,6 +166,4 @@ class FollowTask(Task):
             if self._odas_thread is not None:
                 self._odas_thread.join(timeout=5)
             
-            # Clear external control paused to resume voice control
-            self.external_control_paused_event.clear()
             logger.info("FollowTask completed")
