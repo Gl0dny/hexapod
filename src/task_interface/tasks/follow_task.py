@@ -124,8 +124,6 @@ class FollowTask(Task):
             self._odas_thread = threading.Thread(target=_odas_bg, name="ODASProcessorThread", daemon=True)
             self._odas_thread.start()
 
-            print("ODAS processor started in background")
-
             self.hexapod.move_to_position(PredefinedPosition.ZERO)
             self.hexapod.wait_until_motion_complete(stop_event=self.stop_event)
             

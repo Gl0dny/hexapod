@@ -13,7 +13,6 @@ from robot import Hexapod, ButtonHandler, PredefinedPosition
 import task_interface.tasks
 from interface import NonBlockingConsoleInputHandler
 from utils import rename_thread
-from odas import ODASDoASSLProcessor
 from .status_reporter import StatusReporter
 
 if TYPE_CHECKING:
@@ -37,28 +36,6 @@ class TaskInterface:
         
         # Set up recording methods with proper dependency checking
         self._setup_recording_methods()
-        
-        # Configure ODAS processor
-        odas_gui_config = {
-            'gui_host': "192.168.0.102",
-            'gui_tracked_sources_port': 9000,
-            'gui_potential_sources_port': 9001,
-            'forward_to_gui': True
-        }
-        
-        odas_data_config = {
-            'odas_logs_dir': Path(__file__).parent.parent.parent / "logs" / "odas" / "ssl",
-            'odas_data_dir': Path(__file__).parent.parent.parent / "data" / "audio" / "odas"
-        }
-        
-        self.odas_processor = ODASDoASSLProcessor(
-            lights_handler=self.lights_handler,
-            tracked_sources_port=9000,
-            potential_sources_port=9001,
-            debug_mode=True,
-            gui_config=odas_gui_config,
-            data_config=odas_data_config
-        )
         
         self.task: Task = None
         self.voice_control_context_info = None
@@ -144,20 +121,7 @@ class TaskInterface:
             return func(self, self.lights_handler, *args, **kwargs)
         return wrapper
 
-    def inject_odas(func: Callable[..., Any]) -> Callable[..., Any]:
-        """
-        Decorator to inject the ODASDoASSLProcessor into the decorated method.
 
-        Args:
-            func (Callable): The function to decorate.
-
-        Returns:
-            Callable: The decorated function with the ODAS processor injected.
-        """
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            return func(self, self.odas_processor, *args, **kwargs)
-        return wrapper
 
     def stop_task(self) -> None:
         """
@@ -686,10 +650,13 @@ class TaskInterface:
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
             
+            from odas import ODASDoASSLProcessor
+            odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
+            
             self.task = task_interface.tasks.FollowTask(
                 hexapod,
                 lights_handler,
-                self.odas_processor,
+                odas_processor,
                 self.external_control_paused_event,
                 callback=lambda: self._notify_task_completion(self.task)
             )
@@ -698,22 +665,23 @@ class TaskInterface:
 
     @voice_command
     @task
-    @inject_odas
     @inject_lights_handler
     @inject_hexapod
-    def sound_source_localization(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor) -> None:
+    def sound_source_localization(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
         Initiate sound source localization.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
-            odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
         """
         try:
             # Pause both voice control and external control before starting ODAS task
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
+            
+            from odas import ODASDoASSLProcessor
+            odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
             
             self.task = task_interface.tasks.SoundSourceLocalizationTask(
                 hexapod=hexapod, 
@@ -728,23 +696,24 @@ class TaskInterface:
 
     @voice_command
     @task
-    @inject_odas
     @inject_lights_handler
     @inject_hexapod
-    def stream_odas_audio(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, odas_processor: ODASDoASSLProcessor, stream_type: str = "separated") -> None:
+    def stream_odas_audio(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, stream_type: str = "separated") -> None:
         """
         Initiate the ODAS audio streaming task. First runs sound source localization to ensure ODAS is properly initialized.
 
         Args:
             hexapod (Hexapod): The hexapod instance.
             lights_handler (LightsInteractionHandler): Handles lights activity.
-            odas_processor (ODASDoASSLProcessor): The ODAS processor for sound source localization.
             stream_type (str): Type of audio stream to play (default: "separated").
         """
         try:
             # Pause both voice control and external control before starting ODAS task
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
+            
+            from odas import ODASDoASSLProcessor
+            odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
             
             self.task = task_interface.tasks.StreamODASAudioTask(
                 hexapod=hexapod, 
