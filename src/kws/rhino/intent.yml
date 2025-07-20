@@ -17,9 +17,6 @@ context:
       - "[Calibrate, Recalibrate, Adjust] (the) (motors)"
       - "[Initiate, Begin, Start] (the) calibration (process)"
       - "[Run, Perform] (a) (system) calibration"
-    run_sequence:
-      - "(Start, Run, Activate, Trigger, Begin) (a, the) $sequence_name:sequence [sequence, program]"
-      - "(Start, Run, Activate, Trigger, Begin) (a, the) [sequence, program] $sequence_name:sequence"
     repeat:
       - (Repeat, Do) [last command, that, it] (again)
     turn_lights:
@@ -158,8 +155,6 @@ context:
       - three hundred
       - three hundred thirty
       - three hundred sixty
-    sequence_name:
-      - pass
     odas_stream_type:
       - post filtered
       - separated

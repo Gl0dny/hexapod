@@ -52,7 +52,6 @@ INTENT_HANDLERS = {
     'wake_up':                  ('wake_up',                           {},                                (),                      {}),
     'sleep':                    ('sleep',                             {},                                (),                      {}),
     'calibrate':                ('calibrate',                         {},                                (),                      {}),
-    'run_sequence':             ('run_sequence',                      {'sequence_name': 'test_sequence'},(),                      {'sequence_name': 'test_sequence'}),
     'repeat':                   ('repeat_last_command',               {},                                (),                      {}),
     'turn_lights':              ('turn_lights',                       {'switch_state': True},            (True,),                 {}),
     'change_color':             ('change_color',                      {'color': 'blue'},                 (),                      {'color': 'blue'}),
@@ -125,7 +124,6 @@ class TestIntentDispatcher:
     @pytest.mark.parametrize(
         "intent, slots, expected_log",
         [
-            ('run_sequence',   {},                                   "No sequence_name provided for run_sequence command."),
             ('set_brightness', {},                                   "No brightness_percentage provided for set_brightness command."),
             ('set_brightness', {'brightness_percentage': 'invalid'}, "Invalid brightness_percentage value: invalid."),
             ('set_speed',      {},                                   "No speed_percentage provided for set_speed command."),

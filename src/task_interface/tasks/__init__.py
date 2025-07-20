@@ -6,7 +6,6 @@ from .helix_task import HelixTask
 from .march_in_place_task import MarchInPlaceTask
 from .move_task import MoveTask
 from .rotate_task import RotateTask
-from .run_sequence_task import RunSequenceTask
 from .say_hello_task import SayHelloTask
 from .show_off_task import ShowOffTask
 from .sit_up_task import SitUpTask

@@ -46,9 +46,8 @@ class IntentDispatcher:
             'shut_down': self.handle_shut_down,
             'wake_up': self.handle_wake_up,
             'sleep': self.handle_sleep,
-            'calibrate': self.handle_calibrate,
-            'run_sequence': self.handle_run_sequence,
-            'repeat': self.handle_repeat,
+                    'calibrate': self.handle_calibrate,
+        'repeat': self.handle_repeat,
             'turn_lights': self.handle_turn_lights,
             'change_color': self.handle_change_color,
             'set_brightness': self.handle_set_brightness,
@@ -169,20 +168,6 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         self.task_interface.calibrate()
-
-    @handler
-    def handle_run_sequence(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'run_sequence' intent.
-        
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        try:
-            sequence_name = slots['sequence_name']
-            self.task_interface.run_sequence(sequence_name=sequence_name)
-        except KeyError:
-            logger.exception("No sequence_name provided for run_sequence command.")
 
     @handler
     def handle_repeat(self, slots: Dict[str, Any]) -> None:

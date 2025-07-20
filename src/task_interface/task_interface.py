@@ -405,30 +405,6 @@ class TaskInterface:
         except Exception as e:
             logger.exception(f"Calibration failed: {e}")
 
-    @voice_command
-    @task
-    @inject_lights_handler
-    @inject_hexapod
-    def run_sequence(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, sequence_name: str) -> None:
-        """
-        Execute a predefined sequence of tasks.
-
-        Args:
-            hexapod (Hexapod): The hexapod object to control.
-            lights_handler (LightsInteractionHandler): The lights handler instance.
-            sequence_name (str): The name of the sequence to execute.
-        """
-        try:
-            logger.info(f"Executing sequence: {sequence_name}")
-            self.task = task_interface.tasks.RunSequenceTask(
-                hexapod, 
-                lights_handler, 
-                sequence_name, 
-                callback=lambda: self._notify_task_completion(self.task)
-            )
-        except Exception as e:
-            logger.exception(f"Run sequence '{sequence_name}' failed: {e}")
-
     def repeat_last_command(self) -> None:
         """
         Repeat the last executed command.
