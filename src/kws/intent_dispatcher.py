@@ -68,7 +68,9 @@ class IntentDispatcher:
             'dance': self.handle_dance,
             'helix': self.handle_helix,
             'show_off': self.handle_show_off,
-            'hello': self.handle_hello
+            'hello': self.handle_hello,
+            'start_recording': self.handle_start_recording,
+            'stop_recording': self.handle_stop_recording
         }
         logger.debug("IntentDispatcher initialized successfully.")
 
@@ -536,3 +538,34 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         self.task_interface.say_hello()
+
+    @handler
+    def handle_start_recording(self, slots: Dict[str, Any]) -> None:
+        """
+        Handle the 'start_recording' intent.
+        
+        Args:
+            slots (Dict[str, Any]): Additional data for the intent.
+        """
+        try:
+            record_time = slots.get('record_time')
+            time_unit = slots.get('time_unit')
+            
+            duration_seconds = None
+            if record_time and time_unit:
+                duration_seconds = self._parse_duration_in_seconds(record_time, time_unit)
+                logger.debug(f"Recording duration: {duration_seconds} seconds")
+            
+            self.task_interface.start_recording(duration=duration_seconds)
+        except Exception as e:
+            logger.exception(f"Error handling start_recording intent: {e}")
+
+    @handler
+    def handle_stop_recording(self, slots: Dict[str, Any]) -> None:
+        """
+        Handle the 'stop_recording' intent.
+        
+        Args:
+            slots (Dict[str, Any]): Additional data for the intent.
+        """
+        self.task_interface.stop_recording()

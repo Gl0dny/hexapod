@@ -15,6 +15,7 @@ from kws import IntentDispatcher
 from task_interface import TaskInterface
 from lights import ColorRGB
 from utils import rename_thread
+from .recorder import Recorder
 
 if TYPE_CHECKING:
     from typing import Any
@@ -27,6 +28,14 @@ class VoiceControl(threading.Thread):
     """
     Handles voice control functionalities for the Hexapod robot.
     """
+    
+    # Default configuration
+    DEFAULT_PORCUPINE_SENSITIVITY = 0.75
+    DEFAULT_RHINO_SENSITIVITY = 0.25
+    SAMPLE_RATE = 16000
+    CHANNELS = 8
+    CHUNK_SIZE = 512
+    FORMAT = "paInt16"
 
     def __init__(
             self,
@@ -35,9 +44,10 @@ class VoiceControl(threading.Thread):
             access_key: str,
             task_interface: TaskInterface,
             device_index: int,
-            porcupine_sensitivity: float = 0.75,
-            rhino_sensitivity: float = 0.25,
-            print_context: bool = False) -> None:
+            porcupine_sensitivity: float = None,
+            rhino_sensitivity: float = None,
+            print_context: bool = False,
+            recordings_dir: Optional[Path] = None) -> None:
         """
         Initialize the VoiceControl thread.
 
@@ -50,6 +60,7 @@ class VoiceControl(threading.Thread):
             porcupine_sensitivity (float, optional): Sensitivity for wake word detection.
             rhino_sensitivity (float, optional): Sensitivity for intent recognition.
             print_context (bool): Whether to print context information.
+            recordings_dir (Optional[Path]): Directory for saving recordings (default: data/audio/recordings)
         """
         super().__init__(daemon=True)
         rename_thread(self, "VoiceControl")
@@ -72,9 +83,12 @@ class VoiceControl(threading.Thread):
         self.access_key = access_key
         self.task_interface = task_interface
         self.device_index = device_index
-        self.porcupine_sensitivity = porcupine_sensitivity
-        self.rhino_sensitivity = rhino_sensitivity
+        self.porcupine_sensitivity = porcupine_sensitivity or self.DEFAULT_PORCUPINE_SENSITIVITY
+        self.rhino_sensitivity = rhino_sensitivity or self.DEFAULT_RHINO_SENSITIVITY
         self.print_context = print_context
+        
+        # Initialize audio recorder
+        self.audio_recorder = Recorder(recordings_dir)
 
         # Determine device index: use external if specified, else auto-detect ReSpeaker 6
         auto_device_index = device_index
@@ -100,8 +114,8 @@ class VoiceControl(threading.Thread):
             wake_word_callback=self._wake_word_callback,
             context_path=str(context_path),
             inference_callback=inference_callback,
-            porcupine_sensitivity=porcupine_sensitivity,
-            rhino_sensitivity=rhino_sensitivity,
+            porcupine_sensitivity=self.porcupine_sensitivity,
+            rhino_sensitivity=self.rhino_sensitivity,
         )
 
         # Store Picovoice frame length for audio processing
@@ -114,7 +128,7 @@ class VoiceControl(threading.Thread):
         self.task_interface_interrupted = False
         self.intent_dispatcher = IntentDispatcher(self.task_interface)
 
-        # Audio objects (initialized in run())
+        # Audio objects (will be initialized in run())
         self.pyaudio_instance = None
         self.audio_stream = None
         
@@ -181,6 +195,7 @@ class VoiceControl(threading.Thread):
         try:
             devices = VoiceControl.get_available_devices()
             for idx, name in enumerate(devices):
+                # Look for ReSpeaker 6 - it contains "seeed" in the name
                 if 'seeed-8mic-voicecard' in name.lower():
                     return idx
         except Exception as e:
@@ -203,7 +218,7 @@ class VoiceControl(threading.Thread):
             self.audio_stream = self.pyaudio_instance.open(
                 rate=16000,
                 format=pyaudio.paInt16,
-                channels=8,
+                channels=8,  # ReSpeaker has 8 channels
                 input=True,
                 input_device_index=self.device_index,
                 frames_per_buffer=frames_per_buffer
@@ -226,6 +241,10 @@ class VoiceControl(threading.Thread):
                     try:
                         # Read audio data directly from PyAudio stream
                         data = self.audio_stream.read(512, exception_on_overflow=False)
+                        
+                        # Store for recording if active
+                        if self.audio_recorder.is_recording:
+                            self.audio_recorder.add_audio_frame(data)
                         
                         # Convert to numpy array
                         audio_array = np.frombuffer(data, dtype=np.int16)
@@ -328,12 +347,12 @@ class VoiceControl(threading.Thread):
             self.task_interface.lights_handler.listen_wakeword(base_color=ColorRGB.RED, pulse_color=ColorRGB.GOLDEN)
             logger.user_info("Listening for wake word...")
 
-    def on_task_complete(self, task: ControlTask) -> None:
+    def on_task_complete(self, task: Task) -> None:
         """
-        Callback function invoked when a ControlTask completes.
+        Callback function invoked when a Task completes.
 
         Args:
-            task (ControlTask): The task that has completed.
+            task (Task): The task that has completed.
         """
         logger.user_info(f"Voice control task {task.__class__.__name__} has been completed.")
         
@@ -386,6 +405,9 @@ class VoiceControl(threading.Thread):
         
         finally:
             try:
+                # Clean up audio recorder
+                self.audio_recorder.cleanup()
+                
                 self._cleanup_audio()
                 if self.picovoice is not None:
                     self.picovoice.delete()
@@ -467,6 +489,39 @@ class VoiceControl(threading.Thread):
             self.pause_event.set()
             logger.user_info('Voice control unpaused')
             self.task_interface.lights_handler.listen_wakeword()
+
+    def start_recording(self, filename: str = None, duration: Optional[float] = None) -> str:
+        """
+        Start recording audio to a file.
+        
+        Args:
+            filename (str, optional): Custom filename (without extension)
+            duration (float, optional): Recording duration in seconds. If None, records until stopped.
+            
+        Returns:
+            str: The base filename where recording will be saved
+        """
+        return self.audio_recorder.start_recording(filename, duration)
+    
+
+    
+    def stop_recording(self) -> str:
+        """
+        Stop recording and save the audio file.
+        
+        Returns:
+            str: Path to the last saved recording file, or empty string if no recording was active
+        """
+        return self.audio_recorder.stop_recording()
+    
+    def get_recording_status(self) -> dict:
+        """
+        Get current recording status.
+        
+        Returns:
+            dict: Status information including is_recording, filename, duration, audio records
+        """
+        return self.audio_recorder.get_recording_status()
 
     def stop(self):
         """Signal the thread to stop."""

@@ -98,6 +98,13 @@ context:
     hello:
       - Say [hello, hi, hey]
       - Wave (hello, hi, hey) (your) (hand, leg)
+    start_recording:
+      - "[Start, Begin, Initiate] (audio) recording (for, by) $pv.TwoDigitInteger:record_time $time_unit:time_unit (audio)"
+      - "[Record, Start recording] (audio) (for, by) $pv.TwoDigitInteger:record_time $time_unit:time_unit"
+      - "[Start, Begin, Initiate] (audio) recording (audio)"
+      - "[Record, Start recording] (audio)"
+    stop_recording:
+      - "[Stop, End, Terminate, Finish] (audio) recording (audio)"
   slots:
     direction:
       - forward

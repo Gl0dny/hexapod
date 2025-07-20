@@ -84,9 +84,11 @@ def shutdown_cleanup(voice_control, manual_controller, task_interface):
     if voice_control:
         voice_control.stop()
         voice_control.join()
+        logger.debug("VoiceControl thread joined")
     if manual_controller:
         manual_controller.stop()
         manual_controller.join()
+        logger.debug("Manual controller thread joined")
     if task_interface:
         task_interface.cleanup()
     logger.user_info('Exiting...')
@@ -95,28 +97,32 @@ def shutdown_cleanup(voice_control, manual_controller, task_interface):
         logger.user_info(f"{thread.name}, {thread.is_alive()}")
     print("---")
 
-def initialize_application(args) -> TaskInterface:
-    """Initialize the application and return the task interface."""
-    # Clean logs if requested
+def create_application_components(args) -> tuple[TaskInterface, VoiceControl]:
+    """
+    Factory function to create all application components with proper dependencies.
+    
+    This function ensures that all components are properly initialized and their
+    dependencies are correctly injected, eliminating the need for manual assignment.
+    
+    Args:
+        args: Command line arguments containing configuration
+        
+    Returns:
+        tuple[TaskInterface, VoiceControl]: Properly configured task interface and voice control
+    """
     if args.clean:
         clean_logs()
     
-    # Set up logging
     setup_logging(log_dir=args.log_dir, config_file=args.log_config_file, log_level=args.log_level)
     
     logger.user_info("Hexapod application started")
     logger.info(f"Logging level set to: {args.log_level}")
 
-    # Initialize control interface
     task_interface = TaskInterface()
-    return task_interface
-
-def initialize_voice_control(args, task_interface) -> VoiceControl:
-    """Initialize voice control and return the voice control instance."""
+    
     keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
     context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
     
-    # Initialize voice control
     voice_control = VoiceControl(
         keyword_path=keyword_path,
         context_path=context_path,
@@ -125,13 +131,15 @@ def initialize_voice_control(args, task_interface) -> VoiceControl:
         device_index=args.audio_device_index
     )
     
-    # Print context
+    task_interface.set_voice_control(voice_control)
+    task_interface.wake_up()
+    
     if args.print_context:
         logger.debug("Print context flag detected, printing context")
         voice_control.print_context()
-
-    voice_control.start()
-    return voice_control
+    
+    logger.info("Application components created successfully with proper dependencies")
+    return task_interface, voice_control
 
 def initialize_manual_controller(task_interface, voice_control) -> Optional[GamepadHexapodController]:
     """Initialize manual controller and return it, or None if failed."""
@@ -183,7 +191,7 @@ def run_main_loop(voice_control, manual_controller, task_interface) -> None:
                     handle_button_interactions(task_interface, voice_control)
                 else:
                     # Manual controller is in body/gait control mode - just monitor for shutdown
-                    # The manual controller runs independently, we just need to keep the main thread alive
+                    # The manual controller runs independently, just need to keep the main thread alive
                     pass
             else:
                 # No manual controller - voice control mode only - handle button interactions
@@ -204,9 +212,13 @@ def main() -> None:
     """Main entry point."""
     args = parse_arguments()
     
-    # Initialize application components
-    task_interface = initialize_application(args)
-    voice_control = initialize_voice_control(args, task_interface)
+    # Create all application components with proper dependencies using factory
+    task_interface, voice_control = create_application_components(args)
+    
+    # Start voice control
+    voice_control.start()
+    
+    # Initialize manual controller
     manual_controller = initialize_manual_controller(task_interface, voice_control)
     
     # Run main loop

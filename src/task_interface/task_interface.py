@@ -32,6 +32,10 @@ class TaskInterface:
         """
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
+        self.voice_control = None
+        
+        # Set up recording methods with proper dependency checking
+        self._setup_recording_methods()
         
         # Configure ODAS processor
         odas_gui_config = {
@@ -300,7 +304,6 @@ class TaskInterface:
         os.system("sudo shutdown now")
 
     @voice_command
-    @task
     @inject_lights_handler
     @inject_hexapod
     def wake_up(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
@@ -313,18 +316,17 @@ class TaskInterface:
         """
         try:
             logger.user_info("Activating robot...")
-            self.task = task_interface.tasks.WakeUpTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
-            )
+            lights_handler.set_brightness(50)
+            lights_handler.rainbow()
+            time.sleep(2)
+            hexapod.move_to_position(PredefinedPosition.ZERO)
+            hexapod.wait_until_motion_complete()
             logger.user_info("Robot activated")
             
         except Exception as e:
             logger.exception(f"Activating robot failed: {e}")
 
     @voice_command
-    @task
     @inject_lights_handler
     @inject_hexapod
     def sleep(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
@@ -337,11 +339,10 @@ class TaskInterface:
         """
         try:
             logger.user_info("Deactivating robot...")
-            self.task = task_interface.tasks.SleepTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
-            )
+            lights_handler.set_brightness(5)
+            lights_handler.pulse_smoothly(base_color=ColorRGB.INDIGO, pulse_color=ColorRGB.BLACK, pulse_speed=0.1)
+            hexapod.wait_until_motion_complete()
+            hexapod.deactivate_all_servos()
             logger.user_info("Robot deactivated")
             
         except Exception as e:
@@ -525,7 +526,6 @@ class TaskInterface:
             logger.exception(f"March in place task failed: {e}")
 
     @voice_command
-    @task
     @inject_lights_handler
     @inject_hexapod
     def idle_stance(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
@@ -537,11 +537,10 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.task = task_interface.tasks.IdleStanceTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
-            )
+            hexapod.move_to_position(PredefinedPosition.ZERO)
+            hexapod.wait_until_motion_complete()
+            logger.debug("Hexapod set to home position")
+            lights_handler.listen_wakeword()
                 
         except Exception as e:
             logger.exception(f"Setting idle stance failed: {e}")
@@ -854,3 +853,94 @@ class TaskInterface:
         if self.hexapod:
             self.hexapod.deactivate_all_servos()
             logger.info("Hexapod servos deactivated.")
+
+    def _setup_recording_methods(self) -> None:
+        """
+        Set up recording methods with proper dependency checking.
+        This allows recording functionality to be optional.
+        """
+        # Only create recording methods if voice_control is available
+        if self.voice_control is not None:
+            self._recording_available = True
+            logger.debug("Recording functionality enabled")
+        else:
+            self._recording_available = False
+            logger.debug("Recording functionality disabled (no voice_control)")
+
+    def set_voice_control(self, voice_control) -> None:
+        """
+        Set the voice control instance after initialization.
+        This allows for proper dependency injection.
+        
+        Args:
+            voice_control: VoiceControl instance
+        """
+        self.voice_control = voice_control
+        self._setup_recording_methods()
+        logger.debug("Voice control dependency injected")
+
+    @voice_command
+    @inject_lights_handler
+    def start_recording(self, lights_handler: LightsInteractionHandler, duration: Optional[float] = None) -> None:
+        """
+        Start audio recording via voice command.
+        
+        Args:
+            lights_handler (LightsInteractionHandler): Handles lights activity.
+            duration (Optional[float]): Recording duration in seconds. If None, records until stopped.
+        """
+        if not self._recording_available:
+            logger.warning("Recording functionality not available - voice_control not set")
+            lights_handler.listen_wakeword()
+            return
+            
+        try:
+            # Check if already recording to provide better feedback
+            current_status = self.voice_control.get_recording_status()
+            was_recording = current_status.get("is_recording", False)
+            
+            filename = self.voice_control.start_recording(duration=duration)
+            
+            if was_recording:
+                if duration:
+                    logger.user_info(f"Previous recording saved. New recording started for {duration} seconds: {filename}")
+                else:
+                    logger.user_info(f"Previous recording saved. New continuous recording started: {filename}")
+            else:
+                if duration:
+                    logger.user_info(f"Recording started for {duration} seconds: {filename}")
+                else:
+                    logger.user_info(f"Recording started (continuous): {filename}")
+            
+            lights_handler.listen_wakeword()
+                
+        except Exception as e:
+            logger.error(f"Failed to start recording: {e}")
+            lights_handler.listen_wakeword()
+
+    @voice_command
+    @inject_lights_handler
+    def stop_recording(self, lights_handler: LightsInteractionHandler) -> None:
+        """
+        Stop audio recording via voice command.
+        
+        Args:
+            lights_handler (LightsInteractionHandler): Handles lights activity.
+        """
+        if not self._recording_available:
+            logger.warning("Recording functionality not available - voice_control not set")
+            lights_handler.listen_wakeword()
+            return
+            
+        try:
+            filename = self.voice_control.stop_recording()
+            if filename:
+                logger.user_info(f"Recording stopped and saved: {filename}")
+            else:
+                logger.user_info("No active recording to stop")
+            
+            lights_handler.listen_wakeword()
+            
+        except Exception as e:
+            logger.error(f"Failed to stop recording: {e}")
+            lights_handler.listen_wakeword()
