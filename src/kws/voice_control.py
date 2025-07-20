@@ -69,11 +69,11 @@ class VoiceControl(threading.Thread):
         self.stop_event = threading.Event()
         self.pause_lock = threading.Lock()
         # pause_event controls whether voice control is active or paused:
-        # - When set (True): Voice control is active and processing audio
-        # - When cleared (False): Voice control is paused and not processing audio
-        # - Initial state is set (True) so voice control starts active
+        # - When set (True): Voice control is paused and not processing audio
+        # - When cleared (False): Voice control is active and processing audio
+        # - Initial state is cleared (False) so voice control starts active
         self.pause_event = threading.Event()
-        self.pause_event.set()
+        self.pause_event.clear()
 
         logger.debug(f"Initializing VoiceControl with device_index={device_index}")
 
@@ -237,7 +237,7 @@ class VoiceControl(threading.Thread):
         try:
             while not self.audio_stop_event.is_set():
                 # Only process audio if not paused and resources are available
-                if self.pause_event.is_set() and self.audio_stream and self.picovoice:
+                if not self.pause_event.is_set() and self.audio_stream and self.picovoice:
                     try:
                         # Read audio data directly from PyAudio stream
                         data = self.audio_stream.read(512, exception_on_overflow=False)
@@ -421,7 +421,7 @@ class VoiceControl(threading.Thread):
         Pauses the voice control processing and releases the audio device.
         """
         with self.pause_lock:
-            self.pause_event.clear()
+            self.pause_event.set()
             
             # Stop audio processing thread
             if self.audio_thread and self.audio_thread.is_alive():
@@ -486,7 +486,7 @@ class VoiceControl(threading.Thread):
                     porcupine_sensitivity=self.porcupine_sensitivity,
                     rhino_sensitivity=self.rhino_sensitivity,
                 )
-            self.pause_event.set()
+            self.pause_event.clear()
             logger.user_info('Voice control unpaused')
             self.task_interface.lights_handler.listen_wakeword()
 

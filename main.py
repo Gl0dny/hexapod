@@ -157,7 +157,7 @@ def initialize_manual_controller(task_interface, voice_control) -> Optional[Game
     except Exception as e:
         logger.warning(f"Failed to initialize manual controller: {e}")
         logger.user_info("Falling back to voice control mode")
-        if not voice_control.pause_event.is_set():
+        if voice_control.pause_event.is_set():
             voice_control.unpause()  # Unpause voice control for fallback mode
         return None
 
