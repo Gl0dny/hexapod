@@ -14,6 +14,7 @@ import task_interface.tasks
 from interface import NonBlockingConsoleInputHandler
 from utils import rename_thread
 from odas import ODASDoASSLProcessor
+from .status_reporter import StatusReporter
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional
@@ -62,6 +63,7 @@ class TaskInterface:
         self.task: Task = None
         self.voice_control_context_info = None
         self._last_command = None
+        self.status_reporter = StatusReporter()
         self._last_args = None
         self._last_kwargs = None
         # Event to pause external control (button, voice commands) during particular operations
@@ -212,16 +214,20 @@ class TaskInterface:
         self.lights_handler.listen_wakeword()
 
     @voice_command
-    def system_status(self) -> None:
+    @inject_lights_handler
+    @inject_hexapod
+    def system_status(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
         """
-        Report the current system status.
+        Report the current system status by executing a comprehensive status check.
 
-        Raises:
-            NotImplementedError: If the system_status method is not yet implemented.
+        Args:
+            hexapod (Hexapod): The hexapod instance.
+            lights_handler (LightsInteractionHandler): Handles lights activity.
         """
-        # Implement system status reporting
-        # Example: Return current status of all modules
-        raise NotImplementedError("The system_status method is not yet implemented.")
+        logger.user_info("Checking system status...")
+        status_report = self.status_reporter.get_complete_status(hexapod)
+        logger.user_info(status_report)
+        lights_handler.listen_wakeword()
     
     @voice_command
     @inject_lights_handler
