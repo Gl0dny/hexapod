@@ -178,16 +178,6 @@ def run_main_loop(voice_control, manual_controller, task_interface) -> None:
                 shutdown_cleanup(voice_control, manual_controller, task_interface)
                 cleanup_done = True
                 break
-                
-            # controller_error_code = task_interface.hexapod.controller.get_error()
-            # if controller_error_code != 0:
-            #     print(f"Controller error: {controller_error_code}")
-            #     voice_control.pause()
-            #     time.sleep(1)
-            #     task_interface.lights_handler.set_single_color(ColorRGB.RED)
-            #     task_interface.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
-            #     break
-            # time.sleep(1)
             
             if manual_controller:
                 # Manual control mode - check if in voice control mode
