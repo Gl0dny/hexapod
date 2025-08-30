@@ -31,14 +31,9 @@ class ButtonHandler:
         Check button state and return action and system state.
         Returns:
             Tuple[Optional[str], bool]: (action, is_running)
-            - action: 'long_press', 'toggle', or None
+            - action: 'long_press', 'toggle', 'stop_task', or None
             - is_running: current system state (only valid for 'toggle' action)
         """
-        # If external control is paused (e.g., during calibration or shutdown),
-        # ignore all button presses to prevent interference with critical operations
-        if self.external_control_paused_event and self.external_control_paused_event.is_set():
-            return None, self.is_running
-
         current_time = time.time()
         button_state = GPIO.input(self.pin)
         
@@ -50,15 +45,21 @@ class ButtonHandler:
                 self.long_press_detected = False
             elif not self.long_press_detected and (current_time - self.press_start_time) >= self.long_press_time:
                 self.long_press_detected = True
-                return 'long_press', self.is_running
+                # Long press only works when external control is not paused
+                if not (self.external_control_paused_event and self.external_control_paused_event.is_set()):
+                    return 'long_press', self.is_running
         
         # Button is released
         elif self.is_pressed:
             self.is_pressed = False
             # Only handle as toggle if it wasn't a long press
             if not self.long_press_detected:
-                self.is_running = not self.is_running
-                return 'toggle', self.is_running
+                # If external control is paused, treat short press as stop_task instead of toggle
+                if self.external_control_paused_event and self.external_control_paused_event.is_set():
+                    return 'stop_task', self.is_running
+                else:
+                    self.is_running = not self.is_running
+                    return 'toggle', self.is_running
             # Reset long press flag after handling the release
             self.long_press_detected = False
         

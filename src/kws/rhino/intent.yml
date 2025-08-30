@@ -17,9 +17,6 @@ context:
       - "[Calibrate, Recalibrate, Adjust] (the) (motors)"
       - "[Initiate, Begin, Start] (the) calibration (process)"
       - "[Run, Perform] (a) (system) calibration"
-    run_sequence:
-      - "(Start, Run, Activate, Trigger, Begin) (a, the) $sequence_name:sequence [sequence, program]"
-      - "(Start, Run, Activate, Trigger, Begin) (a, the) [sequence, program] $sequence_name:sequence"
     repeat:
       - (Repeat, Do) [last command, that, it] (again)
     turn_lights:
@@ -98,6 +95,13 @@ context:
     hello:
       - Say [hello, hi, hey]
       - Wave (hello, hi, hey) (your) (hand, leg)
+    start_recording:
+      - "[Start, Begin, Initiate] (audio) recording (for, by) $pv.TwoDigitInteger:record_time $time_unit:time_unit (audio)"
+      - "[Record, Start recording] (audio) (for, by) $pv.TwoDigitInteger:record_time $time_unit:time_unit"
+      - "[Start, Begin, Initiate] (audio) recording (audio)"
+      - "[Record, Start recording] (audio)"
+    stop_recording:
+      - "[Stop, End, Terminate, Finish] (audio) recording (audio)"
   slots:
     direction:
       - forward
@@ -151,8 +155,6 @@ context:
       - three hundred
       - three hundred thirty
       - three hundred sixty
-    sequence_name:
-      - pass
     odas_stream_type:
       - post filtered
       - separated

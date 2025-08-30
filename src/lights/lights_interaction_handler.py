@@ -325,3 +325,26 @@ class LightsInteractionHandler:
             pulse_color=pulse_color,
             pulse_speed=pulse_speed
         )
+
+    @animation
+    def wheel(
+        self,
+        use_rainbow: bool = True,
+        color: Optional[ColorRGB] = None,
+        interval: float = 0.1
+    ) -> None:
+        """
+        Start the wheel animation that rotates through colors or LEDs.
+
+        Args:
+            use_rainbow (bool): Whether to use rainbow colors. If False, uses the specified color.
+            color (ColorRGB, optional): The color to use if not using rainbow colors.
+            interval (float): The interval between changing colors/LEDs.
+        """
+        self.off()
+        self.animation = lights.animations.WheelAnimation(
+            lights=self.lights,
+            use_rainbow=use_rainbow,
+            color=color,
+            interval=interval
+        )

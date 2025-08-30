@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Base manual hexapod controller implementation.
 
@@ -673,7 +672,7 @@ class ManualHexapodController(threading.Thread, ABC):
             )
             logger.gamepad_mode_info(msg)
             self.pause()
-            self.voice_control.unpause()
+            self.task_interface.request_unpause_voice_control()
         else:
             # Return to previous manual mode
             self.set_mode(self._previous_manual_mode)
@@ -682,17 +681,10 @@ class ManualHexapodController(threading.Thread, ABC):
                 "Manual control active. Voice control paused."
             )
             logger.gamepad_mode_info(msg)
-            self.voice_control.pause()
+            self.task_interface.request_pause_voice_control()
             self.unpause()
-            # If returning to gait control mode, restart gait generation
-            if self.current_mode == self.GAIT_CONTROL_MODE:
-                translation_params = self.task_interface.hexapod.gait_params.get('translation', {}).copy()
-                rotation_params = self.task_interface.hexapod.gait_params.get('rotation', {}).copy()
-                self.start_gait_control(
-                    gait_type=self.gait_type,
-                    translation_params=translation_params,
-                    rotation_params=rotation_params
-                )
+            # Note: Gait control will be started automatically by _process_gait_control() when there's input
+            # or when marching is enabled. No need to start it here.
         self._on_mode_toggled(self.current_mode)
 
     def trigger_shutdown(self):

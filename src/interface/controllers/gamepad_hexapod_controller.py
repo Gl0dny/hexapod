@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Gamepad-based hexapod controller implementation.
 
@@ -41,19 +40,19 @@ from interface.controllers.gamepad_led_controllers.gamepad_led_controller import
 from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
 from utils import rename_thread
 
+logger = logging.getLogger("interface_logger")
+
 try:
     import pygame
     PYGAME_AVAILABLE = True
 except ImportError:
     PYGAME_AVAILABLE = False
-    logger.error("pygame not available. Install with: pip install pygame")
+    logger.exception("pygame not available. Install with: pip install pygame")
 
 if TYPE_CHECKING:
     from typing import Optional
     from kws import VoiceControl
     from task_interfcae import TaskInterface
-
-logger = logging.getLogger("interface_logger")
 
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""

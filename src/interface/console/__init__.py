@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Console input handling package for hexapod interface.
 

@@ -133,7 +133,7 @@ class ODASDoASSLProcessor:
             gui_host: str = "192.168.0.102",
             gui_tracked_sources_port: int = 9000,
             gui_potential_sources_port: int = 9001,
-            forward_to_gui: bool = False,
+            forward_to_gui: bool = True,
             gui_tracked_sources_socket: Optional[socket.socket] = None,
             gui_potential_sources_socket: Optional[socket.socket] = None
         ) -> None:
@@ -211,7 +211,7 @@ class ODASDoASSLProcessor:
         lights_handler: LightsInteractionHandler,
         tracked_sources_port: int = 9000,
         potential_sources_port: int = 9001,
-        debug_mode: bool = False,
+        debug_mode: bool = True,
         gui_config: Optional[Dict[str, Any]] = None,
         data_config: Optional[Dict[str, Any]] = None,
         stop_event: Optional[threading.Event] = None

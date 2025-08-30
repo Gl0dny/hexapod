@@ -3,15 +3,11 @@ from .composite_calibration_task import CompositeCalibrationTask
 from .dance_task import DanceTask
 from .follow_task import FollowTask
 from .helix_task import HelixTask
-from .idle_stance_task import IdleStanceTask
 from .march_in_place_task import MarchInPlaceTask
 from .move_task import MoveTask
 from .rotate_task import RotateTask
-from .run_sequence_task import RunSequenceTask
 from .say_hello_task import SayHelloTask
 from .show_off_task import ShowOffTask
 from .sit_up_task import SitUpTask
-from .sleep_task import SleepTask
 from .sound_source_localization import SoundSourceLocalizationTask
 from .stream_odas_audio_task import StreamODASAudioTask
-from .wake_up_task import WakeUpTask
