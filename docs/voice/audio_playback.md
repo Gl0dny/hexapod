@@ -1,5 +1,7 @@
 # ODAS Audio Playback Guide
 
+[← Back to Documentation](../README.md) | [Next: Audio Recording →](audio_recording.md)
+
 ## Understanding ODAS Output Files
 
 ODAS produces several types of audio output files with different characteristics:
@@ -61,21 +63,7 @@ play -r 44100 -b 16 -c 4 -e signed-integer -t raw postfiltered.raw remix 3
 play -r 44100 -b 16 -c 4 -e signed-integer -t raw postfiltered.raw remix 4
 ```
 
-## Troubleshooting
 
-### Audio Plays Too Slow
-- Make sure you're using the correct sample rate (44100 Hz for postfiltered output)
-- Ensure you're specifying the correct number of channels (-c 4 for postfiltered output)
-
-### Audio Only in One Ear
-- Try different channel mappings using the remix options
-- Check which channels contain audio by playing them individually
-
-### Audio Quality Issues
-- If audio sounds distorted, try normalizing:
-```bash
-play -r 44100 -b 16 -c 4 -e signed-integer -t raw postfiltered.raw remix 1,2,3,4 1,2,3,4 norm
-```
 
 ## Notes
 - The postfiltered output contains separated audio streams in 4 channels
@@ -97,3 +85,7 @@ scp hexapod@192.168.0.122:/home/hexapod/hexapod/postfiltered.raw .
  ./src/odas/convert_odas_audio.py postfiltered.raw test.wav
  ./src/odas/test_picovoice_complete.py test.wav --access-key ACCESS_KEY
  ```
+
+---
+
+[← Back to Documentation](../README.md) | [Next: Audio Recording →](audio_recording.md)

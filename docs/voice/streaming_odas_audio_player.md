@@ -1,5 +1,7 @@
 # Streaming ODAS Audio Player
 
+[← Previous: ODAS KWS Testing](odas_kws_testing.md) | [Next: Back to Documentation →](../README.md)
+
 ## Overview
 
 The Streaming ODAS Audio Player is a Python utility that enables real-time monitoring of ODAS (Open embeddeD Audition System) audio streams from a remote machine. It continuously monitors ODAS audio streams, transfers new audio data, and plays it locally in real-time with minimal latency.
@@ -125,4 +127,8 @@ It will automatically:
 - **Latency**: Typically < 100ms
 - **CPU Usage**: Moderate (depends on audio processing load)
 - **Memory Usage**: Low (streams audio in chunks)
+
+---
+
+[← Previous: ODAS KWS Testing](odas_kws_testing.md) | [Next: Back to Documentation →](../README.md)
 - **Network Usage**: Efficient (only transfers new data)

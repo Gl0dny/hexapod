@@ -1,5 +1,7 @@
 # ODAS Server Documentation
 
+[← Previous: Audio SSL](audio_ssl.md) | [Next: ODAS Data Format →](odas_data_format.md)
+
 ## Overview
 
 The ODAS (Open embeddeD Audition System) Server is a Python-based server that receives and processes sound source data from ODAS. It handles two separate data streams:
@@ -138,32 +140,7 @@ The server implements comprehensive error handling:
    - Handle process crashes gracefully
    - Implement proper shutdown procedures
 
-## Troubleshooting
 
-### Common Issues
-
-1. **Connection Errors**
-   - Check network connectivity
-   - Verify port availability
-   - Check firewall settings
-
-2. **Process Errors**
-   - Check ODAS configuration
-   - Verify audio device settings
-   - Monitor system resources
-
-3. **Log File Issues**
-   - Check disk space
-   - Verify file permissions
-   - Monitor log file sizes
-
-### Debugging
-
-Enable debug logging by setting the appropriate log level:
-
-```python
-logging.basicConfig(level=logging.DEBUG)
-```
 
 ## Contributing
 
@@ -177,4 +154,8 @@ When contributing to the ODAS server:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+[← Previous: Audio SSL](audio_ssl.md) | [Next: ODAS Data Format →](odas_data_format.md) 

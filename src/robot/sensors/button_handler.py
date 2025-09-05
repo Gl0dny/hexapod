@@ -1,3 +1,11 @@
+"""
+Button handler for Raspberry Pi GPIO-based system control.
+
+This module provides GPIO button handling functionality for the hexapod robot,
+including short press, long press detection, and external control pause management.
+It interfaces with the physical button connected to GPIO pin 26 for system control.
+"""
+
 import RPi.GPIO as GPIO
 import threading
 import time

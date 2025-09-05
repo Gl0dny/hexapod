@@ -23,10 +23,10 @@ class NonBlockingConsoleInputHandler(threading.Thread):
     """
 
     def __init__(self):
-        super().__init__(daemon=True)
         """
         Initializes the NonBlockingConsoleInputHandler thread and sets up the input queue.
         """
+        super().__init__(daemon=True)
         self.input_queue = queue.Queue()
         self.stop_input_listener = False
         logger.debug("NonBlockingConsoleInputHandler initialized successfully.")

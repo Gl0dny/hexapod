@@ -1,5 +1,7 @@
 # Sound Source Localization (SSL) Utilities
 
+[← Previous: Audio Recording](audio_recording.md) | [Next: Task Interface →](../interface/task_interface.md)
+
 This document describes the Sound Source Localization (SSL) utilities available in the `src/utils/audio/ssl` directory. These utilities provide alternative implementations for Direction of Arrival (DOA) estimation using the ReSpeaker 6-Mic Array.
 
 > **Related Documentation:**
@@ -134,4 +136,8 @@ While the main project uses ODAS for DOA estimation, these utilities can be used
 - These utilities are provided as alternatives to ODAS
 - They may have different performance characteristics
 - Consider using them for specific use cases or as learning resources
-- The main project's primary DOA implementation is ODAS 
+- The main project's primary DOA implementation is ODAS
+
+---
+
+[← Previous: Audio Recording](audio_recording.md) | [Next: Task Interface →](../interface/task_interface.md) 

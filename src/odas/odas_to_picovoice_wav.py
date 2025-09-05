@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+"""
+ODAS to Picovoice WAV Converter
+
+This module provides utilities to convert ODAS raw audio files to WAV format
+compatible with Picovoice voice control systems. It handles sample rate conversion,
+channel selection, and format conversion for seamless integration with the
+voice control pipeline.
+"""
+
 import argparse
 import wave
 import numpy as np

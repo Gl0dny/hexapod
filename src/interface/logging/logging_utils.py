@@ -1,3 +1,10 @@
+"""
+Logging utilities for the Hexapod project.
+
+This module provides utility functions for log management including log cleaning,
+configuration overrides, and logging setup helpers.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import atexit

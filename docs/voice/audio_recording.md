@@ -1,5 +1,7 @@
 # Audio Recording Utilities
 
+[← Previous: Audio Playback](audio_playback.md) | [Next: Audio SSL →](audio_ssl.md)
+
 This document describes the audio recording utilities available in the `src/utils/audio/record` directory. These utilities are designed to work with the ReSpeaker 6-Mic Array and provide different ways to record audio data.
 
 > **Related Documentation:**
@@ -118,4 +120,8 @@ list_audio_devices()
 - Sample rate is fixed at 16kHz
 - Audio is recorded in 16-bit format
 - The ReSpeaker 6-Mic Array must be properly connected and configured
-- Make sure to select the correct device index for your setup 
+- Make sure to select the correct device index for your setup
+
+---
+
+[← Previous: Audio Playback](audio_playback.md) | [Next: Audio SSL →](audio_ssl.md) 

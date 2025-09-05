@@ -1,5 +1,7 @@
 # ODAS Data Format Documentation
 
+[← Previous: ODAS Server](odas_server.md) | [Next: DOA SSL Processor →](doa_ssl_processor.md)
+
 ## Overview
 This document describes the data format and logging system used by the ODAS (Open embeddeD Audition System) server implementation. ODAS provides two separate data streams: one for tracked sources and one for potential sources.
 
@@ -98,33 +100,7 @@ Each log entry includes:
 - Connection errors and timeouts are logged in the console log
 - Directory creation errors fall back to the current directory
 
-## Troubleshooting
 
-### Common Issues
-1. **No Active Sources**
-   - Check if sound is being detected
-   - Verify microphone configuration
-   - Adjust tracking sensitivity in ODAS config
-
-2. **Source ID Issues**
-   - ID 0: Normal for potential sources
-   - Non-zero IDs: Indicates active tracking
-   - Missing IDs: Check tracking parameters
-
-3. **Activity Levels**
-   - 0.0: Source is inactive
-   - 0.0-1.0: Probability of source being active
-   - 1.0: Source is definitely active
-
-4. **Connection Issues**
-   - Verify server IP and port settings
-   - Check firewall settings
-   - Monitor console.log for connection errors
-
-5. **Log File Access**
-   - Ensure the `logs/odas` directory exists and is writable
-   - Check file permissions
-   - Monitor disk space
 
 ## Configuration
 The server can be configured with the following parameters:
@@ -137,4 +113,8 @@ The server handles shutdown gracefully by:
 1. Closing all client connections
 2. Flushing and closing log files
 3. Cleaning up server sockets
-4. Terminating all threads 
+4. Terminating all threads
+
+---
+
+[← Previous: ODAS Server](odas_server.md) | [Next: DOA SSL Processor →](doa_ssl_processor.md) 

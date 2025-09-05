@@ -153,7 +153,6 @@ class Hexapod:
         logger.info("Hexapod initialized successfully")
 
     def calibrate_all_servos(self, stop_event: Optional[threading.Event] = None) -> None:
-        logger.info("Starting calibration of all servos")
         """
         Calibrate all servo motors using the Calibration module.
         Sets each leg's status to 'calibrating' and updates to 'calibrated' once done.
@@ -161,6 +160,7 @@ class Hexapod:
         Args:
             stop_event (threading.Event, optional): Event to signal stopping the calibration process.
         """
+        logger.info("Starting calibration of all servos")
         self.calibration.calibrate_all_servos(stop_event=stop_event)
         logger.info("Calibration of all servos completed")
 
@@ -558,13 +558,13 @@ class Hexapod:
         logger.debug(f"Angles: {self.current_leg_angles}")
 
     def _get_moving_state(self) -> bool:
-        logger.debug("Querying moving state from Maestro controller")
         """
         Returns the moving state of the hexapod by querying the Maestro controller.
 
         Returns:
             bool: True if at least one servo is still moving, False otherwise.
         """
+        logger.debug("Querying moving state from Maestro controller")
         moving_state = self.controller.get_moving_state()
         logger.debug(f"Moving state: {moving_state}")
         if moving_state == 0x01:
