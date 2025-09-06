@@ -1,13 +1,10 @@
 # Audio Recording Utilities
 
-[← Previous: Audio Playback](audio_playback.md) | [Next: Audio SSL →](audio_ssl.md)
+[← Previous: Voice Control System](voice_control_system.md) | [Next: ODAS Audio Processing System →](../odas/odas_audio_processing.md)
+
+[← Back to Documentation](../README.md)
 
 This document describes the audio recording utilities available in the `src/utils/audio/record` directory. These utilities are designed to work with the ReSpeaker 6-Mic Array and provide different ways to record audio data.
-
-> **Related Documentation:**
-> - [Sound Source Localization](audio_ssl.md) - For DOA estimation
-> - [Audio Playback](audio_playback.md) - For audio playback utilities
-> - [ODAS Server](../odas/odas_server.md) - Main audio processing system
 
 ## Prerequisites
 
@@ -124,4 +121,6 @@ list_audio_devices()
 
 ---
 
-[← Previous: Audio Playback](audio_playback.md) | [Next: Audio SSL →](audio_ssl.md) 
+[← Previous: Voice Control System](voice_control_system.md) | [Next: ODAS Audio Processing System →](../odas/odas_audio_processing.md)
+
+[← Back to Documentation](../README.md)

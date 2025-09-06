@@ -12,7 +12,6 @@
 - [Voice Commands](#voice-commands)
 - [Task Execution](#task-execution)
 - [Movement Coordination](#movement-coordination)
-- [Performance Characteristics](#performance-characteristics)
 
 ---
 
@@ -242,28 +241,6 @@ flowchart LR
 - **Status Indication**: Movement status through lights
 - **Animation Control**: Coordinated light animations
 - **Error Indication**: Error states through light patterns
-
-## Performance Characteristics
-
-### **Execution Performance**
-
-- **Task Creation**: < 10ms for task instantiation
-- **Gait Generation**: < 50ms for gait creation
-- **Movement Execution**: Real-time gait execution
-- **Task Completion**: < 100ms for cleanup
-
-### **Safety Features**
-
-- **Task Interruption**: Graceful task stopping
-- **Position Safety**: Return to safe positions
-- **Error Handling**: Robust error recovery
-- **Resource Cleanup**: Proper resource management
-
-### **System Integration**
-
-- **Thread Safety**: Safe for multi-threaded use
-- **State Management**: Consistent state tracking
-- **Callback System**: Event-driven task completion
 - **Hardware Interface**: Direct servo and light control
 
 ### **Movement Capabilities**

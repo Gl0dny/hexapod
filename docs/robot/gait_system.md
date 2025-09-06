@@ -12,7 +12,6 @@
 - [Circle-Based Targeting](#circle-based-targeting)
 - [State Management](#state-management)
 - [Execution Engine](#execution-engine)
-- [Performance Characteristics](#performance-characteristics)
 
 ---
 
@@ -240,10 +239,12 @@ class LegPath:
         return self.waypoints[self.current_waypoint_index]
 ```
 
-## Performance Characteristics
 
-### **Timing and Synchronization**
+---
 
+[← Previous: Kinematics](kinematics.md) | [Next: Movement Commands →](movement_commands.md)
+
+[← Back to Documentation](../README.md)
 - **Update Rate**: 50Hz for smooth movement
 - **Phase Timing**: Configurable dwell time per phase
 - **Gait Switching**: < 100ms transition time

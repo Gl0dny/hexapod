@@ -1,8 +1,22 @@
 # Servo Control System
 
-The servo control system manages the 18 MG996R servos through the Pololu Maestro servo controller board using UART communication.
+[← Previous: Lights System](lights_system.md) | [Next: Task Interface →](../interface/task_interface.md)
+
+[← Back to Documentation](../README.md)
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Core Components](#core-components)
+- [Protocol Implementation](#protocol-implementation)
+- [Hardware Integration](#hardware-integration)
+- [Integration Points](#integration-points)
+
+---
 
 ## Overview
+
+The servo control system manages the 18 MG-995 servos through the Pololu Maestro servo controller board using UART communication.
 
 The servo control system consists of:
 - **MaestroUART Class**: Pololu protocol implementation and serial communication
@@ -170,13 +184,13 @@ The system includes automatic error recovery:
 
 ### Servo Specifications
 
-**MG996R Servo Motors:**
-- **Voltage**: 4.8V - 7.2V
+**MG-995 Servo Motors:**
+- **Voltage**: 4.8V - 6.0V
 - **Current**: 1.0A - 2.5A (stall)
 - **Torque**: 9.4 kg-cm (4.8V), 11 kg-cm (6.0V)
-- **Speed**: 0.20 sec/60° (4.8V), 0.18 sec/60° (6.0V)
-- **Weight**: 55g
+- **Speed**: 0.19 sec/60° (4.8V), 0.15 sec/60° (6.0V)
 - **Dimensions**: 40.7 x 19.7 x 42.9 mm
+- **Weight**: 55g
 
 ### Channel Mapping
 
@@ -304,33 +318,6 @@ maestro.set_acceleration(0, 10)  # Faster acceleration
 - **Memory Usage**: Minimal buffer requirements
 - **CPU Usage**: Low overhead communication
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Servo Not Moving**
-   - Check power supply
-   - Verify channel mapping
-   - Confirm target range
-
-2. **Communication Errors**
-   - Check serial port configuration
-   - Verify baud rate settings
-   - Confirm device number
-
-3. **Position Inaccuracy**
-   - Check servo calibration
-   - Verify target units
-   - Confirm servo limits
-
-### Debug Information
-
-```python
-logger = logging.getLogger("maestro_logger")
-logger.debug("MaestroUART initialized successfully")
-logger.info("Servo 0 moved to position 6000")
-logger.warning("Communication error detected")
-```
 
 ## Integration Points
 

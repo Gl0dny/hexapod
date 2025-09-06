@@ -251,7 +251,9 @@ All tasks inherit from the abstract `Task` class which provides:
 ### Injection Decorators
 
 **`@inject_hexapod`**: Injects Hexapod instance
+
 **`@inject_lights_handler`**: Injects LightsInteractionHandler instance
+
 - Automatic dependency injection
 - Cleaner method signatures
 - Consistent component access
@@ -277,4 +279,9 @@ All tasks inherit from the abstract `Task` class which provides:
 - **ODAS Tasks**: Special handling for audio processing tasks
 - **Calibration Tasks**: Critical system calibration with error recovery
 - **Shutdown Tasks**: Safe system shutdown with cancellation
-- **Emergency Stop**: Immediate task stopping and system safety
+
+---
+
+[← Previous: Servo Control](../hardware/servo_control.md) | [Next: Voice Control Interface →](voice_control_interface.md)
+
+[← Back to Documentation](../README.md)

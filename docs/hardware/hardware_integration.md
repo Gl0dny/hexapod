@@ -12,7 +12,6 @@
 - [Sensor Integration](#sensor-integration)
 - [Light System](#light-system)
 - [Hardware Configuration](#hardware-configuration)
-- [Performance Characteristics](#performance-characteristics)
 
 ---
 
@@ -33,10 +32,10 @@ graph TB
         end
         
         subgraph "Hardware Components"
-            SC[Servo Motors<br/>• 18 MG996R Servos<br/>• 3 per leg<br/>• Position Control]
+            SC[Servo Motors<br/>• 18 MG-995 Servos<br/>• 3 per leg<br/>• Position Control]
             IMU[IMU Sensor<br/>• ICM-20948<br/>• 9-DOF<br/>• Orientation Data]
             BTN[Button Input<br/>• GPIO Pin 26<br/>• User Interface<br/>• System Control]
-            LED[LED Strip<br/>• APA102 LEDs<br/>• 12 LEDs<br/>• Visual Feedback]
+            LED[ReSpeaker 6 LEDs<br/>• Integrated APA102 LEDs<br/>• 12 LEDs<br/>• Visual Feedback]
         end
         
         subgraph "Communication"
@@ -103,7 +102,7 @@ flowchart LR
 ### **Servo Configuration**
 
 **Hardware Parameters**:
-- **Servo Type**: MG996R servos
+- **Servo Type**: MG-995 servos
 - **Pulse Range**: 992-2000 microseconds (3968-8000 quarter-microseconds)
 - **Channels**: 24 channels (18 used for hexapod)
 - **Speed**: 32 units (0.8064us/ms)
@@ -150,10 +149,10 @@ flowchart LR
 
 ## Light System
 
-### **APA102 LED Control** (`src/lights/apa102.py`)
+### **ReSpeaker 6 LED Control** (`src/lights/apa102.py`)
 
-**Role**: High-speed LED strip control and animation
-- **LED Type**: APA102 (DotStar) LEDs
+**Role**: High-speed LED control and animation for ReSpeaker 6 integrated LEDs
+- **LED Type**: APA102 (DotStar) LEDs integrated into ReSpeaker 6
 - **Count**: 12 LEDs total
 - **Interface**: SPI communication
 - **Features**: Individual pixel control, brightness, color mixing
@@ -216,10 +215,11 @@ flowchart LR
 - **Usage**: Real-time servo position mapping
 - **Updates**: Dynamic calibration value updates
 
-## Performance Characteristics
+---
 
-### **Servo Control Performance**
+[← Previous: Movement Commands](../robot/movement_commands.md) | [Next: IMU Data Format →](imu_data_format.md)
 
+[← Back to Documentation](../README.md)
 - **Update Rate**: Real-time servo control
 - **Communication Latency**: < 10ms per servo command
 - **Position Accuracy**: ±1° joint angle precision

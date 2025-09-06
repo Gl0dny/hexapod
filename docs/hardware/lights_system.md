@@ -1,6 +1,18 @@
 # Lights System
 
-The lights system provides visual feedback and animations for the hexapod robot using APA102 LED strips. It includes color management, animation control, and hardware integration.
+[← Previous: IMU Data Format](imu_data_format.md) | [Next: Servo Control System →](servo_control.md)
+
+[← Back to Documentation](../README.md)
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Core Components](#core-components)
+- [Animation System](#animation-system)
+- [Hardware Integration](#hardware-integration)
+- [Integration Points](#integration-points)
+
+---
 
 ## Overview
 
@@ -14,7 +26,7 @@ The lights system consists of:
 
 ### Lights Class
 
-The `Lights` class manages the APA102 LED strip hardware:
+The `Lights` class manages the ReSpeaker 6 integrated APA102 LED hardware:
 
 ```python
 class Lights:
@@ -163,9 +175,10 @@ leg_to_led = {
 
 ## Hardware Integration
 
-### APA102 LED Strip
+### ReSpeaker 6 Integrated LEDs
 
 **Specifications:**
+- **LED Type**: APA102 (DotStar) LEDs integrated into ReSpeaker 6
 - **Protocol**: SPI communication
 - **LED Count**: 12 LEDs (configurable)
 - **Power**: 5V supply with GPIO control
@@ -293,35 +306,6 @@ The lights system supports extensive customization:
 - **Animation Efficiency**: Optimized update patterns
 - **Sleep Modes**: Automatic power reduction when idle
 
-## Troubleshooting
-
-### Common Issues
-
-1. **LEDs Not Lighting**
-   - Check power pin configuration
-   - Verify SPI communication
-   - Confirm LED strip connections
-
-2. **Animation Not Starting**
-   - Check thread initialization
-   - Verify animation parameters
-   - Confirm lights object state
-
-3. **Color Inconsistencies**
-   - Check RGB value ranges
-   - Verify brightness settings
-   - Confirm LED strip type
-
-### Debug Information
-
-The system provides comprehensive logging:
-
-```python
-logger = logging.getLogger("lights_logger")
-logger.debug("Lights initialized successfully")
-logger.info("Brightness set to 75%")
-logger.warning("Animation stop requested")
-```
 
 ## Integration Points
 

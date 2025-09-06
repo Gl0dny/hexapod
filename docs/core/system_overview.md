@@ -143,7 +143,7 @@ flowchart LR
 ### **Robot Structure**
 - **6-Legged Design**: Hexagonal body with 6 articulated legs
 - **18 Servo Motors**: 3 servos per leg (coxa, femur, tibia)
-- **MG996R Servos**: High-torque servos with precise positioning
+- **MG-995 Servos**: High-torque servos with precise positioning
 - **Pololu Maestro Controller**: 24-channel servo controller via UART
 
 ### **Sensors and Input**
@@ -153,7 +153,7 @@ flowchart LR
 - **DualSense Controller**: Wireless gamepad for manual control
 
 ### **Visual Feedback**
-- **WS2812B LED Strip**: 12 RGB LEDs for status indication and animations
+- **ReSpeaker 6 LEDs**: 12 integrated APA102 LEDs for status indication and animations
 - **APA102 Driver**: High-speed LED control with individual pixel addressing
 - **Power Control**: GPIO-controlled LED power management
 

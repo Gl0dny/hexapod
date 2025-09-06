@@ -262,7 +262,7 @@ flowchart LR
 - `--audio-device-index`: Audio input device selection
 - `--log-dir`: Logging directory
 - `--log-config-file`: Logging configuration file
-- `--log-level`: Logging level (DEBUG, INFO, WARNING, ERROR)
+- `--log-level`: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL, USER_INFO, ODAS_USER_INFO, GAMEPAD_MODE_INFO)
 - `--clean`: Clean existing logs
 - `--print-context`: Print voice control context
 
@@ -283,4 +283,9 @@ flowchart LR
 
 - **Component Settings**: Individual component configuration
 - **Performance Tuning**: Thread management and timing
-- **Feature Enablement**: Optional features and capabilities
+
+---
+
+[← Previous: System Overview](system_overview.md) | [Next: Configuration →](configuration.md)
+
+[← Back to Documentation](../README.md)

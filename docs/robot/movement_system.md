@@ -1,4 +1,4 @@
-# Robot Movement System
+# Movement System
 
 [← Previous: Configuration](../core/configuration.md) | [Next: Kinematics →](kinematics.md)
 
@@ -12,8 +12,6 @@
 - [Gait System](#gait-system)
 - [Movement Capabilities](#movement-capabilities)
 - [Hardware Integration](#hardware-integration)
-- [Control Interface](#control-interface)
-- [Performance Characteristics](#performance-characteristics)
 
 ---
 
@@ -83,7 +81,7 @@ flowchart LR
 - Provides high-level movement interface
 
 **Key Features**:
-- **Servo Management**: Direct control of 18 MG996R servos via Pololu Maestro
+- **Servo Management**: Direct control of 18 MG-995 servos via Pololu Maestro
 - **Position Tracking**: Real-time tracking of leg positions and angles
 - **Movement Commands**: High-level movement interface (move_body, move_to_position)
 - **Safety Systems**: Emergency stop, position validation, angle limits
@@ -201,7 +199,7 @@ flowchart LR
 
 ### **Servo Control**
 
-- **18 MG996R Servos**: High-torque servos with precise positioning
+- **18 MG-995 Servos**: High-torque servos with precise positioning
 - **Pololu Maestro Controller**: 24-channel servo controller via UART
 - **Real-time Control**: 50Hz update rate for smooth movement
 - **Safety Management**: Emergency stop and position limits
@@ -219,54 +217,6 @@ flowchart LR
 - **Thread Safety**: Thread-safe servo control and updates
 - **Error Handling**: Robust error handling and recovery
 - **Status Monitoring**: Real-time status and error reporting
-
-## Control Interface
-
-### **High-Level Interface**
-
-- **Movement Commands**: Simple, intuitive movement commands
-- **Position Control**: Precise positioning and orientation
-- **Gait Selection**: Easy switching between gait patterns
-- **Safety Controls**: Emergency stop and safety features
-
-### **Configuration Interface**
-
-- **YAML Configuration**: Easy parameter adjustment
-- **Geometry Settings**: Robot geometry and dimensions
-- **Servo Parameters**: Speed, acceleration, and limits
-- **Gait Parameters**: Step radius, timing, and behavior
-
-### **Status Interface**
-
-- **Position Tracking**: Real-time position and angle information
-- **Status Monitoring**: Movement status and error reporting
-- **Performance Metrics**: Timing and performance data
-- **Debug Information**: Detailed debugging and logging
-
-## Performance Characteristics
-
-### **Movement Performance**
-
-- **Servo Update Rate**: 50Hz for smooth movement
-- **Position Accuracy**: ±2mm for foot positioning
-- **Gait Transition**: < 100ms between different gait patterns
-- **Response Time**: < 50ms from command to execution
-
-### **Safety Features**
-
-- **Emergency Stop**: Immediate servo deactivation
-- **Position Limits**: Hardware and software joint limits
-- **Stability Monitoring**: Continuous balance assessment
-- **Safe Shutdown**: Graceful movement to safe positions
-
-### **System Reliability**
-
-- **Error Handling**: Robust error handling and recovery
-- **Thread Safety**: Thread-safe operation and updates
-- **Resource Management**: Efficient resource usage and cleanup
-- **Status Monitoring**: Continuous system health monitoring
-
----
 
 [← Previous: Configuration](../core/configuration.md) | [Next: Kinematics →](kinematics.md)
 

@@ -1,6 +1,8 @@
 # Streaming ODAS Audio Player
 
-[← Previous: ODAS KWS Testing](odas_kws_testing.md) | [Next: Back to Documentation →](../README.md)
+[← Previous: ODAS Audio Playback](odas_audio_playback.md) | [Next: Voice Control Interface →](../interface/voice_control_interface.md)
+
+[← Back to Documentation](../README.md)
 
 ## Overview
 
@@ -99,15 +101,6 @@ python streaming_odas_audio_player.py --file-type separated --sample-rate 48000 
 python streaming_odas_audio_player.py --file-type both --host 192.168.1.100 --user custom_user
 ```
 
-## Requirements
-
-- Python 3.x
-- Required Python packages:
-  - paramiko (for SSH/SFTP)
-  - sounddevice (for audio playback)
-  - numpy (for audio processing)
-  - sox (for audio conversion)
-
 ## Error Handling
 
 The player includes robust error handling for:
@@ -130,5 +123,6 @@ It will automatically:
 
 ---
 
-[← Previous: ODAS KWS Testing](odas_kws_testing.md) | [Next: Back to Documentation →](../README.md)
-- **Network Usage**: Efficient (only transfers new data)
+[← Previous: ODAS Audio Playback](odas_audio_playback.md) | [Next: Voice Control Interface →](../interface/voice_control_interface.md)
+
+[← Back to Documentation](../README.md)

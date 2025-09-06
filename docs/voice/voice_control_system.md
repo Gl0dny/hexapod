@@ -1,6 +1,6 @@
 # Voice Control System
 
-[← Previous: Gamepad Controller](../interface/gamepad_controller.md) | [Next: Audio Processing →](audio_processing.md)
+[← Previous: Gamepad Controller](../interface/gamepad_controller.md) | [Next: Audio Recording →](audio_recording.md)
 
 [← Back to Documentation](../README.md)
 
@@ -10,8 +10,7 @@
 - [System Architecture](#system-architecture)
 - [Core Components](#core-components)
 - [Voice Commands](#voice-commands)
-- [Audio Processing](#audio-processing)
-- [Performance Characteristics](#performance-characteristics)
+- [ODAS Audio Processing System](#odas-audio-processing-system)
 
 ---
 
@@ -67,7 +66,7 @@ flowchart LR
 
 **Role**: Main voice control thread and audio processing coordinator
 - **Thread-based Execution**: Runs in separate daemon thread
-- **Audio Processing**: Real-time audio capture and processing
+- **ODAS Audio Processing System**: Real-time audio capture and processing
 - **Picovoice Integration**: Wake word detection and intent recognition
 - **Task Management**: Command execution through task interface
 
@@ -177,7 +176,7 @@ flowchart LR
 - **`set_accel`**: Set robot acceleration
   - Parameters: `accel_percentage` (0-100%)
 
-## Audio Processing
+## ODAS Audio Processing System
 
 ### **Audio Capture**
 
@@ -193,7 +192,7 @@ flowchart LR
 - **ALSA Integration**: Direct ALSA audio interface
 - **Error Handling**: Graceful fallback to default device
 
-### **Audio Processing Pipeline**
+### **ODAS Audio Processing System Pipeline**
 
 **Real-time Processing**:
 - **Frame Processing**: 512-frame audio buffer processing
@@ -233,28 +232,6 @@ flowchart LR
 - **Validation**: Command parameter validation and error handling
 - **Dispatch**: Intent routing to appropriate handlers
 - **Feedback**: Visual and audio feedback for command execution
-
-## Performance Characteristics
-
-### **Voice Recognition Performance**
-
-- **Wake Word Detection**: < 200ms response time
-- **Intent Recognition**: < 500ms processing time
-- **Command Execution**: < 100ms from intent to task creation
-- **Overall Latency**: < 1 second end-to-end
-
-### **Audio Processing Performance**
-
-- **Sample Rate**: 16kHz for optimal recognition
-- **Frame Processing**: Real-time audio processing
-- **Channel Processing**: 8-channel to single-channel conversion
-- **Buffer Management**: 512-frame buffer processing
-
-### **System Integration**
-
-- **Thread Safety**: Safe for multi-threaded operation
-- **Pause/Resume**: Dynamic voice control pausing
-- **Error Recovery**: Robust error handling and recovery
 - **Resource Management**: Proper audio resource cleanup
 
 ### **Recording Performance**
@@ -273,6 +250,6 @@ flowchart LR
 
 ---
 
-[← Previous: Gamepad Controller](../interface/gamepad_controller.md) | [Next: Audio Processing →](audio_processing.md)
+[← Previous: Gamepad Controller](../interface/gamepad_controller.md) | [Next: Audio Recording →](audio_recording.md)
 
 [← Back to Documentation](../README.md)

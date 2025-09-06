@@ -12,7 +12,6 @@
 - [Inverse Kinematics Implementation](#inverse-kinematics-implementation)
 - [Body Kinematics](#body-kinematics)
 - [Joint Management](#joint-management)
-- [Performance Characteristics](#performance-characteristics)
 
 ---
 
@@ -21,26 +20,6 @@
 The kinematics system implements inverse kinematics calculations that convert desired foot positions into the exact servo angles needed to achieve them. The system uses geometric inverse kinematics with triangle relationships to calculate joint angles for the 3-degree-of-freedom legs.
 
 ## Leg Structure
-
-### Physical Configuration
-
-Each leg has 3 degrees of freedom with specific dimensions:
-
-```mermaid
-graph TD
-    subgraph "Leg Structure"
-        FP[Foot Position<br/>(x, y, z)]
-        T[Tibia<br/>140.0mm<br/>Pitch Servo]
-        F[Femur<br/>52.5mm<br/>Pitch Servo]
-        C[Coxa<br/>27.5mm<br/>Yaw Servo]
-        BM[Body Mount]
-    end
-    
-    FP --> T
-    T --> F
-    F --> C
-    C --> BM
-```
 
 ### Leg Dimensions
 
@@ -65,9 +44,9 @@ graph TD
 
 ### Leg Frame
 
-Each leg uses a local coordinate system:
-- **X-axis**: Forward direction (positive = forward)
-- **Y-axis**: Left direction (positive = left)
+Each leg uses a local coordinate system rotated -90° from the body frame:
+- **X-axis**: Right direction (positive = right)
+- **Y-axis**: Forward direction (positive = forward)
 - **Z-axis**: Up direction (positive = up)
 
 ## Inverse Kinematics Implementation
@@ -228,10 +207,12 @@ Each servo has individual calibration values:
 - **Angle Mapping**: Linear mapping from angles to servo targets
 - **Calibration Data**: Stored in `calibration.json` per leg
 
-## Performance Characteristics
 
-### Calculation Performance
+---
 
+[← Previous: Robot Movement System](README.md) | [Next: Gait System →](gait_system.md)
+
+[← Back to Documentation](../README.md)
 - **Real-time Processing**: 50Hz update rate
 - **Computational Efficiency**: Geometric calculations
 - **Memory Usage**: Minimal overhead
@@ -260,6 +241,6 @@ Each servo has individual calibration values:
 
 ---
 
-[← Previous: Robot Movement System](README.md) | [Next: Gait System →](gait_system.md)
+[← Previous: Movement System](movement_system.md) | [Next: Gait System →](gait_system.md)
 
 [← Back to Documentation](../README.md)

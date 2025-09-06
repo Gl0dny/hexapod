@@ -1,6 +1,8 @@
 # ODAS DoA/SSL Processor
 
-[← Previous: ODAS Data Format](odas_data_format.md) | [Next: ODAS KWS Testing →](odas_kws_testing.md)
+[← Previous: ODAS Audio Processing System](odas_audio_processing.md) | [Next: ODAS Server →](odas_server.md)
+
+[← Back to Documentation](../README.md)
 
 ## Overview
 The ODAS DoA/SSL Processor is a Python implementation that processes and relays sound source data from the ODAS (Open embeddeD Audition System). It handles both Direction of Arrival (DoA) and Sound Source Localization (SSL) data, providing real-time processing, visualization, and logging capabilities.
@@ -89,13 +91,6 @@ python src/odas/odas_doa_ssl_processor.py --mode remote --forward-to-gui
 - Proper resource cleanup
 - Comprehensive error logging
 
-## Dependencies
-- Python 3.x
-- ODAS system
-- LED control system
-- Socket networking
-- JSON processing
-
 ## Notes
 - The processor automatically handles GUI disconnections
 - Debug mode provides real-time source tracking display
@@ -104,4 +99,6 @@ python src/odas/odas_doa_ssl_processor.py --mode remote --forward-to-gui
 
 ---
 
-[← Previous: ODAS Data Format](odas_data_format.md) | [Next: ODAS KWS Testing →](odas_kws_testing.md) 
+[← Previous: ODAS Audio Processing System](odas_audio_processing.md) | [Next: ODAS Server →](odas_server.md)
+
+[← Back to Documentation](../README.md)

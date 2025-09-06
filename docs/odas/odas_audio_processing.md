@@ -1,6 +1,6 @@
-# Audio Processing System
+# ODAS Audio Processing System
 
-[← Previous: Voice Control System](voice_control_system.md) | [Next: Audio Playback →](audio_playback.md)
+[← Previous: Audio Recording](../voice/audio_recording.md) | [Next: DOA SSL Processor →](doa_ssl_processor.md)
 
 [← Back to Documentation](../README.md)
 
@@ -12,7 +12,6 @@
 - [ODAS Integration](#odas-integration)
 - [Audio Streaming](#audio-streaming)
 - [Audio Conversion](#audio-conversion)
-- [Performance Characteristics](#performance-characteristics)
 
 ---
 
@@ -28,23 +27,23 @@ The Audio Processing System provides spatial audio processing, sound source loca
 graph TB
     subgraph "Audio Processing System"
         subgraph "Hardware Input"
-            MA[6-Mic ReSpeaker Array<br/>• 8 Channels<br/>• 16kHz Sample Rate<br/>• 32-bit Audio]
-            AD[Audio Device<br/>• ALSA Integration<br/>• Real-time Capture<br/>• Multi-channel]
+            MA["6-Mic ReSpeaker Array<br/>• 8 Channels<br/>• 16kHz Sample Rate<br/>• 32-bit Audio"]
+            AD["Audio Device<br/>• ALSA Integration<br/>• Real-time Capture<br/>• Multi-channel"]
         end
         
         subgraph "ODAS Processing"
-            OD[ODAS Framework<br/>• Sound Source Localization<br/>• Direction of Arrival<br/>• Beamforming<br/>• Audio Separation]
-            CF[Configuration Files<br/>• local_odas.cfg<br/>• SSL Parameters<br/>• DOA Settings]
+            OD["ODAS Framework<br/>• Sound Source Localization<br/>• Direction of Arrival<br/>• Beamforming<br/>• Audio Separation"]
+            CF["Configuration Files<br/>• local_odas.cfg<br/>• SSL Parameters<br/>• DOA Settings"]
         end
         
         subgraph "Data Processing"
-            DS[Data Servers<br/>• Tracked Sources (Port 9000)<br/>• Potential Sources (Port 9001)<br/>• TCP Communication]
-            AP[Audio Processor<br/>• Channel Selection<br/>• Sample Rate Conversion<br/>• Picovoice Integration]
+            DS["Data Servers<br/>• Tracked Sources (Port 9000)<br/>• Potential Sources (Port 9001)<br/>• TCP Communication"]
+            AP["Audio Processor<br/>• Channel Selection<br/>• Sample Rate Conversion<br/>• Picovoice Integration"]
         end
         
         subgraph "Output Streams"
-            AS[Audio Streaming<br/>• Remote Playback<br/>• Real-time Transfer<br/>• WAV Conversion]
-            VS[Visualization<br/>• LED Feedback<br/>• Direction Display<br/>• Source Tracking]
+            AS["Audio Streaming<br/>• Remote Playback<br/>• Real-time Transfer<br/>• WAV Conversion"]
+            VS["Visualization<br/>• LED Feedback<br/>• Direction Display<br/>• Source Tracking"]
         end
     end
     
@@ -244,27 +243,6 @@ flowchart LR
 - **Method**: First channel extraction
 - **Frame Management**: 512-sample frame buffering
 
-## Performance Characteristics
-
-### **Audio Processing Performance**
-
-- **Latency**: < 100ms end-to-end processing
-- **Throughput**: 44100 Hz continuous processing
-- **Memory Usage**: < 50MB for real-time processing
-- **CPU Usage**: < 20% on Raspberry Pi 4
-
-### **ODAS Performance**
-
-- **SSL Accuracy**: ±5° direction accuracy
-- **Source Tracking**: Up to 4 simultaneous sources
-- **Update Rate**: Real-time continuous updates
-- **Processing Latency**: < 50ms for direction detection
-
-### **Streaming Performance**
-
-- **Transfer Rate**: Real-time audio streaming
-- **Network Usage**: Optimized incremental transfer
-- **Buffer Management**: 1024-sample audio buffering
 - **Playback Latency**: < 200ms audio playback delay
 
 ### **Audio Quality**
@@ -283,6 +261,6 @@ flowchart LR
 
 ---
 
-[← Previous: Voice Control System](voice_control_system.md) | [Next: Audio Playback →](audio_playback.md)
+[← Previous: Audio Recording](../voice/audio_recording.md) | [Next: DOA SSL Processor →](doa_ssl_processor.md)
 
 [← Back to Documentation](../README.md)

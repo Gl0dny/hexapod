@@ -1,5 +1,4 @@
 ## Thesis : "Hexapod autonomous control system based on auditory scene analysis: real-time sound source localization and keyword spotting for voice command recognition"
---- In progress
 
 Diploma project completed at Warsaw University of Science and Technology as a part of Master of Science in Engineering - Computer Science.
 
@@ -33,6 +32,19 @@ This video demonstrates an autonomous hexapod robot performing advanced auditory
 - Automatic audio stream separation and recording of individual source audio files
 
 This represents a complete autonomous control system where the hexapod can navigate and interact based purely on auditory cues, enabling sophisticated human-robot interaction through voice commands and environmental sound awareness.
+
+## Documentation
+
+For detailed technical documentation and system architecture please refer to the [Documentation](./docs/README.md).
+
+The documentation covers:
+- **System Overview** - High-level architecture and component relationships
+- **Core Systems** - Main application, configuration, and task management
+- **Robot Movement** - Kinematics, gait systems, and movement commands
+- **Hardware Integration** - Servo control, IMU data, and lights system
+- **Interface Systems** - Task interface, voice control mode, and gamepad controller
+- **Voice Control & Audio** - Voice control system and audio recording capabilities
+- **ODAS Audio Processing** - Multi-channel audio capture, spatial processing, direction detection, server setup, data formats, and streaming
 
 <!-- 
 ## Table of Contents

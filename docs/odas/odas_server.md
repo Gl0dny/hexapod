@@ -1,6 +1,8 @@
 # ODAS Server Documentation
 
-[← Previous: Audio SSL](audio_ssl.md) | [Next: ODAS Data Format →](odas_data_format.md)
+[← Previous: DOA SSL Processor](doa_ssl_processor.md) | [Next: ODAS Data Format →](odas_data_format.md)
+
+[← Back to Documentation](../README.md)
 
 ## Overview
 
@@ -142,20 +144,8 @@ The server implements comprehensive error handling:
 
 
 
-## Contributing
-
-When contributing to the ODAS server:
-
-1. Follow the existing code style
-2. Add appropriate documentation
-3. Include error handling
-4. Add unit tests
-5. Update this documentation
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ---
 
-[← Previous: Audio SSL](audio_ssl.md) | [Next: ODAS Data Format →](odas_data_format.md) 
+[← Previous: DOA SSL Processor](doa_ssl_processor.md) | [Next: ODAS Data Format →](odas_data_format.md)
+
+[← Back to Documentation](../README.md)

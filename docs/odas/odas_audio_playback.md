@@ -1,6 +1,8 @@
 # ODAS Audio Playback Guide
 
-[← Back to Documentation](../README.md) | [Next: Audio Recording →](audio_recording.md)
+[← Previous: ODAS Data Format](odas_data_format.md) | [Next: Streaming ODAS Audio Player →](streaming_odas_audio_player.md)
+
+[← Back to Documentation](../README.md)
 
 ## Understanding ODAS Output Files
 
@@ -88,4 +90,6 @@ scp hexapod@192.168.0.122:/home/hexapod/hexapod/postfiltered.raw .
 
 ---
 
-[← Back to Documentation](../README.md) | [Next: Audio Recording →](audio_recording.md)
+[← Previous: ODAS Data Format](odas_data_format.md) | [Next: Streaming ODAS Audio Player →](streaming_odas_audio_player.md)
+
+[← Back to Documentation](../README.md)
