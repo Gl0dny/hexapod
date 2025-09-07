@@ -1,1 +1,3 @@
-from hexapod.maestro.maestro_uart import MaestroUART
+from .maestro_uart import MaestroUART
+
+__all__ = ['MaestroUART']

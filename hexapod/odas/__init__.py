@@ -1,2 +1,7 @@
-from odas.odas_audio_processor import ODASAudioProcessor
-from odas.odas_doa_ssl_processor import ODASDoASSLProcessor
+from .odas_audio_processor import ODASAudioProcessor
+from .odas_doa_ssl_processor import ODASDoASSLProcessor
+
+__all__ = [
+    'ODASAudioProcessor',
+    'ODASDoASSLProcessor'
+]
