@@ -18,7 +18,7 @@ from utils import rename_thread
 from .recorder import Recorder
 
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, List
     from task_interface import Task
 
 # Configure logger
@@ -125,15 +125,15 @@ class VoiceControl(threading.Thread):
         self.task_interface.set_task_complete_callback(self.on_task_complete)
         # Task interface interrupted flag
         # This flag is used to indicate that the current task was interrupted by a wake word detection
-        self.task_interface_interrupted = False
+        self.task_interface_interrupted: bool = False
         self.intent_dispatcher = IntentDispatcher(self.task_interface)
 
         # Audio objects (will be initialized in run())
-        self.pyaudio_instance = None
-        self.audio_stream = None
+        self.pyaudio_instance: Optional[pyaudio.PyAudio] = None
+        self.audio_stream: Optional[pyaudio.Stream] = None
         
         # Audio processing thread control
-        self.audio_thread = None
+        self.audio_thread: Optional[threading.Thread] = None
         self.audio_stop_event = threading.Event()
         
         if self.print_context:
@@ -164,7 +164,7 @@ class VoiceControl(threading.Thread):
             os.close(original_stderr_fd)
 
     @staticmethod
-    def get_available_devices() -> list[str]:
+    def get_available_devices() -> List[str]:
         """
         Get list of available audio devices.
         
@@ -187,7 +187,7 @@ class VoiceControl(threading.Thread):
             return []
 
     @staticmethod
-    def find_respeaker6_index():
+    def find_respeaker6_index() -> int:
         """
         Search for the device index of ReSpeaker 6 in the available devices list.
         Returns the index if found, else returns -1.
@@ -202,7 +202,7 @@ class VoiceControl(threading.Thread):
             logger.error(f"[VoiceControl] Could not search for ReSpeaker 6: {e}")
         return -1
 
-    def _initialize_audio(self):
+    def _initialize_audio(self) -> None:
         """Initialize PyAudio and audio stream."""
         try:
             # Suppress ALSA warnings by redirecting stderr at file descriptor level
@@ -230,7 +230,7 @@ class VoiceControl(threading.Thread):
             logger.error(f"Failed to initialize audio: {e}")
             raise
 
-    def _audio_processor(self):
+    def _audio_processor(self) -> None:
         """Process audio in separate thread."""
         logger.debug("Audio processing thread started")
         
@@ -279,7 +279,7 @@ class VoiceControl(threading.Thread):
         finally:
             logger.debug("Audio processing thread finished")
 
-    def _cleanup_audio(self):
+    def _cleanup_audio(self) -> None:
         """Clean up audio resources."""
         try:
             # Stop audio processing thread first
@@ -495,7 +495,7 @@ class VoiceControl(threading.Thread):
             self.task_interface.lights_handler.listen_wakeword()
             logger.user_info("Listening for wake word...")
 
-    def start_recording(self, filename: str = None, duration: Optional[float] = None) -> str:
+    def start_recording(self, filename: Optional[str] = None, duration: Optional[float] = None) -> str:
         """
         Start recording audio to a file.
         
@@ -528,7 +528,7 @@ class VoiceControl(threading.Thread):
         """
         return self.audio_recorder.get_recording_status()
 
-    def stop(self):
+    def stop(self) -> None:
         """Signal the thread to stop."""
         self.stop_event.set()
         logger.user_info('Voice control thread stopped')

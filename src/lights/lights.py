@@ -16,7 +16,7 @@ from gpiozero import LED
 from lights.apa102 import APA102
 
 if TYPE_CHECKING:
-    from typing import Optional, Tuple
+    from typing import Optional, Tuple, List
 
 logger = logging.getLogger("lights_logger")
 
@@ -221,7 +221,7 @@ class Lights:
         logger.debug(f"Wheel color obtained: {color}.")
         return color
 
-    def clear(self, led_indices: Optional[list] = None, count: Optional[int] = None) -> None:
+    def clear(self, led_indices: Optional[List[int]] = None, count: Optional[int] = None) -> None:
         """
         Clear specified LEDs, turning them off. If no indices are provided, clear all LEDs.
         If count is provided, clear the specified number of LEDs from the start.

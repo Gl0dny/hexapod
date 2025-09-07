@@ -61,7 +61,7 @@ class ManualHexapodController(threading.Thread, ABC):
     VOICE_CONTROL_MODE = "voice_control"
     DEFAULT_MODE = BODY_CONTROL_MODE
     
-    def __init__(self, task_interface: 'TaskInterface', voice_control: Optional['VoiceControl'] = None, shutdown_callback: Optional[callable] = None):
+    def __init__(self, task_interface: TaskInterface, voice_control: Optional[VoiceControl] = None, shutdown_callback: Optional[callable] = None):
         """Initialize the hexapod controller."""
         super().__init__(daemon=True)
         rename_thread(self, "ManualHexapodController")

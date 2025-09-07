@@ -33,7 +33,7 @@ import time
 import threading
 
 if TYPE_CHECKING:
-    from typing import Optional
+    from typing import Optional, List, Tuple
 
 logger = logging.getLogger("maestro_logger")
 
@@ -269,7 +269,7 @@ class MaestroUART(object):
         logger.debug(f"Target for channel {channel} set to {target}.")
         logger.debug(f"Target for channel {channel} set to {target}.")
 
-    def set_multiple_targets(self, targets: list[tuple[int, int]]) -> None:
+    def set_multiple_targets(self, targets: List[Tuple[int, int]]) -> None:
         """
         This command simultaneously sets the targets for a contiguous block of channels.
         **Note:** Targets must be provided in sequential order by channel number.

@@ -12,24 +12,24 @@ import time
 from typing import Tuple, Optional
 
 class ButtonHandler:
-    def __init__(self, pin=26, long_press_time=3.0, external_control_paused_event=None):
-        self.pin = pin
-        self.is_running = True
+    def __init__(self, pin: int = 26, long_press_time: float = 3.0, external_control_paused_event: Optional[threading.Event] = None) -> None:
+        self.pin: int = pin
+        self.is_running: bool = True
         self.lock = threading.Lock()
-        self.long_press_time = long_press_time
-        self.press_start_time = 0
-        self.is_pressed = False
-        self.long_press_detected = False
-        self.external_control_paused_event = external_control_paused_event
+        self.long_press_time: float = long_press_time
+        self.press_start_time: float = 0
+        self.is_pressed: bool = False
+        self.long_press_detected: bool = False
+        self.external_control_paused_event: Optional[threading.Event] = external_control_paused_event
         
         # Setup GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         
-    def get_state(self):
+    def get_state(self) -> bool:
         return not GPIO.input(self.pin)  # Returns True when button is pressed
         
-    def toggle_state(self):
+    def toggle_state(self) -> bool:
         with self.lock:
             self.is_running = not self.is_running
             return self.is_running
@@ -73,5 +73,5 @@ class ButtonHandler:
         
         return None, self.is_running
             
-    def cleanup(self):
+    def cleanup(self) -> None:
         GPIO.cleanup(self.pin) 

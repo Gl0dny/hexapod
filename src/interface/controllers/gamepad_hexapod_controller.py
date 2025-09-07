@@ -52,7 +52,7 @@ except ImportError:
 if TYPE_CHECKING:
     from typing import Optional
     from kws import VoiceControl
-    from task_interfcae import TaskInterface
+    from task_interface import TaskInterface
 
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""
@@ -114,7 +114,7 @@ class GamepadHexapodController(ManualHexapodController):
 
     def __init__(
             self, 
-            task_interface: 'TaskInterface',
+            task_interface: TaskInterface,
             voice_control: Optional['VoiceControl'] = None,
             input_mapping_type: 'GamepadHexapodController.InputMappingType' = None,
             led_controller_type: 'GamepadHexapodController.LEDControllerType' = None,

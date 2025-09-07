@@ -14,6 +14,7 @@ logger = logging.getLogger("gait_generator_logger")
 
 if TYPE_CHECKING:
     from robot import Hexapod
+    from typing import Union
 
 class GaitGenerator:
     """
@@ -34,16 +35,16 @@ class GaitGenerator:
             stop_event (threading.Event, optional): Event to signal stopping the gait
         """
         self.hexapod = hexapod
-        self.is_running = False
-        self.thread = None
+        self.is_running: bool = False
+        self.thread: Optional[threading.Thread] = None
         self.current_state: Optional[GaitState] = None
         self.current_gait: Optional[BaseGait] = None
         self.stop_event: threading.Event = stop_event if stop_event is not None else threading.Event()
         self.cycle_count: int = 0
         self.total_phases_executed: int = 0
         self.stop_requested: bool = False
-        self.pending_direction = None
-        self.pending_rotation = None
+        self.pending_direction: Optional[Union[str, tuple]] = None
+        self.pending_rotation: Optional[float] = None
 
     def create_gait(self, gait_type: str = 'tripod', *,
                     step_radius: float = 30.0,
@@ -613,7 +614,7 @@ class GaitGenerator:
         
         logger.info(f"Started rotation execution for {angle_degrees}° rotation")
 
-    def return_legs_to_neutral(self):
+    def return_legs_to_neutral(self) -> None:
         """
         Move all legs to the neutral (0,0) position using gait-appropriate movement patterns.
         For tripod gait: moves legs in groups of 3 (like swing legs)
@@ -678,7 +679,7 @@ class GaitGenerator:
         
         logger.info("All legs returned to neutral position.")
 
-    def queue_direction(self, direction, rotation=0.0):
+    def queue_direction(self, direction: Union[str, tuple], rotation: float = 0.0) -> None:
         """
         Queue a new direction and/or rotation to be applied after the current cycle and a return to neutral.
         This should be called by the controller/gamepad instead of calling BaseGait.set_direction directly.
@@ -712,4 +713,4 @@ class GaitGenerator:
         Returns:
             bool: True if the gait generator is running, False otherwise
         """
-        return self.is_running and self.thread is not None and self.thread.is_alive()
+            return self.is_running and self.thread is not None and self.thread.is_alive()

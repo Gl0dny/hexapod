@@ -15,7 +15,7 @@ from gait_generator import GaitGenerator
 from utils import map_range, homogeneous_transformation_matrix
 
 if TYPE_CHECKING:
-    from typing import Optional, List, Tuple, Dict, Union, Callable
+    from typing import Optional, List, Tuple, Dict, Union, Callable, Any
 
 logger = logging.getLogger("robot_logger")
 
@@ -79,8 +79,8 @@ class Hexapod:
         self.hexagon_side_length: float = config['hexagon_side_length']
         
         # Initialize hexagon angles
-        self._compute_hexagon_angles: Callable[[], List[int]] = lambda: [i * 60 for i in range(6)]
-        self.leg_angles: List[int] = np.radians(self._compute_hexagon_angles()).tolist()
+        self._compute_hexagon_angles: Callable[[], List[float]] = lambda: [i * 60 for i in range(6)]
+        self.leg_angles: List[float] = np.radians(self._compute_hexagon_angles()).tolist()
 
         self.controller: MaestroUART = MaestroUART(config['controller']['port'], config['controller']['baudrate'])
         
@@ -95,15 +95,15 @@ class Hexapod:
         # This is a percentage value (1-100) that gets converted to Maestro range (1-255) when used
         self.accel: int = config['accel']
 
-        self.imu = Imu()
+        self.imu: Imu = Imu()
 
         coxa_params: Dict[str, Union[float, bool]] = config['coxa_params']
         femur_params: Dict[str, Union[float, bool]] = config['femur_params']
         tibia_params: Dict[str, Union[float, bool]] = config['tibia_params']
 
-        self.coxa_channel_map = config['coxa_channel_map']
-        self.femur_channel_map = config['femur_channel_map']
-        self.tibia_channel_map = config['tibia_channel_map']
+        self.coxa_channel_map: List[int] = config['coxa_channel_map']
+        self.femur_channel_map: List[int] = config['femur_channel_map']
+        self.tibia_channel_map: List[int] = config['tibia_channel_map']
 
         self.end_effector_offset: Tuple[float, float, float] = tuple(config['end_effector_offset'])
 
@@ -123,7 +123,8 @@ class Hexapod:
         self.femur_params: Dict[str, Union[float, bool]] = femur_params
         self.tibia_params: Dict[str, Union[float, bool]] = tibia_params
 
-        self.end_effector_radius = self.hexagon_side_length + self.coxa_params['length'] + self.femur_params['length'] # For regular hexagon, side length = radius ; Tibia points downward, Coxa and Femur are horizontal in initial position
+        # For regular hexagon, side length = radius ; Tibia points downward, Coxa and Femur are horizontal in initial position
+        self.end_effector_radius: float = self.hexagon_side_length + self.coxa_params['length'] + self.femur_params['length']
 
         self.calibration: Calibration = Calibration(self, calibration_data_path=calibration_data_path)
         self.calibration.load_calibration()
@@ -139,13 +140,13 @@ class Hexapod:
         }
 
         # Load global gait parameters
-        self.gait_params = config.get('gait', {})
+        self.gait_params: Dict[str, Any] = config.get('gait', {})
 
         # Create deep copies to avoid modifying the original predefined positions
         self.current_leg_angles: List[Tuple[float, float, float]] = [tuple(pos) for pos in self.predefined_angle_positions['low_profile']]
         self.current_leg_positions: List[Tuple[float, float, float]] = [tuple(pos) for pos in self.predefined_positions['low_profile']]
 
-        self.gait_generator = GaitGenerator(self)
+        self.gait_generator: GaitGenerator = GaitGenerator(self)
 
         self.set_all_servos_speed(self.speed)
         self.set_all_servos_accel(self.accel)
@@ -341,7 +342,7 @@ class Hexapod:
         roll: float = 0.0,
         pitch: float = 0.0, 
         yaw: float = 0.0
-        ):
+        ) -> None:
         """
         Compute body inverse kinematics using provided translation and rotation parameters,
         transform the computed deltas to leg frames, and move all legs to new target positions.
@@ -680,4 +681,3 @@ class Hexapod:
                 deltas = np.round(leg_frame_deltas, 2)
                 logger.debug(f"Computed local body:leg frame IK deltas: {deltas}")
             
-            return deltas
