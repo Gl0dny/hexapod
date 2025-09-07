@@ -713,4 +713,4 @@ class GaitGenerator:
         Returns:
             bool: True if the gait generator is running, False otherwise
         """
-            return self.is_running and self.thread is not None and self.thread.is_alive()
+        return self.is_running and self.thread is not None and self.thread.is_alive()
