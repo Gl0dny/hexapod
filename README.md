@@ -33,20 +33,46 @@ This video demonstrates an autonomous hexapod robot performing advanced auditory
 
 This represents a complete autonomous control system where the hexapod can navigate and interact based purely on auditory cues, enabling sophisticated human-robot interaction through voice commands and environmental sound awareness.
 
+## Voice Control System
+
+The hexapod operates through a sophisticated voice control system that processes commands through distinct phases, each with specific functionality and visual feedback:
+
+### System Phases
+
+#### 1. **Wake Word Detection Mode**
+![Wake Word Mode](assets/gifs/wake_word_mode.gif)
+*"Listening for 'Hexapod'..."* - System continuously monitors audio input for the wake word using Picovoice Porcupine engine. LEDs show pulsing animation (blue base with green pulse) during passive listening state.
+
+#### 2. **Intent Recognition Mode**
+![Intent Mode](assets/gifs/intent_mode.gif)
+*"What would you like me to do?"* - After wake word detection, system switches to active command listening using Picovoice Rhino engine. LEDs show alternating light rotating pattern while waiting for voice command.
+
+#### 3. **Command Processing Mode**
+![Processing Mode](assets/gifs/processing_mode.gif)
+*"Processing your request..."* - System analyzes the recognized intent, extracts parameters, and determines the appropriate action. LED animation shows lime green opposite rotation pattern during processing.
+
+#### 4. **Task Execution Mode**
+![Execution Mode](assets/gifs/execution_mode.gif)
+*"Executing command..."* - System dispatches the command to the appropriate subsystem (movement, lights, audio, or system control). LED feedback varies by command type and execution progress.
+
+#### 5. **Error Handling Mode**
+![Error Mode](assets/gifs/error_mode.gif)
+*"Command not recognized"* - System handles unrecognized commands, invalid parameters, or execution failures. LED indicators show pulsing animation (red base with orange pulse) for error states.
+
 ## Usage Examples
 
 ### Movement Commands
 
 #### Walk
-![Walk](gifs/walk.gif)
+![Walk](assets/gifs/walk.gif)
 *"Hexapod, walk [direction] [for X seconds/minutes/cycles]" - Omnidirectional movement in 8 directions: forward, backward, left, right, forward left, forward right, backward left, backward right. Supports time-based (seconds/minutes) or cycle-based movement*
 
 #### Turn
-![Turn](gifs/turn.gif)
+![Turn](assets/gifs/turn.gif)
 *"Hexapod, turn [clockwise/counterclockwise] [for X seconds/minutes/cycles]" - Smooth rotation in both directions using inverse kinematics. Supports time-based (seconds/minutes) or cycle-based rotation*
 
 #### March in Place
-![March in Place](gifs/march_in_place.gif)
+![March in Place](assets/gifs/march_in_place.gif)
 *"Hexapod, march in place [for X seconds/minutes]" - In-place marching demonstration with optional duration control*
 
 #### Idle Stance
@@ -55,67 +81,67 @@ This represents a complete autonomous control system where the hexapod can navig
 ### Entertainment Commands
 
 #### Sit Up
-![Sit Up](gifs/sit_up.gif)
+![Sit Up](assets/gifs/sit_up.gif)
 *"Hexapod, make some sit ups" - Dynamic sit-up exercise routine*
 
 #### Dance
-![Dance](gifs/dance.gif)
+![Dance](assets/gifs/dance.gif)
 *"Hexapod, dance" - Coordinated dance routine with multiple movements*
 
 #### Say Hello
-![Say Hello](gifs/say_hello.gif)
+![Say Hello](assets/gifs/say_hello.gif)
 *"Hexapod, say hello" - Friendly greeting gesture with leg movement*
 
 #### Show Off
-![Show Off](gifs/show_off.gif)
+![Show Off](assets/gifs/show_off.gif)
 *"Hexapod, show off" - Demonstration routine showcasing capabilities*
 
 #### Helix
-![Helix](gifs/helix.gif)
+![Helix](assets/gifs/helix.gif)
 *"Hexapod, helix" - Complex helical movement pattern*
 
 ### Light Commands
 
 #### Police Lights
-![Police Lights](gifs/police_lights.gif)
+![Police Lights](assets/gifs/police_lights.gif)
 *"Hexapod, activate police mode" - Police-style flashing lights*
 
 #### Rainbow Lights
-![Rainbow Lights](gifs/rainbow_lights.gif)
+![Rainbow Lights](assets/gifs/rainbow_lights.gif)
 *"Hexapod, activate rainbow" - Rainbow color sequence*
 
 #### Change Color
-![Change Color](gifs/change_color.gif)
+![Change Color](assets/gifs/change_color.gif)
 *"Hexapod, change color to [blue/red/green/etc.]" - Change LED color to specified color from 13 available colors*
 
 #### Turn Lights On/Off
-![Turn Lights](gifs/turn_lights.gif)
+![Turn Lights](assets/gifs/turn_lights.gif)
 *"Hexapod, turn lights [on/off]" - Control LED power state*
 
 #### Set Brightness
-![Set Brightness](gifs/set_brightness.gif)
+![Set Brightness](assets/gifs/set_brightness.gif)
 *"Hexapod, set brightness to X%" - Adjust LED brightness from 0-100%*
 
 ### Audio Commands
 
 #### Sound Source Following
-![Sound Following](gifs/sound_following.gif)
+![Sound Following](assets/gifs/sound_following.gif)
 *"Hexapod, follow me" - Audio-based target following using ODAS*
 
 #### Sound Source Localization
-![Sound Localization](gifs/sound_localization.gif)
+![Sound Localization](assets/gifs/sound_localization.gif)
 *"Hexapod, run sound source localization" - Analyze environment for sound sources*
 
 #### Stream ODAS Audio
 *"Hexapod, stream ODAS audio" - Stream processed audio from ODAS system to remote host*
 
 #### Start/Stop Recording
-*"Hexapod, start recording [for X seconds/minutes]" - Begin audio recording with optional duration control*
+*"Hexapod, start recording [for X seconds/minutes]" / "Hexapod, stop recording" - Begin/end audio recording with optional duration control*
 
 ### System Commands
 
 #### Calibrate
-![Calibrate](gifs/calibrate.gif)
+![Calibrate](assets/gifs/calibrate.gif)
 *"Hexapod, calibrate servos" - Servo calibration and position setup*
 
 #### System Status
@@ -125,11 +151,11 @@ This represents a complete autonomous control system where the hexapod can navig
 *"Hexapod, show commands" - Display list of available commands*
 
 #### Wake Up
-![Wake Up](gifs/wake_up.gif)
+![Wake Up](assets/gifs/wake_up.gif)
 *"Hexapod, wake up" - Activate the system from sleep mode*
 
 #### Sleep
-![Sleep](gifs/sleep.gif)
+![Sleep](assets/gifs/sleep.gif)
 *"Hexapod, go to sleep" - Put system into sleep mode*
 
 #### Stop
@@ -144,13 +170,17 @@ This represents a complete autonomous control system where the hexapod can navig
 #### Set Acceleration
 *"Hexapod, set acceleration to X%" - Adjust movement acceleration from 0-100%*
 
+#### Shut Down
+![Shut Down](assets/gifs/shut_down.gif)
+*"Hexapod, shut down" - Safely power down the entire system with countdown timer and LED indication*
+
 ## Key Features
 
 ### Advanced Voice Control
 - Custom wake word detection ("Hexapod")
 - Natural language command processing
 - Multi-intent handling for complex command processing
-- Context-aware command interpretation
+   - Context-aware command interpretation
 - Support for movement, gait control, and system commands
 
 ### Spatial Audio Processing
@@ -164,7 +194,7 @@ This represents a complete autonomous control system where the hexapod can navig
 - Automatic audio source separation and tracking
 
 ### Intelligent Movement
-- 18-degree-of-freedom movement (3 DOF per leg)
+   - 18-degree-of-freedom movement (3 DOF per leg)
 - Multiple gait patterns (tripod, wave, custom)
 - IMU-based stability control
 - Circle-based targeting for direction-independent movement
