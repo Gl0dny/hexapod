@@ -4,7 +4,7 @@ import logging
 import threading
 import abc
 
-from utils import rename_thread
+from hexapod.utils import rename_thread
 
 if TYPE_CHECKING:
     from typing import Optional, Callable

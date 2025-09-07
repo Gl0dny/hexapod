@@ -55,10 +55,10 @@ The ODAS DoA/SSL Processor is a Python implementation that processes and relays 
 ### Example Commands
 ```bash
 # Local mode with debug output
-python src/odas/odas_doa_ssl_processor.py --debug
+python hexapod/odas/odas_doa_ssl_processor.py --debug
 
 # Remote mode with GUI forwarding
-python src/odas/odas_doa_ssl_processor.py --mode remote --forward-to-gui
+python hexapod/odas/odas_doa_ssl_processor.py --mode remote --forward-to-gui
 ```
 
 ## Data Processing

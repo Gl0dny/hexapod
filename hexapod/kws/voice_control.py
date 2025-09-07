@@ -14,7 +14,7 @@ from picovoice import Picovoice
 from kws import IntentDispatcher
 from task_interface import TaskInterface
 from lights import ColorRGB
-from utils import rename_thread
+from hexapod.utils import rename_thread
 from .recorder import Recorder
 
 if TYPE_CHECKING:

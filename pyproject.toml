@@ -40,12 +40,6 @@ classifiers = [
     "Topic :: System :: Hardware :: Hardware Drivers",
 ]
 
-[project.urls]
-Homepage = "https://github.com/gl0dny/hexapod"
-Repository = "https://github.com/gl0dny/hexapod"
-Documentation = "https://github.com/gl0dny/hexapod/blob/main/README.md"
-"Bug Tracker" = "https://github.com/gl0dny/hexapod/issues"
-
 dependencies = [
     "bcrypt==4.3.0",
     "cffi==1.17.1",
@@ -65,11 +59,18 @@ dependencies = [
     "PyNaCl==1.5.0",
     "pyserial==3.5",
     "PyYAML==6.0.2",
+    "python-dotenv==1.0.0",
     "RPi.GPIO==0.7.1",
     "setuptools==80.9.0",
     "smbus2==0.5.0",
     "spidev==3.7",
 ]
+
+[project.urls]
+Homepage = "https://github.com/gl0dny/hexapod"
+Repository = "https://github.com/gl0dny/hexapod"
+Documentation = "https://github.com/gl0dny/hexapod/blob/main/README.md"
+"Bug Tracker" = "https://github.com/gl0dny/hexapod/issues"
 
 [project.optional-dependencies]
 dev = [

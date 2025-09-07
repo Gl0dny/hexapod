@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 import logging
 from functools import wraps
 
-from utils import parse_percentage
+from hexapod.utils import parse_percentage
 
 if TYPE_CHECKING:
     from typing import Dict, Callable, Any

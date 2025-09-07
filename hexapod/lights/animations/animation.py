@@ -2,7 +2,7 @@ import logging
 import threading
 import abc
 from lights import Lights
-from utils import rename_thread
+from hexapod.utils import rename_thread
 
 logger = logging.getLogger("lights_logger")
 

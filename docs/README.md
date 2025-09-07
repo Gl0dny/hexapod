@@ -21,7 +21,7 @@ hexapod/
 ├── firmware/                                 # Firmware files and configurations
 ├── lib/                                      # External submodules
 ├── logs/                                     # Log files
-├── src/                                      # Main source code directory
+├── hexapod/                                  # Main Python package directory
 │   ├── gait_generator/                       # Walking pattern generation
 │   │   ├── gait_generator.py                 # Main gait coordination
 │   │   ├── base_gait.py                      # Base gait implementation
@@ -83,15 +83,15 @@ hexapod/
 - **`docs/`** - Comprehensive technical documentation
 - **`firmware/`** - Hardware drivers and firmware files
 - **`lib/`** - External submodules
-- **`src/gait_generator/`** - Walking pattern generation and execution
-- **`src/interface/`** - User interfaces (gamepad, console, controller LED feedback)
-- **`src/kws/`** - Voice recognition and keyword spotting
-- **`src/lights/`** - LED strip control and visual feedback animations
-- **`src/maestro/`** - Pololu Maestro servo controller communication
-- **`src/odas/`** - Spatial audio processing and sound source localization
-- **`src/robot/`** - Core movement control, kinematics, and servo management
-- **`src/task_interface/`** - Central task coordination and voice control management
-- **`src/utils/`** - Shared utilities and helper functions
+- **`hexapod/gait_generator/`** - Walking pattern generation and execution
+- **`hexapod/interface/`** - User interfaces (gamepad, console, controller LED feedback)
+- **`hexapod/kws/`** - Voice recognition and keyword spotting
+- **`hexapod/lights/`** - LED strip control and visual feedback animations
+- **`hexapod/maestro/`** - Pololu Maestro servo controller communication
+- **`hexapod/odas/`** - Spatial audio processing and sound source localization
+- **`hexapod/robot/`** - Core movement control, kinematics, and servo management
+- **`hexapod/task_interface/`** - Central task coordination and voice control management
+- **`hexapod/utils/`** - Shared utilities and helper functions
 - **`tests/`** - Comprehensive test suite for all components
 
 ## Complete Documentation Index

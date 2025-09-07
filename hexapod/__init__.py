@@ -8,6 +8,6 @@ __version__ = "1.0.0"
 __author__ = "Hexapod Development Team"
 __email__ = ""
 
-from .main import main
+from hexapod.main import main
 
 __all__ = ["main"]

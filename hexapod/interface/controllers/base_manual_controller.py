@@ -21,7 +21,7 @@ if str(SRC_DIR) not in sys.path:
 
 from robot import PredefinedPosition
 from gait_generator import BaseGait, TripodGait
-from utils import rename_thread
+from hexapod.utils import rename_thread
 from lights import ColorRGB
 
 if TYPE_CHECKING:

@@ -1,7 +1,7 @@
-from .imu import Imu
+from hexapod.robot.sensors.imu import Imu
 
 try:
-    from .button_handler import ButtonHandler
+    from hexapod.robot.sensors.button_handler import ButtonHandler
 except ImportError:
     # ButtonHandler is only available on Raspberry Pi
     ButtonHandler = None

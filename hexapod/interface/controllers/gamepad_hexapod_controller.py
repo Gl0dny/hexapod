@@ -38,7 +38,7 @@ from interface.controllers.base_manual_controller import ManualHexapodController
 from interface.input_mappings import InputMapping, DualSenseUSBMapping
 from interface.controllers.gamepad_led_controllers.gamepad_led_controller import BaseGamepadLEDController, GamepadLEDColor
 from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
-from utils import rename_thread
+from hexapod.utils import rename_thread
 
 logger = logging.getLogger("interface_logger")
 

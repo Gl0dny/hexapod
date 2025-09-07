@@ -72,7 +72,7 @@ flowchart LR
 
 ## Core Components
 
-### 1. **Hexapod Class** (`src/robot/hexapod.py`)
+### 1. **Hexapod Class** (`hexapod/robot/hexapod.py`)
 
 **Role**: Main robot controller and movement coordinator
 - Manages all 18 servos across 6 legs
@@ -87,7 +87,7 @@ flowchart LR
 - **Safety Systems**: Emergency stop, position validation, angle limits
 - **Configuration**: YAML-based configuration for geometry and parameters
 
-### 2. **Leg Class** (`src/robot/leg.py`)
+### 2. **Leg Class** (`hexapod/robot/leg.py`)
 
 **Role**: Individual leg control and kinematics
 - Manages 3 servos per leg (coxa, femur, tibia)
@@ -101,7 +101,7 @@ flowchart LR
 - **Angle Validation**: Hardware and software joint limits
 - **Position Control**: Precise foot positioning in 3D space
 
-### 3. **Joint Class** (`src/robot/joint.py`)
+### 3. **Joint Class** (`hexapod/robot/joint.py`)
 
 **Role**: Individual servo control and management
 - Controls servo position, speed, and acceleration
@@ -115,7 +115,7 @@ flowchart LR
 - **Safety Management**: Emergency stop and position limits
 - **Parameter Control**: Speed and acceleration management
 
-### 4. **Gait Generator** (`src/gait_generator/gait_generator.py`)
+### 4. **Gait Generator** (`hexapod/gait_generator/gait_generator.py`)
 
 **Role**: Gait pattern execution and coordination
 - Manages gait state machine and execution
@@ -131,7 +131,7 @@ flowchart LR
 
 ## Gait System
 
-### **Tripod Gait** (`src/gait_generator/tripod_gait.py`)
+### **Tripod Gait** (`hexapod/gait_generator/tripod_gait.py`)
 
 **Pattern**: 3+3 leg groups alternating movement
 - **Group A**: Legs 0, 2, 4 (Right, Left Front, Left Back)
@@ -145,7 +145,7 @@ flowchart LR
 - **Stability**: Maintains support polygon throughout movement
 - **Efficiency**: Optimal balance of speed and stability
 
-### **Wave Gait** (`src/gait_generator/wave_gait.py`)
+### **Wave Gait** (`hexapod/gait_generator/wave_gait.py`)
 
 **Pattern**: Sequential leg movement (one at a time)
 - **Sequence**: 0 → 1 → 2 → 3 → 4 → 5 → 0 → ...
@@ -158,7 +158,7 @@ flowchart LR
 - **Precise Control**: Ideal for delicate operations
 - **Slow but Stable**: Trade speed for maximum stability
 
-### **Base Gait System** (`src/gait_generator/base_gait.py`)
+### **Base Gait System** (`hexapod/gait_generator/base_gait.py`)
 
 **Role**: Abstract base class for all gait patterns
 - **Circle-based Targeting**: Direction-independent movement

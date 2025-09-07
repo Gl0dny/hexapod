@@ -1,1 +1,1 @@
-from .maestro_uart import MaestroUART
+from hexapod.maestro.maestro_uart import MaestroUART

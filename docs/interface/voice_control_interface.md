@@ -29,7 +29,7 @@ The voice control interface provides hands-free control of the hexapod robot thr
 
 ## Voice Control System
 
-### **VoiceControl Class** (`src/kws/voice_control.py`)
+### **VoiceControl Class** (`hexapod/kws/voice_control.py`)
 
 **Role**: Main voice control system implementation
 - **Threading**: Runs as daemon thread for concurrent operation
@@ -43,7 +43,7 @@ The voice control interface provides hands-free control of the hexapod robot thr
 - **Intent Recognition**: Rhino for command understanding
 - **Audio Recorder**: Built-in recording capabilities
 
-### **Intent Dispatcher** (`src/kws/intent_dispatcher.py`)
+### **Intent Dispatcher** (`hexapod/kws/intent_dispatcher.py`)
 
 **Role**: Maps voice intents to hexapod actions
 - **Intent Mapping**: 25+ voice commands mapped to actions
@@ -86,7 +86,7 @@ The voice control interface provides hands-free control of the hexapod robot thr
 
 ## ODAS Integration
 
-### **ODAS Server** (`src/odas/odas_doa_ssl_processor.py`)
+### **ODAS Server** (`hexapod/odas/odas_doa_ssl_processor.py`)
 
 **Role**: Manages external ODAS process for spatial audio
 - **Process Management**: Starts/stops ODAS server
@@ -94,7 +94,7 @@ The voice control interface provides hands-free control of the hexapod robot thr
 - **Data Processing**: JSON data parsing and visualization
 - **LED Control**: Visual feedback through hexapod LEDs
 
-### **Audio Streaming** (`src/odas/streaming_odas_audio_player.py`)
+### **Audio Streaming** (`hexapod/odas/streaming_odas_audio_player.py`)
 
 **Role**: Remote audio streaming and playback
 - **SSH/SFTP**: Connects to remote ODAS machine
@@ -102,7 +102,7 @@ The voice control interface provides hands-free control of the hexapod robot thr
 - **Audio Conversion**: Uses `sox` for raw-to-WAV conversion
 - **Real-time Playback**: `sounddevice` for audio output
 
-### **Audio Processing** (`src/odas/odas_audio_processor.py`)
+### **Audio Processing** (`hexapod/odas/odas_audio_processor.py`)
 
 **Role**: ODAS audio format processing
 - **Sample Rate Conversion**: 44.1 kHz → 16 kHz

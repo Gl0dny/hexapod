@@ -72,7 +72,7 @@ flowchart LR
 
 ## Core Components
 
-### **ODASDoASSLProcessor Class** (`src/odas/odas_doa_ssl_processor.py`)
+### **ODASDoASSLProcessor Class** (`hexapod/odas/odas_doa_ssl_processor.py`)
 
 **Role**: Main processor for sound source localization and direction of arrival detection
 - **Sound Source Tracking**: Real-time tracking of up to 4 active sound sources
@@ -93,7 +93,7 @@ flowchart LR
 - **GUI Host**: 192.168.0.102 (configurable)
 - **Debug Mode**: Real-time source tracking display
 
-### **StreamingODASAudioPlayer Class** (`src/odas/streaming_odas_audio_player.py`)
+### **StreamingODASAudioPlayer Class** (`hexapod/odas/streaming_odas_audio_player.py`)
 
 **Role**: Remote audio streaming and real-time playback
 - **Remote Connection**: SSH-based connection to remote ODAS machine
@@ -115,7 +115,7 @@ flowchart LR
 - **Buffer Size**: 1024 samples
 - **Check Interval**: 0.5 seconds
 
-### **ODASAudioProcessor Class** (`src/odas/odas_audio_processor.py`)
+### **ODASAudioProcessor Class** (`hexapod/odas/odas_audio_processor.py`)
 
 **Role**: Audio format conversion and Picovoice integration
 - **Format Conversion**: ODAS raw audio to Picovoice-compatible format
@@ -161,7 +161,7 @@ flowchart LR
 
 ### **Configuration Management**
 
-**ODAS Configuration** (`src/odas/config/local_odas.cfg`):
+**ODAS Configuration** (`hexapod/odas/config/local_odas.cfg`):
 - **Microphone Array**: 6-microphone ReSpeaker configuration
 - **Sample Rate**: 16000 Hz input, 44100 Hz output
 - **SSL Parameters**: Sound source localization settings

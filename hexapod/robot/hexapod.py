@@ -9,10 +9,10 @@ from pathlib import Path
 import yaml
 import numpy as np
 
-from maestro import MaestroUART
-from robot import Leg, Calibration, Imu
-from gait_generator import GaitGenerator
-from utils import map_range, homogeneous_transformation_matrix
+from hexapod.maestro import MaestroUART
+from . import Leg, Calibration, Imu
+from hexapod.gait_generator import GaitGenerator
+from hexapod.utils import map_range, homogeneous_transformation_matrix
 
 if TYPE_CHECKING:
     from typing import Optional, List, Tuple, Dict, Union, Callable, Any

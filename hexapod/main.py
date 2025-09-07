@@ -8,12 +8,12 @@ import time
 import threading
 from pathlib import Path
 
-from .config import Config, create_config_parser
-from .kws import VoiceControl
-from .task_interface import TaskInterface
-from .robot import PredefinedPosition
-from .interface import setup_logging, clean_logs
-from .interface import GamepadHexapodController
+from hexapod.config import Config, create_config_parser
+from hexapod.kws import VoiceControl
+from hexapod.task_interface import TaskInterface
+from hexapod.robot import PredefinedPosition
+from hexapod.interface import setup_logging, clean_logs
+from hexapod.interface import GamepadHexapodController
 
 if TYPE_CHECKING:
     from typing import Optional

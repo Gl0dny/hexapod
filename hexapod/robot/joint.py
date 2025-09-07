@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging
 
-from utils import map_range
+from hexapod.utils import map_range
 
 if TYPE_CHECKING:
     from typing import Optional

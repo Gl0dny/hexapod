@@ -6,7 +6,7 @@ import threading
 import time
 from pathlib import Path
 
-from utils import rename_thread
+from hexapod.utils import rename_thread
 from robot import Joint
 
 if TYPE_CHECKING:

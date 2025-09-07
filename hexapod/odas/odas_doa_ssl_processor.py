@@ -31,7 +31,7 @@ if __name__ == "__main__":
         sys.path.append(str(src_path))
 
 from lights import LightsInteractionHandler
-from utils import rename_thread
+from hexapod.utils import rename_thread
 
 logger = logging.getLogger("odas_logger")
 

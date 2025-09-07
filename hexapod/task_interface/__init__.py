@@ -1,4 +1,4 @@
-from .task_interface import TaskInterface
-from .status_reporter import StatusReporter
+from hexapod.task_interface import TaskInterface
+from hexapod.task_interface.status_reporter import StatusReporter
 
 __all__ = ['TaskInterface', 'StatusReporter'] 

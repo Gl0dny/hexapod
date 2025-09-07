@@ -5,7 +5,7 @@ import threading
 import time
 import math
 
-from utils import rename_thread, Vector3D
+from hexapod.utils import rename_thread, Vector3D
 from .base_gait import BaseGait, GaitPhase, GaitState
 from .tripod_gait import TripodGait
 from .wave_gait import WaveGait

@@ -12,7 +12,7 @@ import math
 from typing import Optional, Tuple, Dict, Any
 from enum import Enum
 from abc import ABC, abstractmethod
-from utils import rename_thread
+from hexapod.utils import rename_thread
 
 logger = logging.getLogger("interface_logger")
 

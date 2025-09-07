@@ -12,7 +12,7 @@ from lights import LightsInteractionHandler, ColorRGB
 from robot import Hexapod, ButtonHandler, PredefinedPosition
 import task_interface.tasks
 from interface import NonBlockingConsoleInputHandler
-from utils import rename_thread
+from hexapod.utils import rename_thread
 from .status_reporter import StatusReporter
 
 if TYPE_CHECKING:
