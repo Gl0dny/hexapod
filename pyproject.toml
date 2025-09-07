@@ -1,0 +1,134 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hexapod-voice-control"
+version = "1.0.0"
+description = "Autonomous hexapod robot control system with voice commands and sound source localization"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Krystian Głodek", email = "krystian.glodek1717@gmail.com"},
+]
+maintainers = [
+    {name = "Krystian Głodek", email = "krystian.glodek1717@gmail.com"},
+]
+keywords = [
+    "robotics", "hexapod", "voice-control", "sound-localization", 
+    "picovoice", "odas", "audio-processing", "beamforming", 
+    "directional-audio", "keyword-spotting", "speech-recognition",
+    "autonomous-robots", "auditory-scene-analysis", "doa-estimation"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Robotics",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+]
+
+[project.urls]
+Homepage = "https://github.com/gl0dny/hexapod"
+Repository = "https://github.com/gl0dny/hexapod"
+Documentation = "https://github.com/gl0dny/hexapod/blob/main/README.md"
+"Bug Tracker" = "https://github.com/gl0dny/hexapod/issues"
+
+dependencies = [
+    "bcrypt==4.3.0",
+    "cffi==1.17.1",
+    "colorzero==2.0",
+    "cryptography==45.0.5",
+    "gpiozero==2.0.1",
+    "icm20948==1.0.0",
+    "numpy==2.3.1",
+    "paramiko==3.5.1",
+    "picovoice==3.0.4",
+    "pvporcupine==3.0.3",
+    "pvrhino==3.0.3",
+    "pyaml==25.7.0",
+    "PyAudio==0.2.14",
+    "pycparser==2.22",
+    "pygame==2.6.1",
+    "PyNaCl==1.5.0",
+    "pyserial==3.5",
+    "PyYAML==6.0.2",
+    "RPi.GPIO==0.7.1",
+    "setuptools==80.9.0",
+    "smbus2==0.5.0",
+    "spidev==3.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black",
+    "flake8",
+    "mypy",
+]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "myst-parser",
+]
+
+[project.scripts]
+hexapod = "hexapod.main:main"
+
+[tool.setuptools.packages.find]
+
+[tool.setuptools.package-data]
+hexapod = [
+    "kws/porcupine/*.ppn",
+    "kws/rhino/*.rhn", 
+    "kws/rhino/*.yml",
+    "interface/logging/config/*.yaml",
+    "robot/config/*.yaml",
+    "robot/config/*.json",
+    "odas/config/*.cfg",
+]
+
+[tool.setuptools.data-files]
+"share/hexapod" = ["README.md", "requirements.txt"]
+"share/hexapod/config" = [".env.example"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.setuptools]
+zip-safe = false
+platforms = ["Linux"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

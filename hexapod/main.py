@@ -4,21 +4,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging.config
 import sys
-import argparse
 import time
 import threading
 from pathlib import Path
 
-# Add src directory to Python path
-src_path = Path(__file__).resolve().parent / "src"
-if str(src_path) not in sys.path:
-    sys.path.append(str(src_path))
-
-from kws import VoiceControl
-from task_interface import TaskInterface
-from robot import PredefinedPosition
-from interface import setup_logging, clean_logs
-from interface import GamepadHexapodController
+from .config import Config, create_config_parser
+from .kws import VoiceControl
+from .task_interface import TaskInterface
+from .robot import PredefinedPosition
+from .interface import setup_logging, clean_logs
+from .interface import GamepadHexapodController
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -31,32 +26,6 @@ shutdown_event = threading.Event()
 def shutdown_callback():
     """Callback function to trigger program shutdown."""
     shutdown_event.set()
-
-def parse_arguments() -> argparse.Namespace:
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Voice Control for Hexapod')
-    
-    # Required arguments
-    parser.add_argument('--access-key', type=str, required=True,
-                        help='Picovoice Access Key for authentication')
-    
-    # Optional arguments
-    parser.add_argument('--audio-device-index', type=int, default=-1,
-                        help='Index of the audio input device (default: autoselect)')
-    parser.add_argument('--log-dir', type=Path, default=Path('logs'),
-                        help='Directory to store logs')
-    parser.add_argument('--log-config-file', type=Path, default=Path('src/interface/logging/config/config.yaml'),
-                        help='Path to log configuration file')
-    parser.add_argument('--log-level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-                        help='Logging level (default: INFO)')
-    parser.add_argument('--clean', '-c', action='store_true',
-                        help='Clean all logs in the logs directory.')
-    parser.add_argument('--print-context', action='store_true',
-                        help='Print context information.')
-    
-
-    
-    return parser.parse_args()
 
 def handle_button_interactions(task_interface):
     """Handle button interactions for voice control mode."""
@@ -103,7 +72,7 @@ def shutdown_cleanup(voice_control, manual_controller, task_interface):
         logger.user_info(f"{thread.name}, {thread.is_alive()}")
     print("---")
 
-def create_application_components(args) -> tuple[TaskInterface, VoiceControl]:
+def create_application_components(config: Config, args) -> tuple[TaskInterface, VoiceControl]:
     """
     Factory function to create all application components with proper dependencies.
     
@@ -111,7 +80,8 @@ def create_application_components(args) -> tuple[TaskInterface, VoiceControl]:
     dependencies are correctly injected, eliminating the need for manual assignment.
     
     Args:
-        args: Command line arguments containing configuration
+        config: Configuration object with all settings
+        args: Command line arguments containing additional configuration
         
     Returns:
         tuple[TaskInterface, VoiceControl]: Properly configured task interface and voice control
@@ -119,22 +89,28 @@ def create_application_components(args) -> tuple[TaskInterface, VoiceControl]:
     if args.clean:
         clean_logs()
     
-    setup_logging(log_dir=args.log_dir, config_file=args.log_config_file, log_level=args.log_level)
+    setup_logging(
+        log_dir=config.get_log_dir(), 
+        config_file=args.log_config_file, 
+        log_level=config.get_log_level()
+    )
     
     logger.user_info("Hexapod application started")
-    logger.info(f"Logging level set to: {args.log_level}")
+    logger.info(f"Logging level set to: {config.get_log_level()}")
 
     task_interface = TaskInterface()
     
-    keyword_path = Path('src/kws/porcupine/hexapod_en_raspberry-pi_v3_0_0.ppn')
-    context_path = Path('src/kws/rhino/hexapod_en_raspberry-pi_v3_0_0.rhn')
+    # Get paths relative to the package
+    package_dir = Path(__file__).resolve().parent
+    keyword_path = package_dir / 'kws' / 'porcupine' / 'hexapod_en_raspberry-pi_v3_0_0.ppn'
+    context_path = package_dir / 'kws' / 'rhino' / 'hexapod_en_raspberry-pi_v3_0_0.rhn'
     
     voice_control = VoiceControl(
         keyword_path=keyword_path,
         context_path=context_path,
-        access_key=args.access_key,
+        access_key=config.get_picovoice_key(),
         task_interface=task_interface,
-        device_index=args.audio_device_index
+        device_index=config.get_audio_device_index()
     )
     
     task_interface.set_voice_control(voice_control)
@@ -147,8 +123,13 @@ def create_application_components(args) -> tuple[TaskInterface, VoiceControl]:
     logger.info("Application components created successfully with proper dependencies")
     return task_interface, voice_control
 
-def initialize_manual_controller(task_interface, voice_control) -> Optional[GamepadHexapodController]:
+def initialize_manual_controller(task_interface, voice_control, config: Config, args) -> Optional[GamepadHexapodController]:
     """Initialize manual controller and return it, or None if failed."""
+    # Check if manual control is disabled
+    if args.disable_manual_control or not config.is_manual_control_enabled():
+        logger.info("Manual control disabled, running in voice control mode only")
+        return None
+    
     try:
         # Ensure voice control is paused in manual mode
         task_interface.request_pause_voice_control()
@@ -205,16 +186,29 @@ def run_main_loop(voice_control, manual_controller, task_interface) -> None:
 
 def main() -> None:
     """Main entry point."""
-    args = parse_arguments()
+    parser = create_config_parser()
+    args = parser.parse_args()
+    
+    # Create configuration object
+    config = Config(config_file=args.config)
+    config.update_from_args(args)
+    
+    # Validate configuration
+    try:
+        config.validate()
+    except ValueError as e:
+        print(f"Configuration error: {e}")
+        print("\nFor help with configuration, run: hexapod --help")
+        sys.exit(1)
     
     # Create all application components with proper dependencies using factory
-    task_interface, voice_control = create_application_components(args)
+    task_interface, voice_control = create_application_components(config, args)
     
     # Start voice control
     voice_control.start()
     
     # Initialize manual controller
-    manual_controller = initialize_manual_controller(task_interface, voice_control)
+    manual_controller = initialize_manual_controller(task_interface, voice_control, config, args)
     
     # Run main loop
     run_main_loop(voice_control, manual_controller, task_interface)
