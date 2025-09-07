@@ -12,20 +12,14 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Add src directory to Python path
-project_root = Path(__file__).parent.parent.parent.parent
-src_path = str(project_root / "src")
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
-from robot import Hexapod
+from hexapod.robot import Hexapod
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--clean", action="store_true", help="Clean workspace CSV file before calculations.")
     args = parser.parse_args()
 
-    # Get the project root directory (parent of src)
+    # Get the project root directory
     project_root = Path(__file__).parent.parent.parent.parent
     data_dir = project_root / "data" / "visualization"
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -40,11 +34,11 @@ def main():
 
     try:
         # Initialize Hexapod instance with mocked serial and IMU
-        with patch('robot.hexapod.MaestroUART'), \
-             patch('robot.hexapod.Imu'):
+        with patch('hexapod.robot.hexapod.MaestroUART'), \
+             patch('hexapod.robot.sensors.imu.Imu'):
             hexapod = Hexapod(
-                config_path=project_root / "src" / "robot" / "config" / "hexapod_config.yaml",
-                calibration_data_path=project_root / "src" / "robot" / "config" / "calibration.json"
+                config_path=project_root / "hexapod" / "robot" / "config" / "hexapod_config.yaml",
+                calibration_data_path=project_root / "hexapod" / "robot" / "config" / "calibration.json"
             )
     except Exception as e:
         print(f"Error initializing Hexapod: {e}")

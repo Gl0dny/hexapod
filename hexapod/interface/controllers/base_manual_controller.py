@@ -19,15 +19,15 @@ SRC_DIR = (SCRIPT_DIR.parent.parent).resolve()
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from robot import PredefinedPosition
-from gait_generator import BaseGait, TripodGait
+from hexapod.robot import PredefinedPosition
+from hexapod.gait_generator import BaseGait, TripodGait
 from hexapod.utils import rename_thread
-from lights import ColorRGB
+from hexapod.lights import ColorRGB
 
 if TYPE_CHECKING:
     from typing import Optional
-    from kws import VoiceControl
-    from task_interface import TaskInterface
+    from hexapod.kws import VoiceControl
+    from hexapod.task_interface import TaskInterface
     
 logger = logging.getLogger("gamepad_logger")
 

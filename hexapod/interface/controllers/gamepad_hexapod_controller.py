@@ -34,10 +34,9 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 # Import base classes and mappings
-from interface.controllers.base_manual_controller import ManualHexapodController
-from interface.input_mappings import InputMapping, DualSenseUSBMapping
-from interface.controllers.gamepad_led_controllers.gamepad_led_controller import BaseGamepadLEDController, GamepadLEDColor
-from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
+from hexapod.interface import ManualHexapodController
+from hexapod.interface import InputMapping, DualSenseUSBMapping
+from hexapod.interface import BaseGamepadLEDController, GamepadLEDColor, DualSenseLEDController
 from hexapod.utils import rename_thread
 
 logger = logging.getLogger("interface_logger")
@@ -51,8 +50,8 @@ except ImportError:
 
 if TYPE_CHECKING:
     from typing import Optional
-    from kws import VoiceControl
-    from task_interface import TaskInterface
+    from hexapod.kws import VoiceControl
+    from hexapod.task_interface import TaskInterface
 
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""
@@ -145,10 +144,10 @@ class GamepadHexapodController(ManualHexapodController):
         # Try Bluetooth mapping first (default), fallback to USB if needed
         self.input_mapping = None
         if input_mapping_type == self.InputMappingType.DUALSENSE_BLUETOOTH:
-            from interface.input_mappings import DualSenseBluetoothMapping
+            from hexapod.interface import DualSenseBluetoothMapping
             self.input_mapping = DualSenseBluetoothMapping()
         elif input_mapping_type == self.InputMappingType.DUALSENSE_USB:
-            from interface.input_mappings import DualSenseUSBMapping
+            from hexapod.interface import DualSenseUSBMapping
             self.input_mapping = DualSenseUSBMapping()
         
         if self.input_mapping is None:
@@ -177,7 +176,7 @@ class GamepadHexapodController(ManualHexapodController):
             # If Bluetooth mapping failed, try USB mapping as fallback
             if input_mapping_type == self.InputMappingType.DUALSENSE_BLUETOOTH:
                 logger.user_info("Bluetooth mapping failed, trying USB mapping as fallback...")
-                from interface.input_mappings import DualSenseUSBMapping
+                from hexapod.interface import DualSenseUSBMapping
                 self.input_mapping = DualSenseUSBMapping()
                 self.gamepad = self.find_gamepad(self.input_mapping, check_only=False)
             
@@ -196,7 +195,7 @@ class GamepadHexapodController(ManualHexapodController):
         if connection_type != "bluetooth" and led_controller_type is not None:
             if led_controller_type == self.LEDControllerType.DUALSENSE:
                 try:
-                    from interface.controllers.gamepad_led_controllers.dual_sense_led_controller import DualSenseLEDController
+                    from hexapod.interface.controllers.gamepad_led_controllers import DualSenseLEDController
                     self.led_controller = DualSenseLEDController()
                 except Exception as e:
                     logger.warning(f"Failed to initialize DualSense LED controller: {e}")
@@ -454,7 +453,7 @@ class GamepadHexapodController(ManualHexapodController):
                     preview_printed = True
         # Print preview if buffer changed this tick
         if preview_printed:
-            from interface.controllers.base_manual_controller import logger
+            from .base_manual_controller import logger
             try:
                 base = self.gait_stance_height
             except AttributeError:
@@ -637,7 +636,7 @@ class GamepadHexapodController(ManualHexapodController):
             "  Lime Pulse      - Movement detected (both modes)\n"
             + "="*60
         )
-        from interface.controllers.base_manual_controller import logger
+        from .base_manual_controller import logger
         logger.gamepad_mode_info(help_message)
     
     def cleanup_controller(self):

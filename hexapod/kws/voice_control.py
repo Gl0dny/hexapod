@@ -11,15 +11,15 @@ import os
 
 from picovoice import Picovoice
 
-from kws import IntentDispatcher
-from task_interface import TaskInterface
-from lights import ColorRGB
+from hexapod.kws import IntentDispatcher
+from hexapod.task_interface import TaskInterface
+from hexapod.lights import ColorRGB
 from hexapod.utils import rename_thread
 from .recorder import Recorder
 
 if TYPE_CHECKING:
     from typing import Any, List
-    from task_interface import Task
+    from hexapod.task_interface import Task
 
 # Configure logger
 logger = logging.getLogger("kws_logger")

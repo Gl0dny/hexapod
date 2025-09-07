@@ -8,16 +8,16 @@ from functools import wraps
 from types import MethodType
 from pathlib import Path
 
-from lights import LightsInteractionHandler, ColorRGB
-from robot import Hexapod, ButtonHandler, PredefinedPosition
-import task_interface.tasks
-from interface import NonBlockingConsoleInputHandler
+from hexapod.lights import LightsInteractionHandler, ColorRGB
+from hexapod.robot import Hexapod, ButtonHandler, PredefinedPosition
+from hexapod.task_interface import tasks
+from hexapod.interface import NonBlockingConsoleInputHandler
 from hexapod.utils import rename_thread
 from .status_reporter import StatusReporter
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional, MethodType
-    from task_interface.tasks import Task
+    from hexapod.task_interface.tasks import Task
 
 logger = logging.getLogger("task_interface_logger")
 
@@ -394,7 +394,7 @@ class TaskInterface:
         try:
             self.request_pause_voice_control()  # Signal voice control paused
             self.request_block_voice_control_pausing()  # Signal voice control pausing blocked
-            self.task = task_interface.tasks.CompositeCalibrationTask(
+            self.task = tasks.CompositeCalibrationTask(
                 hexapod, 
                 lights_handler, 
                 self.external_control_paused_event, 
@@ -524,7 +524,7 @@ class TaskInterface:
             duration (Optional[float]): Duration of marching in place in seconds. If None, uses default duration.
         """
         try:
-            self.task = task_interface.tasks.MarchInPlaceTask(
+            self.task = tasks.MarchInPlaceTask(
                 hexapod, 
                 lights_handler,
                 duration=duration,
@@ -569,7 +569,7 @@ class TaskInterface:
             duration (float, optional): Duration to move in seconds.
         """
         try:
-            self.task = task_interface.tasks.MoveTask(
+            self.task = tasks.MoveTask(
                 hexapod,
                 lights_handler,
                 direction,
@@ -597,7 +597,7 @@ class TaskInterface:
             duration (float, optional): Duration to rotate in seconds.
         """
         try:
-            self.task = task_interface.tasks.RotateTask(
+            self.task = tasks.RotateTask(
                 hexapod,
                 lights_handler,
                 angle=angle,
@@ -626,10 +626,10 @@ class TaskInterface:
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
             
-            from odas import ODASDoASSLProcessor
+            from hexapod.odas import ODASDoASSLProcessor
             odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
             
-            self.task = task_interface.tasks.FollowTask(
+            self.task = tasks.FollowTask(
                 hexapod,
                 lights_handler,
                 odas_processor,
@@ -656,10 +656,10 @@ class TaskInterface:
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
             
-            from odas import ODASDoASSLProcessor
+            from hexapod.odas import ODASDoASSLProcessor
             odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
             
-            self.task = task_interface.tasks.SoundSourceLocalizationTask(
+            self.task = tasks.SoundSourceLocalizationTask(
                 hexapod=hexapod, 
                 lights_handler=lights_handler,
                 odas_processor=odas_processor,
@@ -688,10 +688,10 @@ class TaskInterface:
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
             
-            from odas import ODASDoASSLProcessor
+            from hexapod.odas import ODASDoASSLProcessor
             odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
             
-            self.task = task_interface.tasks.StreamODASAudioTask(
+            self.task = tasks.StreamODASAudioTask(
                 hexapod=hexapod, 
                 lights_handler=lights_handler,
                 odas_processor=odas_processor,
@@ -745,7 +745,7 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.task = task_interface.tasks.SitUpTask(
+            self.task = tasks.SitUpTask(
                 hexapod, 
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.task)
@@ -766,7 +766,7 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.task = task_interface.tasks.DanceTask(
+            self.task = tasks.DanceTask(
                 hexapod, 
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.task)
@@ -787,7 +787,7 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.task = task_interface.tasks.HelixTask(
+            self.task = tasks.HelixTask(
                 hexapod, 
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.task)
@@ -809,7 +809,7 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.task = task_interface.tasks.ShowOffTask(
+            self.task = tasks.ShowOffTask(
                 hexapod, 
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.task)
@@ -830,7 +830,7 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         try:
-            self.task = task_interface.tasks.SayHelloTask(
+            self.task = tasks.SayHelloTask(
                 hexapod, 
                 lights_handler, 
                 callback=lambda: self._notify_task_completion(self.task)
