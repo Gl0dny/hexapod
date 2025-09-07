@@ -33,312 +33,460 @@ This video demonstrates an autonomous hexapod robot performing advanced auditory
 
 This represents a complete autonomous control system where the hexapod can navigate and interact based purely on auditory cues, enabling sophisticated human-robot interaction through voice commands and environmental sound awareness.
 
+## Usage Examples
+
+### Movement Commands
+
+#### Walk
+![Walk](gifs/walk.gif)
+*"Hexapod, walk [direction] [for X seconds/minutes/cycles]" - Omnidirectional movement in 8 directions: forward, backward, left, right, forward left, forward right, backward left, backward right. Supports time-based (seconds/minutes) or cycle-based movement*
+
+#### Turn
+![Turn](gifs/turn.gif)
+*"Hexapod, turn [clockwise/counterclockwise] [for X seconds/minutes/cycles]" - Smooth rotation in both directions using inverse kinematics. Supports time-based (seconds/minutes) or cycle-based rotation*
+
+#### March in Place
+![March in Place](gifs/march_in_place.gif)
+*"Hexapod, march in place [for X seconds/minutes]" - In-place marching demonstration with optional duration control*
+
+#### Idle Stance
+*"Hexapod, go to idle stance" - Return to neutral default position*
+
+### Entertainment Commands
+
+#### Sit Up
+![Sit Up](gifs/sit_up.gif)
+*"Hexapod, make some sit ups" - Dynamic sit-up exercise routine*
+
+#### Dance
+![Dance](gifs/dance.gif)
+*"Hexapod, dance" - Coordinated dance routine with multiple movements*
+
+#### Say Hello
+![Say Hello](gifs/say_hello.gif)
+*"Hexapod, say hello" - Friendly greeting gesture with leg movement*
+
+#### Show Off
+![Show Off](gifs/show_off.gif)
+*"Hexapod, show off" - Demonstration routine showcasing capabilities*
+
+#### Helix
+![Helix](gifs/helix.gif)
+*"Hexapod, helix" - Complex helical movement pattern*
+
+### Light Commands
+
+#### Police Lights
+![Police Lights](gifs/police_lights.gif)
+*"Hexapod, activate police mode" - Police-style flashing lights*
+
+#### Rainbow Lights
+![Rainbow Lights](gifs/rainbow_lights.gif)
+*"Hexapod, activate rainbow" - Rainbow color sequence*
+
+#### Change Color
+![Change Color](gifs/change_color.gif)
+*"Hexapod, change color to [blue/red/green/etc.]" - Change LED color to specified color from 13 available colors*
+
+#### Turn Lights On/Off
+![Turn Lights](gifs/turn_lights.gif)
+*"Hexapod, turn lights [on/off]" - Control LED power state*
+
+#### Set Brightness
+![Set Brightness](gifs/set_brightness.gif)
+*"Hexapod, set brightness to X%" - Adjust LED brightness from 0-100%*
+
+### Audio Commands
+
+#### Sound Source Following
+![Sound Following](gifs/sound_following.gif)
+*"Hexapod, follow me" - Audio-based target following using ODAS*
+
+#### Sound Source Localization
+![Sound Localization](gifs/sound_localization.gif)
+*"Hexapod, run sound source localization" - Analyze environment for sound sources*
+
+#### Stream ODAS Audio
+*"Hexapod, stream ODAS audio" - Stream processed audio from ODAS system to remote host*
+
+#### Start/Stop Recording
+*"Hexapod, start recording [for X seconds/minutes]" - Begin audio recording with optional duration control*
+
+### System Commands
+
+#### Calibrate
+![Calibrate](gifs/calibrate.gif)
+*"Hexapod, calibrate servos" - Servo calibration and position setup*
+
+#### System Status
+*"Hexapod, what's your status?" - System health and status reporting*
+
+#### Help
+*"Hexapod, show commands" - Display list of available commands*
+
+#### Wake Up
+![Wake Up](gifs/wake_up.gif)
+*"Hexapod, wake up" - Activate the system from sleep mode*
+
+#### Sleep
+![Sleep](gifs/sleep.gif)
+*"Hexapod, go to sleep" - Put system into sleep mode*
+
+#### Stop
+*"Hexapod, stop" - Immediately stop current task or movement*
+
+#### Repeat Last Command
+*"Hexapod, repeat last command" - Execute the previous command again*
+
+#### Set Speed
+*"Hexapod, set speed to X%" - Adjust movement speed from 0-100%*
+
+#### Set Acceleration
+*"Hexapod, set acceleration to X%" - Adjust movement acceleration from 0-100%*
+
+## Key Features
+
+### Advanced Voice Control
+- Custom wake word detection ("Hexapod")
+- Natural language command processing
+- Multi-intent handling for complex command processing
+- Context-aware command interpretation
+- Support for movement, gait control, and system commands
+
+### Spatial Audio Processing
+- Real-time Direction of Arrival (DOA) estimation
+- 6-microphone circular array processing
+- Multi-source tracking (up to 4 simultaneous sources)
+- Beamforming for enhanced speech recognition
+- Optional GUI on remote host for ODAS processing
+- Real-time audio streaming and recording capabilities
+- Network communication for remote processing
+- Automatic audio source separation and tracking
+
+### Intelligent Movement
+- 18-degree-of-freedom movement (3 DOF per leg)
+- Multiple gait patterns (tripod, wave, custom)
+- IMU-based stability control
+- Circle-based targeting for direction-independent movement
+- Precise inverse kinematics for accurate positioning
+- State machine management for coordinated gait execution
+
+### Visual Feedback
+- LED strip integration for status indication
+- Advanced LED animation system with multiple patterns
+- Real-time sound source localization visualization through LED patterns
+- Color-coded system status and error indication
+- Brightness control and color customization (RGB based)
+
+## Performance Characteristics
+
+- **Voice Recognition**: >95% accuracy, <200ms latency
+- **Sound Source Localization**: ±5° accuracy, real-time processing
+- **Movement Control**: 50Hz servo update rate
+- **Multi-source Tracking**: Up to 4 simultaneous sound sources
+
+## Hardware
+
+### Core Components
+- **Raspberry Pi 4** (2GB+ RAM recommended)
+- **18x TowerPro MG-995 Servos** (3 per leg)
+- **Pololu Maestro 24-Channel Servo Controller**
+- **ReSpeaker 6-Mic Circular Array**
+- **ICM-20948 IMU**
+- **APA102 LED Strip** (integrated in ReSpeaker)
+- **5 x 1.2V 2500 mAh NiMH Battery Pack (6V total)**
+
+### Optional Components
+- **Remote ODAS  - GUI**
+- **Gamepad Controller** (for manual control)
+
+## Quick Start
+
+### Installation
+```bash
+# Clone the repository
+git clone <repository-url>
+cd hexapod
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Running the System
+
+#### Basic Voice Control
+```bash
+# Run with voice control only
+python main.py --access-key "YOUR_PICOVOICE_KEY"
+```
+
+#### With Gamepad Control
+The system automatically detects and uses a connected DualSense controller. If a controller is detected, the system will start in manual control mode with voice control as a secondary option. If no controller is detected, the system falls back to voice control mode only.
+
+```bash
+# Run with automatic controller detection
+python main.py --access-key "YOUR_PICOVOICE_KEY"
+```
+
+### Configuration Options
+
+For a complete list of available command-line options, run:
+
+```bash
+python main.py --help
+```
+
+See [Configuration Documentation](docs/core/configuration.md) for detailed options.
+
+## System Architecture
+
+The hexapod system consists of several integrated components:
+
+- **Voice Control System** - Picovoice integration for wake word detection and command recognition
+- **ODAS Audio Processing** - Real-time spatial audio processing and sound source localization
+- **Robot Movement** - 18-DOF hexapod with inverse kinematics and multiple gait patterns
+- **Hardware Integration** - Servo control, IMU sensing, and LED feedback systems
+- **Task Management** - Central coordination system for complex operations
+
+### High-Level System Architecture
+
+```mermaid
+graph TB
+    subgraph "Hexapod System Architecture"
+        subgraph "Application Layer"
+            MA[Main Application<br/>• Entry Point<br/>• Component Coordination<br/>• Control Mode Management]
+            TI[Task Interface<br/>• Voice Command Processing<br/>• Task Orchestration<br/>• State Management]
+        end
+        
+        subgraph "Control Systems"
+            VC[Voice Control<br/>• Wake Word Detection<br/>• Intent Recognition<br/>• Audio Processing]
+            MC[Manual Control<br/>• Gamepad Input<br/>• Mode Switching<br/>• LED Feedback]
+        end
+        
+        subgraph "Robot Systems"
+            RM[Robot Movement<br/>• Gait Generation<br/>• Inverse Kinematics<br/>• Movement Commands]
+            HI[Hardware Integration<br/>• Servo Control<br/>• Sensor Integration<br/>• Power Management]
+        end
+        
+        subgraph "Audio Processing"
+            ODAS[ODAS Audio<br/>• Sound Source Localization<br/>• Spatial Processing<br/>• Direction Tracking]
+        end
+    end
+    
+    MA --> TI
+    MA --> VC
+    MA --> MC
+    TI --> RM
+    TI --> HI
+    VC --> TI
+    MC --> TI
+    ODAS --> TI
+    RM --> HI
+```
+
+### Voice Control System
+
+```mermaid
+graph TB
+    subgraph "Voice Control System"
+        subgraph "Audio Input"
+            MA[6-Mic Array<br/>• ReSpeaker 6<br/>• 8 Channels<br/>• 16kHz Sample Rate]
+            AD[Audio Device<br/>• Auto-detection<br/>• Device Selection<br/>• ALSA Integration]
+        end
+        
+        subgraph "Voice Processing"
+            PV[Picovoice Engine<br/>• Porcupine Wake Word<br/>• Rhino Intent Recognition<br/>• Real-time Processing]
+            ID[Intent Dispatcher<br/>• Command Routing<br/>• Parameter Parsing<br/>• Task Interface]
+        end
+        
+        subgraph "Robot Control"
+            TI[Task Interface<br/>• Movement Commands<br/>• Light Control<br/>• System Commands]
+            AR[Audio Recording<br/>• Continuous Recording<br/>• Duration-based<br/>• File Management]
+        end
+    end
+    
+    MA --> AD
+    AD --> PV
+    PV --> ID
+    ID --> TI
+    PV --> AR
+```
+
+### ODAS Audio Processing
+
+```mermaid
+graph TB
+    subgraph "Audio Processing System"
+        subgraph "Hardware Input"
+            MA["6-Mic ReSpeaker Array<br/>• 8 Channels<br/>• 16kHz Sample Rate<br/>• 32-bit Audio"]
+            AD["Audio Device<br/>• ALSA Integration<br/>• Real-time Capture<br/>• Multi-channel"]
+        end
+        
+        subgraph "ODAS Processing"
+            OD["ODAS Framework<br/>• Sound Source Localization<br/>• Direction of Arrival<br/>• Beamforming<br/>• Audio Separation"]
+            CF["Configuration Files<br/>• local_odas.cfg<br/>• SSL Parameters<br/>• DOA Settings"]
+        end
+        
+        subgraph "Data Processing"
+            DS["Data Servers<br/>• Tracked Sources (Port 9000)<br/>• Potential Sources (Port 9001)<br/>• TCP Communication"]
+            AP["Audio Processor<br/>• Channel Selection<br/>• Sample Rate Conversion<br/>• Picovoice Integration"]
+        end
+        
+        subgraph "Output Streams"
+            AS["Audio Streaming<br/>• Remote Playback<br/>• Real-time Transfer<br/>• WAV Conversion"]
+            VS["Visualization<br/>• LED Feedback<br/>• Direction Display<br/>• Source Tracking"]
+        end
+    end
+    
+    MA --> AD
+    AD --> OD
+    OD --> CF
+    OD --> DS
+    DS --> AP
+    AP --> AS
+    DS --> VS
+```
+
+### Robot Movement System
+
+```mermaid
+graph TB
+    subgraph "Robot Movement System"
+        subgraph "Core Control"
+            H[Hexapod<br/>• Main Controller<br/>• 18 Servo Management<br/>• Position Tracking]
+            GG[Gait Generator<br/>• Pattern Execution<br/>• State Management<br/>• Thread Coordination]
+        end
+        
+        subgraph "Leg Control"
+            L[Leg Class<br/>• Individual Leg Control<br/>• Inverse Kinematics<br/>• Joint Management]
+            J[Joint Class<br/>• Servo Control<br/>• Angle Validation<br/>• Safety Limits]
+        end
+        
+        subgraph "Movement Patterns"
+            TG[Tripod Gait<br/>• 3+3 Leg Groups<br/>• High Stability<br/>• Efficient Movement]
+            WG[Wave Gait<br/>• Sequential Movement<br/>• Maximum Stability<br/>• Precise Control]
+        end
+        
+        subgraph "Hardware Integration"
+            MU[Maestro UART<br/>• Servo Communication<br/>• Real-time Control<br/>• Safety Management]
+            BC[Balance Compensator<br/>• IMU Integration<br/>• Stability Control<br/>• Fall Prevention]
+        end
+    end
+    
+    H --> GG
+    H --> L
+    L --> J
+    GG --> TG
+    GG --> WG
+    H --> MU
+    H --> BC
+    J --> MU
+```
+
+### Hardware Integration
+
+```mermaid
+graph TB
+    subgraph "Hardware Integration System"
+        subgraph "Control Layer"
+            HC[Hexapod Controller<br/>• Joint Management<br/>• Position Control<br/>• Calibration]
+            MC[Maestro Controller<br/>• UART Communication<br/>• Servo Commands<br/>• Error Handling]
+        end
+        
+        subgraph "Hardware Components"
+            SC[Servo Motors<br/>• 18 MG-995 Servos<br/>• 3 per leg<br/>• Position Control]
+            IMU[IMU Sensor<br/>• ICM-20948<br/>• 9-DOF<br/>• Orientation Data]
+            BTN[Button Input<br/>• GPIO Pin 26<br/>• User Interface<br/>• System Control]
+            LED[ReSpeaker 6 LEDs<br/>• Integrated APA102 LEDs<br/>• 12 LEDs<br/>• Visual Feedback]
+        end
+        
+        subgraph "Communication"
+            UART[UART Interface<br/>• /dev/ttyAMA1<br/>• 9600 baud<br/>• Pololu Protocol]
+            SPI[SPI Interface<br/>• LED Control<br/>• High Speed<br/>• Real-time Updates]
+            GPIO[GPIO Interface<br/>• Button Input<br/>• Power Control<br/>• Digital I/O]
+        end
+    end
+    
+    HC --> MC
+    MC --> UART
+    UART --> SC
+    HC --> IMU
+    HC --> BTN
+    HC --> LED
+    LED --> SPI
+    BTN --> GPIO
+```
+
+### Task Management System
+
+```mermaid
+graph TB
+    subgraph "Task Interface"
+        subgraph "Core Management"
+            TI[TaskInterface<br/>• Central Coordinator<br/>• Voice Command Processing<br/>• Task Lifecycle Management]
+            SR[StatusReporter<br/>• System Health Monitoring<br/>• Status Information<br/>• Diagnostic Data]
+        end
+        
+        subgraph "Hardware Integration"
+            H[Hexapod<br/>• Robot Control<br/>• Movement<br/>• Calibration]
+            LH[LightsHandler<br/>• Visual Feedback<br/>• Status Display<br/>• Animations]
+            BH[ButtonHandler<br/>• GPIO Input<br/>• User Interaction<br/>• State Management]
+        end
+        
+        subgraph "Task Execution"
+            TQ[Task Queue<br/>• Task Management<br/>• Lifecycle Control<br/>• Callback Handling]
+            TE[Task Executor<br/>• Thread Management<br/>• Resource Allocation<br/>• Error Recovery]
+        end
+    end
+    
+    TI --> H
+    TI --> LH
+    TI --> BH
+    TI --> SR
+    TI --> TQ
+    TQ --> TE
+```
+
 ## Documentation
 
 For detailed technical documentation and system architecture please refer to the [Documentation](./docs/README.md).
 
 The documentation covers:
-- **System Overview** - High-level architecture and component relationships
-- **Core Systems** - Main application, configuration, and task management
-- **Robot Movement** - Kinematics, gait systems, and movement commands
-- **Hardware Integration** - Servo control, IMU data, and lights system
-- **Interface Systems** - Task interface, voice control mode, and gamepad controller
-- **Voice Control & Audio** - Voice control system and audio recording capabilities
-- **ODAS Audio Processing** - Multi-channel audio capture, spatial processing, direction detection, server setup, data formats, and streaming
-
-<!-- 
-## Table of Contents
-- [Key Features](#key-features)
-- [Implementation Details](#implementation-details)
-  - [Hardware Configuration](#hardware-configuration)
-  - [Software Stack](#software-stack)
-  - [Core Systems](#core-systems)
-    - [Audio Processing Pipeline](#audio-processing-pipeline)
-    - [Voice Control System](#voice-control-system)
-    - [Movement Control](#movement-control)
-  - [Project Structure](#project-structure)
-  - [Build and Run](#build-and-run)
-  - [Testing](#testing)
-
-### Key Features
-
-1. **Advanced Audio Processing**
-   - Real-time Direction of Arrival (DOA) estimation using a 6-microphone circular array
-   - Spatial audio processing through the ODAS framework
-   - Beamforming for enhanced speech recognition in noisy environments
-   - 16-direction spatial resolution for precise sound source tracking
-
-2. **Intelligent Voice Control**
-   - Custom wake word detection ("Hey Hexapod")
-   - Natural language command processing using Picovoice's Rhino engine
-   - Context-aware command interpretation
-   - Real-time voice command execution
-
-3. **Sophisticated Movement System**
-   - 18-degree-of-freedom movement (3 DOF per leg)
-   - Multiple gait patterns including tripod and wave gaits
-   - Precise inverse kinematics for smooth motion
-   - 50Hz servo update rate for fluid movement
-
-4. **Hardware Integration**
-   - High-performance Raspberry Pi 4 (2GB) for real-time processing
-   - Professional-grade MG996R servos for reliable movement
-   - Pololu Maestro controller for precise servo management
-   - ReSpeaker 6-Mic array for spatial audio capture
-   - IMU integration for movement stability
-   - Visual feedback through WS2812B LED strip
-
-
-## Implementation Details
-
-### Hardware Configuration
-- Raspberry Pi 4 (8GB) running Raspberry Pi OS
-- 6x MG996R servo motors
-- Pololu Maestro 24-Channel USB Servo Controller
-- ReSpeaker 6-Mic Circular Array
-- ICM-20948 IMU
-- WS2812B LED strip (30 LEDs)
-- 5V 10A power supply
-
-### Software Stack
-- Python 3.8+
-- ODAS v1.0.0 for audio processing
-- Picovoice Porcupine v2.1.3 for wake word detection
-- Picovoice Rhino v2.1.1 for command recognition
-- RPi.GPIO v0.7.1 for hardware control
-- NumPy v2.1.2 for numerical computations
 
 ### Core Systems
+- [System Overview](docs/core/system_overview.md) - High-level architecture and component relationships
+- [Main Application](docs/core/main_application.md) - Application entry point and component coordination
+- [Configuration](docs/core/configuration.md) - System configuration and parameters
 
-#### Audio Processing Pipeline
-The system implements a voice control pipeline with optional ODAS enhancement for spatial audio processing:
+### Robot Movement
+- [Movement System](docs/robot/movement_system.md) - Overview of movement capabilities
+- [Kinematics](docs/robot/kinematics.md) - Inverse kinematics and coordinate systems
+- [Gait System](docs/robot/gait_system.md) - Walking patterns and gait generation
+- [Movement Commands](docs/robot/movement_commands.md) - High-level movement commands
 
-Primary Pipeline (Direct Microphone Input):
-```
-Microphone Input
-    ↓
-Picovoice Processing
-    - Wake word detection (Porcupine)
-    - Intent recognition (Rhino)
-    - Command execution
-```
+### Hardware Integration
+- [Hardware Integration](docs/hardware/hardware_integration.md) - Hardware components and integration
+- [Servo Control](docs/hardware/servo_control.md) - Servo control system and protocols
+- [Lights System](docs/hardware/lights_system.md) - LED control and visual feedback
+- [IMU Data Format](docs/hardware/imu_data_format.md) - IMU sensor data and processing
 
-Optional ODAS Enhancement:
-```
-Microphone Array (6 channels)
-    ↓
-ODAS Processing
-    - Spatial filtering
-    - Noise reduction
-    - Echo cancellation
-    - Channel selection
-    ↓
-DOA Estimation (16 directions)
-    - Real-time direction tracking
-    - Multiple source separation
-    ↓
-Beamforming
-    - Adaptive beam steering
-    - Signal enhancement
-    ↓
-Picovoice Processing
-    - Wake word detection (Porcupine)
-    - Intent recognition (Rhino)
-    - Command execution
-```
+### Interface Systems
+- [Task Interface](docs/interface/task_interface.md) - Central task coordination and management
+- [Voice Control Interface](docs/interface/voice_control_interface.md) - Voice control system interface
+- [Gamepad Controller](docs/interface/gamepad_controller.md) - Gamepad control and input handling
 
-#### Voice Control System
-The voice control system implements a sophisticated pipeline using Picovoice's engines for natural human-robot interaction:
+### Voice Control & Audio
+- [Voice Control System](docs/voice/voice_control_system.md) - Voice recognition and command processing
+- [Audio Recording](docs/voice/audio_recording.md) - Audio recording utilities and management
 
-1. **Wake Word Detection**
-   - Custom wake word "Hey Hexapod" using Picovoice's Porcupine engine
-   - Real-time audio stream processing via PvRecorder
-   - Low-latency wake word detection (< 100ms)
-   - Robust performance in noisy environments
+### ODAS Audio Processing
+- [ODAS Audio Processing](docs/odas/odas_audio_processing.md) - Multi-channel audio capture and spatial processing
+- [ODAS Server](docs/odas/odas_server.md) - ODAS server setup and configuration
+- [ODAS Data Format](docs/odas/odas_data_format.md) - Data formats and protocols
+- [DOA SSL Processor](docs/odas/doa_ssl_processor.md) - Direction of arrival and sound source localization
+- [ODAS Audio Playback](docs/odas/odas_audio_playback.md) - ODAS audio playback utilities
+- [Streaming ODAS Audio Player](docs/odas/streaming_odas_audio_player.md) - Remote audio streaming
 
-2. **Command Recognition Pipeline**
-   ```
-   Audio Input (PvRecorder)
-      ↓
-   Picovoice Processing
-      - Porcupine wake word detection
-      - Rhino intent recognition
-      - Natural language understanding
-      ↓
-   Intent Processing
-      - Command validation
-      - Parameter extraction
-      - Context awareness
-      ↓
-   Action Execution
-      - Command mapping to robot actions
-      - Real-time execution
-      - Status feedback
-   ```
-
-3. **Command Processing Features**
-   - Support for multiple command types:
-     - Movement commands (walk, turn, stop)
-     - Gait control (change gait pattern, adjust speed)
-     - System commands (calibrate, shutdown)
-     - Status queries (battery, position)
-   - Context-aware command interpretation
-   - Parameter extraction from natural language
-   - Real-time command execution with feedback
-   - Error handling and recovery
-
-4. **Performance Characteristics**
-   - Command recognition accuracy: >95%
-   - Processing latency: <200ms
-   - Support for continuous command streaming
-   - Robust to environmental noise
-   - Adaptive to different speaking styles
-
-5. **Optional ODAS Enhancement**
-   - Enhanced spatial audio processing
-   - Improved noise rejection
-   - Direction of arrival estimation
-   - Beamforming for better signal quality
-
-#### Movement Control
-The hexapod's movement system implements a state-based gait generator and inverse kinematics solver:
-
-1. **State-Based Gait Generator**
-   ```
-   Gait Pattern Definition
-      ↓
-   State Machine
-      - States: Leg phases (stance/swing)
-      - Transitions: Predefined phase sequences
-      - Stability: IMU-based monitoring
-      ↓
-   Gait Execution
-      - Real-time state machine
-      - Smooth phase transitions
-      - Dynamic stability control
-   ```
-
-2. **Inverse Kinematics System**
-   ```
-   Target Position
-      ↓
-   IK Solver
-      - 3-DOF per leg (coxa, femur, tibia)
-      - Analytical solution using geometric approach
-      - Joint limit validation
-      - End effector offset compensation
-      ↓
-   Joint Angles
-      - Coxa: Yaw rotation (horizontal plane)
-      - Femur: Pitch rotation (vertical plane)
-      - Tibia: Pitch rotation (vertical plane)
-      ↓
-   Motion Planning
-      - Joint angle validation
-      - Custom angle limits support
-      - Angle inversion handling
-      - Servo target mapping
-   ```
-
-   The inverse kinematics system implements:
-   - Geometric approach using triangle relationships
-   - End effector offset compensation
-   - Maximum reach validation
-   - Joint limit enforcement
-   - Support for inverted joints
-   - Custom angle limits per joint
-   - Precise servo target mapping
-3. **Gait Patterns**
-   - **Tripod Gait**
-     - Three legs in stance, three in swing
-     - Maximum stability
-     - Efficient forward motion
-     - Diagonal support pattern
-   
-   - **Wave Gait**
-     - Sequential leg movement
-     - Precise positioning
-     - Maximum stability
-     - Slow but stable motion
-
-   - **Custom Gaits**
-     - Dynamic pattern generation
-     - Adaptive to terrain
-     - Energy optimization
-     - Stability prioritization
-
-4. **Movement Features**
-   - Real-time gait adaptation
-   - Dynamic stability control
-   - Smooth trajectory planning
-   - Collision prevention
-   - Energy-efficient motion
-   - Terrain adaptation
-   - Fault tolerance
-
-
-### Project Structure
-The project is organized into several key directories, each serving a specific purpose:
-
-```
-├── src/                    # Main source code directory
-│   ├── robot/             # Core movement control and kinematics
-│   ├── kws/              # Voice recognition system
-│   ├── odas/             # Spatial audio processing
-│   ├── control/          # High-level system control
-│   ├── imu/              # Motion and orientation sensing
-│   ├── lights/           # LED control and visual feedback
-│   ├── maestro/          # Pololu Maestro controller interface
-│   ├── interface/        # User interface components
-│   ├── utils/            # Utility functions and helpers
-│   └── scripts/          # Maintenance and utility scripts
-├── tests/                # Test suite
-├── docs/                 # Documentation
-├── assets/              # Project assets and resources
-├── firmware/            # Firmware files
-├── lib/                 # External libraries
-├── logs/                # Log files
-└── main.py             # Main application entry point
-```
-
-Each component is designed to be modular and maintainable:
-
-- **robot/**: Implements the core movement control system, including gait patterns and inverse kinematics
-- **kws/**: Contains the voice recognition system with wake word detection and command processing
-- **odas/**: Handles spatial audio processing and sound source localization
-- **control/**: Manages high-level system control and coordination
-- **imu/**: Provides motion and orientation sensing capabilities
-- **lights/**: Controls the LED strip for visual feedback
-- **maestro/**: Interfaces with the Pololu Maestro servo controller
-- **interface/**: Contains user interface components
-- **utils/**: Houses utility functions and helper modules
-- **scripts/**: Contains maintenance and utility scripts
-
-The project follows a modular architecture that allows for easy maintenance and extension of functionality.
-
-### Build and Run
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run with ODAS
-python main.py --access-key "YOUR_PICOVOICE_KEY" --use-odas
-
-# Run without ODAS (direct mic input)
-python main.py --access-key "YOUR_PICOVOICE_KEY"
-```
-
-### Testing
-```bash
-# Run all tests
-pytest tests/
-
-# Run specific test suite
-pytest tests/test_robot.py
-pytest tests/test_audio.py
-pytest tests/test_robot/test_sensors/test_imu.py
-```
--->
 ## License
 
 Copyright (c) 2025 Krystian Głodek <krystian.glodek1717@gmail.com>. All rights reserved. 

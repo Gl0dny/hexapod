@@ -158,7 +158,7 @@ flowchart LR
 - **Power Control**: GPIO-controlled LED power management
 
 ### **Power and Control**
-- **5V 10A Power Supply**: Main power for servos and electronics
+- **5 x 1.2V 2500 mAh NiMH Battery Pack (6V total)**: Main power for servos and electronics
 - **Raspberry Pi**: Main computing platform
 - **Serial Communication**: UART communication with servo controller
 - **GPIO Control**: Direct hardware control for sensors and LEDs

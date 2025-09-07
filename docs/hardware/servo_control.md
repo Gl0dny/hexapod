@@ -215,7 +215,7 @@ Leg 5 (Right Back):   Channels 15, 16, 17
 **Power Requirements:**
 - **Total Current**: Up to 45A (18 servos × 2.5A)
 - **Voltage**: 6V recommended
-- **Power Supply**: External switching power supply
+- **Power Supply**: 5 x 1.2V 2500 mAh NiMH Battery Pack (6V total)
 - **Protection**: Fuses and current limiting
 
 ## Usage Examples
