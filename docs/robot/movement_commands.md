@@ -117,13 +117,6 @@ flowchart LR
 
 ### **Entertainment Tasks**
 
-#### **DanceTask** (`src/task_interface/tasks/dance_task.py`)
-
-**Purpose**: Dance routine execution
-- **Parameters**: Lights handler for visual effects
-- **Execution**: Coordinated movement sequences
-- **Features**: Light synchronization and choreography
-
 #### **SitUpTask** (`src/task_interface/tasks/sit_up_task.py`)
 
 **Purpose**: Sit-up motion sequence
@@ -169,7 +162,6 @@ flowchart LR
 
 ### **Entertainment Commands**
 
-- **`dance()`**: Execute dance routine
 - **`sit_up()`**: Perform sit-up motion
 - **`helix()`**: Execute helix maneuver
 - **`show_off()`**: Run demonstration routine

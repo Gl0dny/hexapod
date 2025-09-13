@@ -86,8 +86,6 @@ context:
       - "(Start, Begin, Perform) marching"
       - "[March, March in place] (for) $pv.TwoDigitInteger:march_time $time_unit:time_unit"
       - "(Start, Begin, Perform) marching (for) $pv.TwoDigitInteger:march_time $time_unit:time_unit"
-    dance:
-      - Dance
     helix:
       - "[Helix, Spiral]"
     show_off:

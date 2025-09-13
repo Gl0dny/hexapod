@@ -1,6 +1,5 @@
 from .task import Task
 from .composite_calibration_task import CompositeCalibrationTask
-from .dance_task import DanceTask
 from .follow_task import FollowTask
 from .helix_task import HelixTask
 from .march_in_place_task import MarchInPlaceTask
@@ -15,7 +14,6 @@ from .stream_odas_audio_task import StreamODASAudioTask
 __all__ = [
     'Task',
     'CompositeCalibrationTask',
-    'DanceTask',
     'FollowTask',
     'HelixTask',
     'MarchInPlaceTask',

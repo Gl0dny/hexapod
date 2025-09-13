@@ -158,7 +158,6 @@ flowchart LR
 ### **Entertainment Commands**
 
 - **`sit_up`**: Perform sit-up motion
-- **`dance`**: Execute dance routine
 - **`helix`**: Perform helix maneuver
 - **`show_off`**: Run demonstration routine
 - **`hello`**: Execute greeting sequence

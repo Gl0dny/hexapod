@@ -126,17 +126,12 @@ class Animation(threading.Thread, abc.ABC):
 - **Parameters**: Speed, direction
 - **Use Case**: Movement indication
 
-#### 8. Dance Animation
-- **Purpose**: Complex multi-pattern sequences
-- **Parameters**: Dance pattern, speed
-- **Use Case**: Entertainment/celebration
-
-#### 9. Show Off Animation
+#### 8. Show Off Animation
 - **Purpose**: Display of all available effects
 - **Parameters**: Sequence timing
 - **Use Case**: Demonstration mode
 
-#### 10. Sit Up Animation
+#### 9. Sit Up Animation
 - **Purpose**: Gradual color transition
 - **Parameters**: Transition speed, target color
 - **Use Case**: Status change indication

@@ -70,7 +70,6 @@ INTENT_HANDLERS = {
     'police':                   ('police',                            {},                                (),                      {}),
     'rainbow':                  ('rainbow',                           {},                                (),                      {}),
     'sit_up':                   ('sit_up',                            {},                                (),                      {}),
-    'dance':                    ('dance',                             {},                                (),                      {}),
     'helix':                    ('helix',                             {},                                (),                      {}),
     'show_off':                 ('show_off',                          {},                                (),                      {}),
     'hello':                    ('say_hello',                         {},                                (),                      {}),

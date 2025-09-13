@@ -55,7 +55,7 @@ The voice control interface provides hands-free control of the hexapod robot thr
 - **System Control**: help, system_status, shut_down, wake_up, sleep
 - **Movement**: move, rotate, march_in_place, idle_stance, stop
 - **Advanced**: follow, sound_source_localization, calibrate
-- **Entertainment**: dance, sit_up, helix, show_off, say_hello
+- **Entertainment**: sit_up, helix, show_off, say_hello
 - **Recording**: start_recording, stop_recording
 - **Lights**: turn_lights, change_color, set_brightness
 
@@ -138,7 +138,6 @@ The voice control interface provides hands-free control of the hexapod robot thr
 **Advanced Movement**:
 - **"Follow"** - Follow sound source
 - **"Sound Source Localization"** - Locate and move toward sound
-- **"Dance"** - Perform dance routine
 - **"Sit Up"** - Sit up movement
 - **"Helix"** - Helical movement pattern
 - **"Show Off"** - Demonstration routine

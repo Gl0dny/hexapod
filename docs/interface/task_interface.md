@@ -125,7 +125,6 @@ All tasks inherit from the abstract `Task` class which provides:
 - **StreamODASAudioTask**: Audio streaming and playback
 
 #### Entertainment Tasks
-- **DanceTask**: Dance routine execution
 - **SitUpTask**: Sit-up motion sequence
 - **HelixTask**: Helical movement pattern
 - **ShowOffTask**: Demonstration routine
@@ -169,7 +168,6 @@ All tasks inherit from the abstract `Task` class which provides:
 
 ### Entertainment Commands
 
-- **`dance()`**: Execute dance routine
 - **`sit_up()`**: Perform sit-up motion
 - **`helix()`**: Execute helix maneuver
 - **`show_off()`**: Run demonstration routine

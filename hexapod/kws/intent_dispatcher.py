@@ -64,7 +64,6 @@ class IntentDispatcher:
             'police': self.handle_police,
             'rainbow': self.handle_rainbow,
             'sit_up': self.handle_sit_up,
-            'dance': self.handle_dance,
             'helix': self.handle_helix,
             'show_off': self.handle_show_off,
             'hello': self.handle_hello,
@@ -483,16 +482,6 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
         self.task_interface.sit_up()
-
-    @handler
-    def handle_dance(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'dance' intent.
-        
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        self.task_interface.dance()
 
     @handler
     def handle_helix(self, slots: Dict[str, Any]) -> None:

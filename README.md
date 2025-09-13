@@ -90,10 +90,6 @@ The hexapod operates through a sophisticated voice control system that processes
 ![Sit Up](assets/gifs/sit_up.gif)
 *"Hexapod, make some sit ups" - Dynamic sit-up exercise routine*
 
-#### Dance
-![Dance](assets/gifs/dance.gif)
-*"Hexapod, dance" - Coordinated dance routine with multiple movements*
-
 #### Say Hello
 ![Say Hello](assets/gifs/say_hello.gif)
 *"Hexapod, say hello" - Friendly greeting gesture with leg movement*
