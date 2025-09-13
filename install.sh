@@ -59,54 +59,62 @@ validate_picovoice_key() {
     
     # Check if key is not empty
     if [ -z "$key" ]; then
-        echo "Access key cannot be empty."
+        echo "ERROR: Access key cannot be empty." >&2
         return 1
     fi
     
-    # Check length (Picovoice keys are exactly 64 characters)
+    # Check length (Picovoice keys are exactly 56 characters)
     local key_length=${#key}
-    if [ "$key_length" -ne 64 ]; then
-        echo "Invalid key length. Picovoice keys are exactly 64 characters long (got $key_length)."
+    if [ "$key_length" -ne 56 ]; then
+        echo "ERROR: Invalid key length. Picovoice keys are exactly 56 characters long (got $key_length)." >&2
+        echo "       Your key: '$key'" >&2
         return 1
     fi
     
     # Check if key contains only valid Base64 characters
     if ! echo "$key" | grep -q '^[A-Za-z0-9+/=]*$'; then
-        echo "Invalid key format. Picovoice keys contain only letters, numbers, +, /, and = characters."
+        echo "ERROR: Invalid key format. Picovoice keys contain only letters, numbers, +, /, and = characters." >&2
+        echo "       Your key: '$key'" >&2
         return 1
     fi
     
     # Check if key doesn't start with common prefixes that might be copied incorrectly
     if echo "$key" | grep -q '^PICOVOICE_ACCESS_KEY='; then
-        echo "Please enter only the key value, not the full environment variable line."
+        echo "ERROR: Please enter only the key value, not the full environment variable line." >&2
         return 1
     fi
     
+    echo "SUCCESS: Key format is valid!" >&2
     return 0
 }
 
-# Function to get Picovoice access key from user
-get_picovoice_key() {
+# Function to show Picovoice key requirements
+show_picovoice_requirements() {
     echo ""
     echo "Get your free Picovoice Access Key from: https://console.picovoice.ai/"
     echo ""
     echo "Picovoice Access Key requirements:"
-    echo "  - Length: Exactly 64 characters"
+    echo "  - Length: Exactly 56 characters"
     echo "  - Characters: Letters, numbers, +, /, and = only"
     echo "  - Format: Base64 encoded string"
     echo ""
-    
+}
+
+# Function to get Picovoice access key from user (only outputs the key)
+get_picovoice_key() {
     while true; do
         read -p "Enter your Picovoice Access Key: " picovoice_key
         
         # Clean up the input - remove any extra text and keep only the key
         picovoice_key=$(echo "$picovoice_key" | sed 's/^PICOVOICE_ACCESS_KEY=//' | tr -d '[:space:]')
         
-        if validate_picovoice_key "$picovoice_key"; then
-            break
+        # Validate the key
+        if ! validate_picovoice_key "$picovoice_key"; then
+            echo "" >&2
+            echo "Please try again." >&2
+            echo "" >&2
         else
-            echo "Please try again."
-            echo ""
+            break
         fi
     done
     
@@ -117,6 +125,7 @@ get_picovoice_key() {
 setup_picovoice_config() {
     if [ ! -f "$CONFIG_DIR/.picovoice.env" ]; then
         echo "Setting up Picovoice configuration..."
+        show_picovoice_requirements
         local picovoice_key=$(get_picovoice_key)
         
         # Create configuration file with the provided key
