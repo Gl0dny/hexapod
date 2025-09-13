@@ -3,12 +3,12 @@ from typing import TYPE_CHECKING, override, Optional
 import logging
 import math
 
-from lights.animations import Animation
-from lights import ColorRGB
+from hexapod.lights.animations import Animation
+from hexapod.lights import ColorRGB
 
 if TYPE_CHECKING:
     from typing import Dict
-    from lights import Lights
+    from hexapod.lights import Lights
 
 logger = logging.getLogger("lights_logger")
 

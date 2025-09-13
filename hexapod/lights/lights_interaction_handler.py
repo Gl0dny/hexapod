@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 import logging
 from functools import wraps
 
-from lights import Lights, ColorRGB
-import lights.animations
+from hexapod.lights import Lights, ColorRGB
+import hexapod.lights.animations as animations
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional, Dict
@@ -130,7 +130,7 @@ class LightsInteractionHandler:
             interval (float): The interval between filling LEDs.
         """
         self.off()
-        self.animation = lights.animations.WheelFillAnimation(
+        self.animation = animations.WheelFillAnimation(
             lights=self.lights,
             use_rainbow=use_rainbow,
             color=color if color else ColorRGB.WHITE,
@@ -153,7 +153,7 @@ class LightsInteractionHandler:
             pulse_speed (float): The speed of the pulse.
         """
         self.off()
-        self.animation = lights.animations.PulseSmoothlyAnimation(
+        self.animation = animations.PulseSmoothlyAnimation(
             lights=self.lights,
             base_color=base_color,
             pulse_color=pulse_color,
@@ -176,7 +176,7 @@ class LightsInteractionHandler:
             delay (float): Delay between rotations.
         """
         self.off()
-        self.animation = lights.animations.AlternateRotateAnimation(
+        self.animation = animations.AlternateRotateAnimation(
             lights=self.lights,
             color_even=color_even,
             color_odd=color_odd,
@@ -197,7 +197,7 @@ class LightsInteractionHandler:
             interval (float): The delay between updates.
         """
         self.off()
-        self.animation = lights.animations.OppositeRotateAnimation(
+        self.animation = animations.OppositeRotateAnimation(
             lights=self.lights,
             interval=interval,
             color=color,
@@ -212,7 +212,7 @@ class LightsInteractionHandler:
             pulse_speed (float): The speed of the pulse.
         """
         self.off()
-        self.animation = lights.animations.PulseAnimation(
+        self.animation = animations.PulseAnimation(
             lights=self.lights,
             base_color=ColorRGB.BLUE,
             pulse_color=ColorRGB.RED,
@@ -228,7 +228,7 @@ class LightsInteractionHandler:
             interval (float): The interval between filling LEDs.
         """
         self.off()
-        self.animation = lights.animations.WheelFillAnimation(
+        self.animation = animations.WheelFillAnimation(
             lights=self.lights,
             use_rainbow=False,
             color=ColorRGB.RED,
@@ -244,7 +244,7 @@ class LightsInteractionHandler:
             calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
         """
         self.off()
-        self.animation = lights.animations.CalibrationAnimation(
+        self.animation = animations.CalibrationAnimation(
             lights=self.lights,
             calibration_status=calibration_status,
             leg_to_led=self.leg_to_led
@@ -279,7 +279,7 @@ class LightsInteractionHandler:
                 Defaults to [TEAL, INDIGO, YELLOW, LIME].
         """
         self.off()
-        self.animation = lights.animations.DirectionOfArrivalAnimation(
+        self.animation = animations.DirectionOfArrivalAnimation(
             lights=self.lights,
             refresh_delay=refresh_delay,
             source_colors=source_colors
@@ -296,7 +296,7 @@ class LightsInteractionHandler:
                 to complete one full circle in 1.5 seconds (12 LEDs).
         """
         self.off()
-        self.animation = lights.animations.WheelFillAnimation(
+        self.animation = animations.WheelFillAnimation(
             lights=self.lights,
             use_rainbow=False,
             color=ColorRGB.TEAL,
@@ -319,7 +319,7 @@ class LightsInteractionHandler:
             pulse_speed (float): The speed of the pulse transitions.
         """
         self.off()
-        self.animation = lights.animations.PulseSmoothlyAnimation(
+        self.animation = animations.PulseSmoothlyAnimation(
             lights=self.lights,
             base_color=base_color,
             pulse_color=pulse_color,
@@ -342,7 +342,7 @@ class LightsInteractionHandler:
             interval (float): The interval between changing colors/LEDs.
         """
         self.off()
-        self.animation = lights.animations.WheelAnimation(
+        self.animation = animations.WheelAnimation(
             lights=self.lights,
             use_rainbow=use_rainbow,
             color=color,

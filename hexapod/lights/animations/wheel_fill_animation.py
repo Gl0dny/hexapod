@@ -2,12 +2,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, override
 import logging
 
-from lights.animations import Animation
-from lights import ColorRGB
+from hexapod.lights.animations import Animation
+from hexapod.lights import ColorRGB
 
 if TYPE_CHECKING:
     from typing import Optional
-    from lights import Lights
+    from hexapod.lights import Lights
 
 logger = logging.getLogger("lights_logger")
 

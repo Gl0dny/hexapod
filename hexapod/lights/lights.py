@@ -13,7 +13,7 @@ gpiozero.Device.pin_factory = RPiGPIOFactory()
 
 from gpiozero import LED
 
-from lights.apa102 import APA102
+from hexapod.lights import APA102
 
 if TYPE_CHECKING:
     from typing import Optional, Tuple, List
