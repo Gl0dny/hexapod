@@ -10,7 +10,7 @@ import yaml
 import numpy as np
 
 from hexapod.maestro import MaestroUART
-from . import Leg, Calibration, Imu
+from hexapod.robot import Leg, Calibration, Imu
 from hexapod.gait_generator import GaitGenerator
 from hexapod.utils import map_range, homogeneous_transformation_matrix
 

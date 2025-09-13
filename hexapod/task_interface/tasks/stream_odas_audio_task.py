@@ -14,13 +14,13 @@ import time
 import paramiko
 from pathlib import Path
 
-from task_interface.tasks import Task
+from hexapod.task_interface.tasks import Task
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
-    from robot import Hexapod
-    from lights import LightsInteractionHandler
-    from odas import ODASDoASSLProcessor
+    from hexapod.robot import Hexapod
+    from hexapod.lights import LightsInteractionHandler
+    from hexapod.odas import ODASDoASSLProcessor
 
 logger = logging.getLogger("task_interface_logger")
 

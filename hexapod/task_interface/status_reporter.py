@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 if TYPE_CHECKING:
-    from robot import Hexapod
+    from hexapod.robot import Hexapod
 
 logger = logging.getLogger("task_interface_logger")
 

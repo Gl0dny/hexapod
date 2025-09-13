@@ -5,14 +5,14 @@ import threading
 import time
 import math
 
-from task_interface.tasks import Task
-from robot import PredefinedPosition
+from hexapod.task_interface.tasks import Task
+from hexapod.robot import PredefinedPosition
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
-    from robot import Hexapod
-    from lights import LightsInteractionHandler
-    from odas import ODASDoASSLProcessor
+    from hexapod.robot import Hexapod
+    from hexapod.lights import LightsInteractionHandler
+    from hexapod.odas import ODASDoASSLProcessor
 
 logger = logging.getLogger("task_interface_logger")
 
