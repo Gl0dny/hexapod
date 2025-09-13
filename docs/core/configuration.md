@@ -82,23 +82,23 @@ flowchart LR
 
 ```bash
 # Basic operation
-hexapod --access-key "KEY123"
+python main.py --access-key "KEY123"
 
 # Debug mode with custom logging
-hexapod --access-key "KEY123" \
+python main.py --access-key "KEY123" \
     --log-level DEBUG \
     --log-dir /tmp/hexapod_logs \
     --print-context
 
 # Clean logs and start fresh
-hexapod --access-key "KEY123" --clean
+python main.py --access-key "KEY123" --clean
 ```
 
 ## Logging Configuration
 
 ### Configuration File
 
-**Location**: `hexapod/interface/logging/config/config.yaml`
+**Location**: `src/interface/logging/config/config.yaml`
 
 ### Log Levels
 
@@ -132,7 +132,7 @@ hexapod --access-key "KEY123" --clean
 
 ### Configuration File
 
-**Location**: `hexapod/robot/config/hexapod_config.yaml`
+**Location**: `src/robot/config/hexapod_config.yaml`
 
 ### Key Parameters
 
@@ -172,7 +172,7 @@ hexapod --access-key "KEY123" --clean
 
 ### Configuration Files
 
-**Location**: `hexapod/odas/config/`
+**Location**: `src/odas/config/`
 
 #### Configuration Files
 - `local_odas.cfg`: Local audio processing settings
@@ -256,7 +256,7 @@ hexapod --access-key "KEY123" --clean
 
 ### Configuration File
 
-**Location**: `hexapod/robot/config/calibration.json`
+**Location**: `src/robot/config/calibration.json`
 
 ### Structure
 

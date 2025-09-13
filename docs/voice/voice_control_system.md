@@ -62,7 +62,7 @@ flowchart LR
 
 ## Core Components
 
-### **VoiceControl Class** (`hexapod/kws/voice_control.py`)
+### **VoiceControl Class** (`src/kws/voice_control.py`)
 
 **Role**: Main voice control thread and audio processing coordinator
 - **Thread-based Execution**: Runs in separate daemon thread
@@ -83,7 +83,7 @@ flowchart LR
 - **Chunk Size**: 512 frames per buffer
 - **Sensitivity**: Porcupine 0.75, Rhino 0.25 (configurable)
 
-### **IntentDispatcher Class** (`hexapod/kws/intent_dispatcher.py`)
+### **IntentDispatcher Class** (`src/kws/intent_dispatcher.py`)
 
 **Role**: Command routing and parameter parsing
 - **Intent Mapping**: Maps recognized intents to handler methods
@@ -98,7 +98,7 @@ flowchart LR
 - **Angle Parsing**: Word-to-number conversion for rotation angles
 - **Percentage Parsing**: Percentage string to numeric conversion
 
-### **Recorder Class** (`hexapod/kws/recorder.py`)
+### **Recorder Class** (`src/kws/recorder.py`)
 
 **Role**: Audio recording and file management
 - **Continuous Recording**: Long-duration recording with automatic file splitting

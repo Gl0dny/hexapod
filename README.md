@@ -59,6 +59,12 @@ The hexapod operates through a sophisticated voice control system that processes
 ![Error Mode](assets/gifs/error_mode.gif)
 *"Command not recognized"* - System handles unrecognized commands, invalid parameters, or execution failures. LED indicators show pulsing animation (red base with orange pulse) for error states.
 
+### System Features
+- **Multi-intent processing** - Handles complex commands with multiple parameters
+- **Task interruption** - Wake word detection automatically interrupts current tasks (gait tasks are gracefully stopped after completing a cycle)
+- **Real-time feedback** - Visual and audio confirmation of system state
+- **Error recovery** - Graceful handling of command failures and system errors
+
 ## Usage Examples
 
 ### Movement Commands

@@ -28,7 +28,7 @@ The server creates and manages log files for both types of sources, providing re
 To start the server in local mode (default):
 
 ```bash
-python hexapod/odas/odas_server.py --mode local
+python src/odas/odas_server.py --mode local
 ```
 
 This will:
@@ -41,7 +41,7 @@ This will:
 To enable data forwarding to a GUI station:
 
 ```bash
-python hexapod/odas/odas_server.py --mode local --forward-to-gui
+python src/odas/odas_server.py --mode local --forward-to-gui
 ```
 
 This will:

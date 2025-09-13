@@ -43,10 +43,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Scientific/Engineering :: Robotics",
         "Topic :: Multimedia :: Sound/Audio :: Speech",
@@ -59,7 +56,7 @@ setup(
         "directional-audio", "keyword-spotting", "speech-recognition",
         "autonomous-robots", "auditory-scene-analysis", "doa-estimation"
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.12",
     install_requires=requirements,
     extras_require={
         "dev": [
@@ -94,7 +91,7 @@ setup(
     },
     data_files=[
         ("share/hexapod", ["README.md", "requirements.txt", "INSTALL.md", "DEPLOYMENT.md"]),
-        ("share/hexapod/config", [".env.example"]),
+        ("share/hexapod/config", [".env.picovoice"]),
         ("share/hexapod/docs", ["docs/README.md"]),
     ],
     zip_safe=False,

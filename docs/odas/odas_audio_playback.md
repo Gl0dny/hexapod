@@ -77,15 +77,15 @@ play -r 44100 -b 16 -c 4 -e signed-integer -t raw postfiltered.raw remix 4
 **Host:**
 ```
 scp hexapod@192.168.0.122:/home/hexapod/hexapod/postfiltered.raw .
-./hexapod/odas/convert_odas_audio.py ~/postfiltered.raw test.wav
+./src/odas/convert_odas_audio.py ~/postfiltered.raw test.wav
  afplay test.wav
  ```
 
  **Target:**
  ```
- python hexapod/odas/odas_server.py
- ./hexapod/odas/convert_odas_audio.py postfiltered.raw test.wav
- ./hexapod/odas/test_picovoice_complete.py test.wav --access-key ACCESS_KEY
+ python src/odas/odas_server.py
+ ./src/odas/convert_odas_audio.py postfiltered.raw test.wav
+ ./src/odas/test_picovoice_complete.py test.wav --access-key ACCESS_KEY
  ```
 
 ---

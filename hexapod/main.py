@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from typing import TYPE_CHECKING
+import argparse
 import logging.config
 import sys
 import time
@@ -72,6 +73,42 @@ def shutdown_cleanup(voice_control, manual_controller, task_interface):
         logger.user_info(f"{thread.name}, {thread.is_alive()}")
     print("---")
 
+def create_main_parser() -> argparse.ArgumentParser:
+    """Create the main argument parser for the hexapod application."""
+    parser = argparse.ArgumentParser(
+        description='Hexapod Voice Control System',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Example usage:
+  hexapod --access-key "YOUR_PICOVOICE_KEY"
+  hexapod --log-level DEBUG --log-dir /tmp/logs
+  hexapod --clean --print-context
+        """
+    )
+    
+    # Add Picovoice configuration arguments
+    picovoice_parser = create_config_parser()
+    parser._add_action(picovoice_parser._actions[1])  # --config
+    parser._add_action(picovoice_parser._actions[2])  # --access-key
+    
+    # Logging arguments
+    parser.add_argument('--log-dir', type=Path, default=Path('logs'),
+                        help='Directory to store logs (default: logs)')
+    parser.add_argument('--log-config-file', type=Path, 
+                        default=Path('hexapod/interface/logging/config/config.yaml'),
+                        help='Path to log configuration file')
+    parser.add_argument('--log-level', type=str, default='INFO', 
+                        choices=['DEBUG', 'INFO', 'USER_INFO', 'ODAS_USER_INFO', 'GAMEPAD_MODE_INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+                        help='Logging level: DEBUG (verbose), INFO (standard), USER_INFO (user messages), ODAS_USER_INFO (audio processing), GAMEPAD_MODE_INFO (controller), WARNING, ERROR, CRITICAL (default: INFO)')
+    
+    # Utility arguments
+    parser.add_argument('--clean', '-c', action='store_true',
+                        help='Clean all logs in the logs directory.')
+    parser.add_argument('--print-context', action='store_true',
+                        help='Print context information.')
+    
+    return parser
+
 def create_application_components(config: Config, args) -> tuple[TaskInterface, VoiceControl]:
     """
     Factory function to create all application components with proper dependencies.
@@ -80,7 +117,7 @@ def create_application_components(config: Config, args) -> tuple[TaskInterface, 
     dependencies are correctly injected, eliminating the need for manual assignment.
     
     Args:
-        config: Configuration object with all settings
+        config: Configuration object with environment settings
         args: Command line arguments containing additional configuration
         
     Returns:
@@ -90,13 +127,13 @@ def create_application_components(config: Config, args) -> tuple[TaskInterface, 
         clean_logs()
     
     setup_logging(
-        log_dir=config.get_log_dir(), 
+        log_dir=args.log_dir, 
         config_file=args.log_config_file, 
-        log_level=config.get_log_level()
+        log_level=args.log_level
     )
     
     logger.user_info("Hexapod application started")
-    logger.info(f"Logging level set to: {config.get_log_level()}")
+    logger.info(f"Logging level set to: {args.log_level}")
 
     task_interface = TaskInterface()
     
@@ -110,7 +147,7 @@ def create_application_components(config: Config, args) -> tuple[TaskInterface, 
         context_path=context_path,
         access_key=config.get_picovoice_key(),
         task_interface=task_interface,
-        device_index=config.get_audio_device_index()
+        device_index=-1  # Auto-detect ReSpeaker 6
     )
     
     task_interface.set_voice_control(voice_control)
@@ -125,10 +162,6 @@ def create_application_components(config: Config, args) -> tuple[TaskInterface, 
 
 def initialize_manual_controller(task_interface, voice_control, config: Config, args) -> Optional[GamepadHexapodController]:
     """Initialize manual controller and return it, or None if failed."""
-    # Check if manual control is disabled
-    if args.disable_manual_control or not config.is_manual_control_enabled():
-        logger.info("Manual control disabled, running in voice control mode only")
-        return None
     
     try:
         # Ensure voice control is paused in manual mode
@@ -186,14 +219,14 @@ def run_main_loop(voice_control, manual_controller, task_interface) -> None:
 
 def main() -> None:
     """Main entry point."""
-    parser = create_config_parser()
+    parser = create_main_parser()
     args = parser.parse_args()
     
-    # Create configuration object
+    # Create configuration object for environment settings
     config = Config(config_file=args.config)
     config.update_from_args(args)
     
-    # Validate configuration
+    # Validate environment settings
     try:
         config.validate()
     except ValueError as e:
