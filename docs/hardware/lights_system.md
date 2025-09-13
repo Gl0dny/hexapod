@@ -96,45 +96,40 @@ class Animation(threading.Thread, abc.ABC):
 - **Parameters**: Pulse color, speed, intensity
 - **Use Case**: System status indication
 
-#### 2. Wheel Animation
+#### 2. Pulse Smoothly Animation
+- **Purpose**: Smooth pulsing effect with gradual transitions
+- **Parameters**: Pulse color, speed, smoothness
+- **Use Case**: Calm status indication
+
+#### 3. Wheel Animation
 - **Purpose**: Rotating color wheel effect
 - **Parameters**: Rotation speed, color sequence
 - **Use Case**: Processing/loading indication
 
-#### 3. Direction of Arrival Animation
+#### 4. Wheel Fill Animation
+- **Purpose**: Filling wheel pattern with color progression
+- **Parameters**: Fill speed, color sequence
+- **Use Case**: Progress indication
+
+#### 5. Direction of Arrival Animation
 - **Purpose**: Visual indication of sound source direction
 - **Parameters**: Direction angle, intensity
 - **Use Case**: Audio localization feedback
 
-#### 4. Opposite Rotate Animation
+#### 6. Opposite Rotate Animation
 - **Purpose**: Counter-rotating color patterns
 - **Parameters**: Rotation speed, color pairs
 - **Use Case**: Dynamic visual effects
 
-#### 5. Rainbow Animation
-- **Purpose**: Full spectrum color cycling
-- **Parameters**: Speed, saturation
-- **Use Case**: Celebration/attention-grabbing
+#### 7. Alternate Rotate Animation
+- **Purpose**: Alternating rotation patterns
+- **Parameters**: Rotation speed, alternation timing
+- **Use Case**: Attention-grabbing effects
 
-#### 6. Police Animation
-- **Purpose**: Alternating red/blue flashing
-- **Parameters**: Flash speed, intensity
-- **Use Case**: Alert/emergency indication
-
-#### 7. March Animation
-- **Purpose**: Sequential LED activation
-- **Parameters**: Speed, direction
-- **Use Case**: Movement indication
-
-#### 8. Show Off Animation
-- **Purpose**: Display of all available effects
-- **Parameters**: Sequence timing
-- **Use Case**: Demonstration mode
-
-#### 9. Sit Up Animation
-- **Purpose**: Gradual color transition
-- **Parameters**: Transition speed, target color
-- **Use Case**: Status change indication
+#### 8. Calibration Animation
+- **Purpose**: Visual feedback during calibration process
+- **Parameters**: Calibration stage, progress
+- **Use Case**: Calibration status indication
 
 ## LightsInteractionHandler
 

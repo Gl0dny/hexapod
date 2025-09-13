@@ -24,20 +24,26 @@ check_python_version() {
 
 # Function to install the package
 install_package() {
+    local dev_mode="$1"
+    
     if pip3 show hexapod-voice-control >/dev/null 2>&1; then
         echo "Package 'hexapod-voice-control' is already installed."
-        echo "Skipping installation."
+        if [[ "$dev_mode" == true ]]; then
+            echo "Installing development dependencies..."
+            pip3 install -e .[dev]
+            echo "Development dependencies installed successfully!"
+        else
+            echo "Skipping installation."
+        fi
     else
-        echo "Installing hexapod package..."
-        pip3 install -e .
+        if [[ "$dev_mode" == true ]]; then
+            echo "Installing hexapod package with development dependencies..."
+            pip3 install -e .[dev]
+        else
+            echo "Installing hexapod package..."
+            pip3 install -e .
+        fi
     fi
-}
-
-# Function to install development dependencies
-install_dev_dependencies() {
-    echo "Installing development dependencies..."
-    pip3 install -e .[dev]
-    echo "Development dependencies installed successfully!"
 }
 
 # Function to create directories
@@ -190,11 +196,7 @@ main() {
     fi
     
     check_python_version
-    install_package
-    
-    if [[ "$dev_mode" == true ]]; then
-        install_dev_dependencies
-    fi
+    install_package "$dev_mode"
     
     create_directories
     setup_picovoice_config
