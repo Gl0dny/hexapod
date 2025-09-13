@@ -244,16 +244,23 @@ The hexapod operates through a sophisticated voice control system that processes
 git clone <repository-url>
 cd hexapod
 
-# Install dependencies
-pip install -r requirements.txt
+# Run the automated installation script
+./install.sh
 ```
+
+The installation script will:
+- Check Python version compatibility
+- Install the hexapod package and dependencies
+- Create configuration directories
+- Prompt for your Picovoice Access Key
+- Set up the configuration file automatically
 
 ### Running the System
 
 #### Basic Voice Control
 ```bash
-# Run with voice control only
-python main.py --access-key "YOUR_PICOVOICE_KEY"
+# Run with voice control (uses default config file)
+hexapod
 ```
 
 #### With Gamepad Control
@@ -261,7 +268,16 @@ The system automatically detects and uses a connected DualSense controller. If a
 
 ```bash
 # Run with automatic controller detection
-python main.py --access-key "YOUR_PICOVOICE_KEY"
+hexapod
+```
+
+#### Custom Configuration
+```bash
+# Use a custom picovoice access_key configuration file
+hexapod --config /path/to/your/.picovoice.env
+
+# Override the Picovoice access key
+hexapod --access-key "YOUR_PICOVOICE_KEY"
 ```
 
 ### Configuration Options
@@ -269,10 +285,10 @@ python main.py --access-key "YOUR_PICOVOICE_KEY"
 For a complete list of available command-line options, run:
 
 ```bash
-python main.py --help
+hexapod --help
 ```
 
-See [Configuration Documentation](docs/core/configuration.md) for detailed options.
+The system uses a configuration file at `~/.config/hexapod/.picovoice.env` by default, which is automatically created during installation.
 
 ## System Architecture
 
@@ -488,6 +504,9 @@ graph TB
 For detailed technical documentation and system architecture please refer to the [Documentation](./docs/README.md).
 
 The documentation covers:
+
+### Getting Started
+- [Installation Guide](INSTALL.md) - Complete installation and setup instructions
 
 ### Core Systems
 - [System Overview](docs/core/system_overview.md) - High-level architecture and component relationships

@@ -22,7 +22,7 @@ with open("requirements.txt", "r") as f:
 
 setup(
     name="hexapod-voice-control",
-    version="1.0.0",
+    version="2.0.0",
     author="Krystian Głodek",
     author_email="krystian.glodek1717@gmail.com",
     description="Autonomous hexapod robot control system with voice commands and sound source localization",
@@ -40,21 +40,19 @@ setup(
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "Intended Audience :: Education",
-        "License :: OSI Approved :: MIT License",
+        "License :: Other/Proprietary License",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Scientific/Engineering :: Robotics",
         "Topic :: Multimedia :: Sound/Audio :: Speech",
-        "Topic :: Scientific/Engineering :: Information Analysis",
-        "Topic :: System :: Hardware :: Hardware Drivers",
     ],
     keywords=[
-        "robotics", "hexapod", "voice-control", "sound-localization", 
-        "picovoice", "odas", "audio-processing", "beamforming", 
-        "directional-audio", "keyword-spotting", "speech-recognition",
-        "autonomous-robots", "auditory-scene-analysis", "doa-estimation"
+        "raspberry-pi", "machine-learning", "robotics", "embedded-systems",
+        "hexapod", "voice-control", "keyword-spotting", "beamforming",
+        "microphone-array", "doa", "odas", "acoustic-scene-classification",
+        "sound-source-localization", "human-machine-interaction", "computer-aud"
     ],
     python_requires=">=3.12",
     install_requires=requirements,
@@ -91,10 +89,9 @@ setup(
     },
     data_files=[
         ("share/hexapod", ["README.md", "requirements.txt", "INSTALL.md", "DEPLOYMENT.md"]),
-        ("share/hexapod/config", [".env.picovoice"]),
         ("share/hexapod/docs", ["docs/README.md"]),
     ],
     zip_safe=False,
     platforms=["Linux"],
-    license="MIT",
+    license="Proprietary",
 )

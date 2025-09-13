@@ -33,6 +33,13 @@ install_package() {
     fi
 }
 
+# Function to install development dependencies
+install_dev_dependencies() {
+    echo "Installing development dependencies..."
+    pip3 install -e .[dev]
+    echo "Development dependencies installed successfully!"
+}
+
 # Function to create directories
 create_directories() {
     echo "Creating configuration directories..."
@@ -91,10 +98,33 @@ test_installation() {
 
 # Function to display success message
 show_success_message() {
+    local dev_mode="$1"
+    
     echo ""
     echo "Installation completed successfully!"
     echo ""
-    echo "Usage examples:"
+    echo "Configuration file created at: $CONFIG_DIR/.picovoice.env"
+    echo ""
+    
+    if [[ "$dev_mode" == true ]]; then
+        echo "Development tools installed:"
+        echo "  - black (code formatter)"
+        echo "  - flake8 (linter)"
+        echo "  - pytest (testing framework)"
+        echo "  - pytest-cov (test coverage)"
+        echo "  - mypy (type checker)"
+        echo ""
+        echo "Run development tools with:"
+        echo "  black .              # Format code"
+        echo "  flake8 .             # Check code style"
+        echo "  pytest               # Run tests"
+        echo "  pytest --cov=hexapod # Run tests with coverage"
+        echo "  mypy hexapod/        # Check types"
+        echo ""
+    fi
+    
+    echo "You can now run the hexapod system with:"
+    echo "  hexapod"
     echo "  hexapod --help"
     echo "  hexapod --config $CONFIG_DIR/.picovoice.env"
     echo "  hexapod --access-key YOUR_PICOVOICE_KEY --log-level INFO --clean"
@@ -102,15 +132,28 @@ show_success_message() {
 
 # Main installation function
 main() {
-    echo "Installing Hexapod Voice Control System..."
+    local dev_mode=false
+    
+    # Check for --dev flag
+    if [[ "$1" == "--dev" ]]; then
+        dev_mode=true
+        echo "Installing Hexapod Voice Control System (Development Mode)..."
+    else
+        echo "Installing Hexapod Voice Control System..."
+    fi
     
     check_python_version
     install_package
+    
+    if [[ "$dev_mode" == true ]]; then
+        install_dev_dependencies
+    fi
+    
     create_directories
     setup_picovoice_config
     
     if test_installation; then
-        show_success_message
+        show_success_message "$dev_mode"
     else
         exit 1
     fi

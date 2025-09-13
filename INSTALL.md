@@ -1,5 +1,7 @@
 # Hexapod Voice Control System - Installation Guide
 
+[← Back to Documentation](docs/README.md) | [Next: System Overview →](docs/core/system_overview.md)
+
 This guide will help you install the Hexapod Voice Control System as a Python package with a global command-line interface.
 
 ## Prerequisites
@@ -97,3 +99,7 @@ rm -rf ~/.config/hexapod
 # Remove log files from current directory
 rm -f *.log *.log.*
 ```
+
+---
+
+[← Back to Documentation](docs/README.md) | [Next: System Overview →](docs/core/system_overview.md)

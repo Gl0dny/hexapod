@@ -5,6 +5,7 @@
 ## Quick Start
 
 ### **Start Here**
+- **[Installation Guide](../INSTALL.md)** - Complete installation and setup instructions
 - **[System Overview](core/system_overview.md)** - Get the big picture of how everything works together
 - **[Movement System](robot/movement_system.md)** - Learn how the hexapod moves and walks
 - **[Voice Control System](voice/voice_control_system.md)** - Understand how voice commands work
