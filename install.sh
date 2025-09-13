@@ -96,6 +96,30 @@ test_installation() {
     fi
 }
 
+# Function to display help
+show_help() {
+    echo "Hexapod Voice Control System - Installation Script"
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --dev     Install with development dependencies (black, flake8, pytest, pytest-cov, mypy)"
+    echo "  --help    Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                # Standard installation"
+    echo "  $0 --dev          # Development installation with dev tools"
+    echo "  $0 --help         # Show this help"
+    echo ""
+    echo "The script will:"
+    echo "  - Check Python version compatibility (3.12+)"
+    echo "  - Install the hexapod package"
+    echo "  - Create configuration directories"
+    echo "  - Prompt for Picovoice Access Key"
+    echo "  - Set up configuration file"
+    echo "  - Test the installation"
+}
+
 # Function to display success message
 show_success_message() {
     local dev_mode="$1"
@@ -133,10 +157,33 @@ show_success_message() {
 # Main installation function
 main() {
     local dev_mode=false
+    local show_help_flag=false
     
-    # Check for --dev flag
-    if [[ "$1" == "--dev" ]]; then
-        dev_mode=true
+    # Parse all arguments
+    for arg in "$@"; do
+        case $arg in
+            --help|-h)
+                show_help_flag=true
+                ;;
+            --dev)
+                dev_mode=true
+                ;;
+            *)
+                echo "Unknown option: $arg"
+                echo "Use --help for usage information"
+                exit 1
+                ;;
+        esac
+    done
+    
+    # Show help if requested
+    if [[ "$show_help_flag" == true ]]; then
+        show_help
+        exit 0
+    fi
+    
+    # Determine installation mode
+    if [[ "$dev_mode" == true ]]; then
         echo "Installing Hexapod Voice Control System (Development Mode)..."
     else
         echo "Installing Hexapod Voice Control System..."
