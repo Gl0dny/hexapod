@@ -53,15 +53,60 @@ create_directories() {
     echo "Configuration directory: $CONFIG_DIR"
 }
 
+# Function to validate Picovoice access key format
+validate_picovoice_key() {
+    local key="$1"
+    
+    # Check if key is not empty
+    if [ -z "$key" ]; then
+        echo "Access key cannot be empty."
+        return 1
+    fi
+    
+    # Check length (Picovoice keys are exactly 64 characters)
+    local key_length=${#key}
+    if [ "$key_length" -ne 64 ]; then
+        echo "Invalid key length. Picovoice keys are exactly 64 characters long (got $key_length)."
+        return 1
+    fi
+    
+    # Check if key contains only valid Base64 characters
+    if ! echo "$key" | grep -q '^[A-Za-z0-9+/=]*$'; then
+        echo "Invalid key format. Picovoice keys contain only letters, numbers, +, /, and = characters."
+        return 1
+    fi
+    
+    # Check if key doesn't start with common prefixes that might be copied incorrectly
+    if echo "$key" | grep -q '^PICOVOICE_ACCESS_KEY='; then
+        echo "Please enter only the key value, not the full environment variable line."
+        return 1
+    fi
+    
+    return 0
+}
+
 # Function to get Picovoice access key from user
 get_picovoice_key() {
+    echo ""
+    echo "Get your free Picovoice Access Key from: https://console.picovoice.ai/"
+    echo ""
+    echo "Picovoice Access Key requirements:"
+    echo "  - Length: Exactly 64 characters"
+    echo "  - Characters: Letters, numbers, +, /, and = only"
+    echo "  - Format: Base64 encoded string"
+    echo ""
     
     while true; do
         read -p "Enter your Picovoice Access Key: " picovoice_key
-        if [ -n "$picovoice_key" ]; then
+        
+        # Clean up the input - remove any extra text and keep only the key
+        picovoice_key=$(echo "$picovoice_key" | sed 's/^PICOVOICE_ACCESS_KEY=//' | tr -d '[:space:]')
+        
+        if validate_picovoice_key "$picovoice_key"; then
             break
         else
-            echo "Access key cannot be empty. Please try again."
+            echo "Please try again."
+            echo ""
         fi
     done
     

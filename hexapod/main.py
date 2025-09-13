@@ -233,6 +233,7 @@ def main() -> None:
     except ValueError as e:
         print(f"Configuration error: {e}")
         print("\nFor help with configuration, run: hexapod --help")
+        print("For installation and setup instructions, see: INSTALL.md")
         sys.exit(1)
     
     # Create all application components with proper dependencies using factory
