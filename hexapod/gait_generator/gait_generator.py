@@ -14,8 +14,8 @@ import time
 import math
 
 from hexapod.utils import rename_thread, Vector3D
-from gait_generator import BaseGait, GaitPhase, GaitState
-from gait_generator import TripodGait, WaveGait
+from hexapod.gait_generator import BaseGait, GaitPhase, GaitState
+from hexapod.gait_generator import TripodGait, WaveGait
 
 logger = logging.getLogger("gait_generator_logger")
 
