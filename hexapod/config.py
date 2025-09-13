@@ -91,8 +91,8 @@ Example usage:
     )
     
     # Configuration file
-    parser.add_argument('--config', type=Path, default=None,
-                        help='Path to .env configuration file')
+    parser.add_argument('--config', type=Path, default=Path.home() / '.config' / 'hexapod' / '.picovoice.env',
+                        help='Path to .env configuration file (default: ~/.config/hexapod/.picovoice.env)')
     
     # Required arguments
     parser.add_argument('--access-key', type=str, default=None,

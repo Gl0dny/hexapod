@@ -2,11 +2,11 @@ version: 1
 disable_existing_loggers: false
 formatters:
   simple:
-    class: src.interface.logging.logger.ColoredTerminalFormatter
+    class: hexapod.interface.logging.logger.ColoredTerminalFormatter
   verbose:
-    class: src.interface.logging.logger.VerboseFormatter
+    class: hexapod.interface.logging.logger.VerboseFormatter
   json:
-    "()": src.interface.logging.logger.MyJSONFormatter
+    "()": hexapod.interface.logging.logger.MyJSONFormatter
     fmt_keys:
       level: levelname
       logger: name
