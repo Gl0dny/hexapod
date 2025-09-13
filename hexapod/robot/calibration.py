@@ -7,11 +7,11 @@ import time
 from pathlib import Path
 
 from hexapod.utils import rename_thread
-from robot import Joint
+from hexapod.robot import Joint
 
 if TYPE_CHECKING:
     from typing import Optional
-    from robot import Hexapod
+    from hexapod.robot import Hexapod
 
 logger = logging.getLogger("robot_logger")
 
@@ -52,8 +52,8 @@ class Calibration:
         Args:
             stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
         """
-        from robot import PredefinedPosition
-        from interface import NonBlockingConsoleInputHandler
+        from hexapod.robot import PredefinedPosition
+        from hexapod.interface import NonBlockingConsoleInputHandler
         
         self.input_handler = NonBlockingConsoleInputHandler()
         rename_thread(self.input_handler, "CalibrationInputHandler")

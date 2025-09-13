@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from robot import Hexapod
+    from hexapod.robot import Hexapod
 
 class BalanceCompensator:
     """Handles IMU-based balance compensation for the hexapod robot.

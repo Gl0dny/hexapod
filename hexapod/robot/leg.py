@@ -2,11 +2,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging
 import math
-from robot import Joint
+from hexapod.robot import Joint
 
 if TYPE_CHECKING:
     from typing import Tuple, Dict, Union
-    from maestro import MaestroUART
+    from hexapod.maestro import MaestroUART
 
 logger = logging.getLogger("robot_logger")
 

@@ -6,7 +6,7 @@ from hexapod.utils import map_range
 
 if TYPE_CHECKING:
     from typing import Optional
-    from maestro import MaestroUART
+    from hexapod.maestro import MaestroUART
 
 logger = logging.getLogger("robot_logger")
 
