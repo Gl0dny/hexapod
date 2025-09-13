@@ -37,10 +37,6 @@ create_directories() {
 
 # Function to get Picovoice access key from user
 get_picovoice_key() {
-    echo ""
-    echo "You need a Picovoice Access Key for voice control functionality."
-    echo "Get your free access key from: https://console.picovoice.ai/"
-    echo ""
     
     while true; do
         read -p "Enter your Picovoice Access Key: " picovoice_key

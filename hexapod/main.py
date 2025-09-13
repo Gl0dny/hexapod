@@ -88,8 +88,9 @@ Example usage:
     
     # Add Picovoice configuration arguments
     picovoice_parser = create_config_parser()
-    parser._add_action(picovoice_parser._actions[1])  # --config
-    parser._add_action(picovoice_parser._actions[2])  # --access-key
+    parser.add_argument('--config', type=Path, default=Path.home() / '.config' / 'hexapod' / '.picovoice.env',
+                        help='Path to .env configuration file (default: ~/.config/hexapod/.picovoice.env)')
+    parser._add_action(picovoice_parser._actions[1])  # --access-key
     
     # Logging arguments
     parser.add_argument('--log-dir', type=Path, default=Path('logs'),

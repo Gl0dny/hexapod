@@ -67,10 +67,6 @@ class Config:
         if not key:
             raise ValueError("PICOVOICE_ACCESS_KEY is not set")
         return key
-    
-    
-    
-
 
 def create_config_parser() -> argparse.ArgumentParser:
     """Create command line argument parser for Picovoice configuration."""
@@ -82,17 +78,8 @@ Picovoice configuration can be provided via:
 1. Command line arguments (highest priority)
 2. Environment variables
 3. .env file in current directory
-
-Example usage:
-  hexapod --access-key "YOUR_PICOVOICE_KEY"
-  hexapod --config .env
-  PICOVOICE_ACCESS_KEY="your_key" hexapod
         """
     )
-    
-    # Configuration file
-    parser.add_argument('--config', type=Path, default=Path.home() / '.config' / 'hexapod' / '.picovoice.env',
-                        help='Path to .env configuration file (default: ~/.config/hexapod/.picovoice.env)')
     
     # Required arguments
     parser.add_argument('--access-key', type=str, default=None,
