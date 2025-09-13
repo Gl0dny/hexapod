@@ -1,5 +1,12 @@
+"""
+Utility functions and classes for the Hexapod Voice Control System.
+
+This module provides common utility functions used throughout the hexapod system,
+including mathematical operations, threading utilities, and data structures.
+"""
+
 from __future__ import annotations
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 import threading
 import math
 from dataclasses import dataclass
@@ -7,7 +14,7 @@ from dataclasses import dataclass
 import numpy as np
 
 if TYPE_CHECKING:
-    from typing import Union
+    from typing import Tuple, Union
 
 def map_range(value: int, in_min: int, in_max: int, out_min: int, out_max: int) -> int:
         """

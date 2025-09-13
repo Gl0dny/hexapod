@@ -1,3 +1,11 @@
+"""
+Tripod gait implementation for hexapod robot locomotion.
+
+This module implements the TripodGait class which provides a tripod walking pattern
+where three legs are in contact with the ground while the other three are in motion.
+This gait provides good stability and is commonly used for hexapod robots.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 

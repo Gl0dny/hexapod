@@ -4,7 +4,7 @@ Gamepad input mappings for hexapod controllers.
 This module provides input mapping implementations for various gamepad controllers.
 """
 
-from .base_input_mapping import InputMapping
+from hexapod.interface import InputMapping
 
 class DualSenseUSBMapping(InputMapping):
     """Mappings for PS5 DualSense Controller in USB mode."""

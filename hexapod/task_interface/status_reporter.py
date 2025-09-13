@@ -1,3 +1,11 @@
+"""
+Status reporting system for hexapod robot tasks.
+
+This module provides the StatusReporter class which handles real-time status
+reporting for robot tasks and operations. It manages status updates, logging,
+and provides a unified interface for reporting task progress and system state.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging

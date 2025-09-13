@@ -6,10 +6,14 @@ including short press, long press detection, and external control pause manageme
 It interfaces with the physical button connected to GPIO pin 26 for system control.
 """
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import RPi.GPIO as GPIO
 import threading
 import time
-from typing import Tuple, Optional
+
+if TYPE_CHECKING:
+    from typing import Tuple, Optional
 
 class ButtonHandler:
     def __init__(self, pin: int = 26, long_press_time: float = 3.0, external_control_paused_event: Optional[threading.Event] = None) -> None:

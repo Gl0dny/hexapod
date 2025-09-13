@@ -5,14 +5,18 @@ This module provides LED control functionality for various gamepad controllers
 using inheritance to support different controller types.
 """
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
 import time
 import threading
 import math
-from typing import Optional, Tuple, Dict, Any
 from enum import Enum
 from abc import ABC, abstractmethod
 from hexapod.utils import rename_thread
+
+if TYPE_CHECKING:
+    from typing import Optional, Tuple, Dict, Any
 
 logger = logging.getLogger("interface_logger")
 

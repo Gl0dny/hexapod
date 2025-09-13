@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+"""
+IMU (Inertial Measurement Unit) sensor interface for hexapod robot.
+
+This module provides an interface to the ICM20948 IMU sensor for reading
+accelerometer, gyroscope, and magnetometer data. It handles sensor initialization,
+data reading, and provides methods for getting orientation and motion data.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 

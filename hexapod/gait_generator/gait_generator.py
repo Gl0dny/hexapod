@@ -1,20 +1,27 @@
+"""
+Gait generation system for hexapod robot locomotion.
+
+This module provides the main GaitGenerator class that orchestrates different
+walking gaits for the hexapod robot. It supports multiple gait patterns including
+tripod and wave gaits, with real-time gait phase management and smooth transitions.
+"""
+
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING
 import logging
 import threading
 import time
 import math
 
 from hexapod.utils import rename_thread, Vector3D
-from .base_gait import BaseGait, GaitPhase, GaitState
-from .tripod_gait import TripodGait
-from .wave_gait import WaveGait
+from gait_generator import BaseGait, GaitPhase, GaitState
+from gait_generator import TripodGait, WaveGait
 
 logger = logging.getLogger("gait_generator_logger")
 
 if TYPE_CHECKING:
-    from robot import Hexapod
-    from typing import Union
+    from typing import Dict, List, Optional, Union
+    from hexapod.robot import Hexapod
 
 class GaitGenerator:
     """

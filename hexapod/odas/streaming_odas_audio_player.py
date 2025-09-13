@@ -14,7 +14,7 @@ The script continuously monitors these streams, transfers new audio data, and pl
 """
 
 from __future__ import annotations
-
+from typing import TYPE_CHECKING
 import sys
 import time
 import tempfile
@@ -25,7 +25,6 @@ import logging
 import logging.config
 import argparse
 from pathlib import Path
-from typing import Optional, List
 
 import paramiko
 import sounddevice as sd
@@ -33,16 +32,10 @@ import wave
 import numpy as np
 import queue
 
-script_path = Path(__file__).resolve()
-project_root = script_path.parent.parent.parent
-src_path = project_root / "src"
+from hexapod.interface import setup_logging, clean_logs
 
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-if str(src_path) not in sys.path:
-    sys.path.append(str(src_path))
-
-from interface.logging import setup_logging, clean_logs
+if TYPE_CHECKING:
+    from typing import Optional, List
 
 DEFAULT_HOST = "hexapod"
 DEFAULT_HOSTNAME = "192.168.0.122"
@@ -407,6 +400,17 @@ class StreamingODASAudioPlayer:
 
 def main() -> None:
     """Main entry point for the remote ODAS audio player."""
+
+    # Add project paths for imports when run as script
+    script_path = Path(__file__).resolve()
+    project_root = script_path.parent.parent.parent
+    src_path = project_root / "src"
+    
+    if str(project_root) not in sys.path:
+        sys.path.append(str(project_root))
+    if str(src_path) not in sys.path:
+        sys.path.append(str(src_path))
+    
     parser = argparse.ArgumentParser(description='Remote ODAS Audio Player')
     parser.add_argument('--host', type=str, default=DEFAULT_HOSTNAME,
                         help=f'Remote host address (default: {DEFAULT_HOSTNAME})')

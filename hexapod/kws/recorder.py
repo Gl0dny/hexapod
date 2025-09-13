@@ -5,12 +5,16 @@ This class provides the same interface as PvRecorder but adds the ability to rec
 while processing it with Picovoice. It maintains compatibility with the existing VoiceControl class.
 """
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import time
 import threading
 import wave
 from pathlib import Path
-from typing import Optional, List
 import logging
+
+if TYPE_CHECKING:
+    from typing import Optional, List
 
 logger = logging.getLogger("kws_logger")
 

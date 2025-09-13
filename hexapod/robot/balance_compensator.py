@@ -1,11 +1,20 @@
+"""
+Balance compensation system for the hexapod robot.
+
+This module provides real-time balance compensation using IMU data to maintain
+stable posture during movement. It continuously monitors the robot's orientation
+and adjusts leg positions to counteract tilting and maintain balance.
+"""
+
 from __future__ import annotations
-from typing import Tuple, Optional
+from typing import TYPE_CHECKING
 import threading
 import time
-from typing import TYPE_CHECKING
+
 import numpy as np
 
 if TYPE_CHECKING:
+    from typing import Tuple, Optional
     from hexapod.robot import Hexapod
 
 class BalanceCompensator:

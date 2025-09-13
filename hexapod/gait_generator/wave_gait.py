@@ -1,3 +1,11 @@
+"""
+Wave gait implementation for hexapod robot locomotion.
+
+This module implements the WaveGait class which provides a wave walking pattern
+where legs move one at a time in a sequential manner. This gait provides
+maximum stability but slower movement compared to tripod gait.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 

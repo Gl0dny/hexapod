@@ -1,3 +1,11 @@
+"""
+Task interface system for hexapod robot control.
+
+This module provides the TaskInterface class which manages and executes various
+robot tasks and behaviors. It handles task registration, execution, status reporting,
+and provides a unified interface for controlling the hexapod robot's actions.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging

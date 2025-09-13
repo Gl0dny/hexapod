@@ -1,7 +1,16 @@
+"""
+Hexapod leg implementation with forward and inverse kinematics.
+
+This module defines the Leg class which represents a single leg of the hexapod robot.
+It handles forward and inverse kinematics calculations, joint management, and
+coordinate transformations for leg movement and positioning.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging
 import math
+
 from hexapod.robot import Joint
 
 if TYPE_CHECKING:

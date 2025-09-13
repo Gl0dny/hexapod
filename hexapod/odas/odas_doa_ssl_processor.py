@@ -5,6 +5,8 @@ ODAS (Open embeddeD Audition System) DoA/SSL Processor Implementation
 Handles Direction of Arrival (DoA) and Sound Source Localization (SSL) data processing and visualization.
 """
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import socket
 import struct
 import json
@@ -14,24 +16,15 @@ from datetime import datetime
 import logging
 import subprocess
 from pathlib import Path
-from typing import Optional, List, TextIO, Any, Dict
 import argparse
 import sys
 import math
 
-if __name__ == "__main__":
-    script_path = Path(__file__).resolve()
-    project_root = script_path.parent.parent.parent
-    src_path = project_root / "src"
-
-    # If running as a script, add project root and src path to sys.path
-    if str(project_root) not in sys.path:
-        sys.path.append(str(project_root))
-    if str(src_path) not in sys.path:
-        sys.path.append(str(src_path))
-
-from lights import LightsInteractionHandler
+from hexapod.interface import setup_logging
 from hexapod.utils import rename_thread
+
+if TYPE_CHECKING:
+    from typing import Optional, List, TextIO, Any, Dict
 
 logger = logging.getLogger("odas_logger")
 
@@ -685,8 +678,17 @@ class ODASDoASSLProcessor:
 
 def main() -> None:
     """Main entry point for the ODAS DoA/SSL processor."""
-    from interface.logging.logging_utils import setup_logging
+
+    # Add project paths for imports when run as script
+    script_path = Path(__file__).resolve()
+    project_root = script_path.parent.parent.parent
+    src_path = project_root / "src"
     
+    if str(project_root) not in sys.path:
+        sys.path.append(str(project_root))
+    if str(src_path) not in sys.path:
+        sys.path.append(str(src_path))
+
     parser = argparse.ArgumentParser(description='ODAS DoA/SSL Processor for sound source tracking')
     parser.add_argument('--tracked-sources-port', type=int, default=9000,
                       help='Port for tracked sound sources (default: 9000)')
@@ -720,7 +722,7 @@ def main() -> None:
     setup_logging(log_dir=args.log_dir, config_file=args.log_config_file)
     
     # Create a temporary lights handler for standalone mode
-    from lights import LightsInteractionHandler
+    from hexapod.lights import LightsInteractionHandler
     lights_handler = LightsInteractionHandler({})  # Empty leg_to_led mapping for standalone mode
     
     # Prepare configurations

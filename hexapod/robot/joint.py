@@ -1,3 +1,11 @@
+"""
+Joint control system for hexapod robot servos.
+
+This module defines the Joint class which represents a single servo joint
+in the hexapod robot. It handles servo control, position management,
+and communication with the Maestro servo controller board.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging

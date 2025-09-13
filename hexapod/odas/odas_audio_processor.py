@@ -7,17 +7,19 @@ It reads audio from local ODAS output files and feeds it into the voice control 
 and intent recognition.
 """
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import logging
 import threading
 from pathlib import Path
 import numpy as np
-from typing import Optional, Callable
 import resampy
 import time
 
-# Configure logger
+if TYPE_CHECKING:
+    from typing import Optional, Callable
+
 logger = logging.getLogger("odas_logger")
-logger.setLevel(logging.DEBUG)  # Set to DEBUG level
 
 class ODASAudioProcessor:
     """

@@ -1,3 +1,12 @@
+"""
+Non-blocking console input handler for real-time user interaction.
+
+This module provides a NonBlockingConsoleInputHandler class that allows
+the hexapod system to receive user input from the console without blocking
+the main execution thread. It uses threading and select to achieve non-blocking
+input processing.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging

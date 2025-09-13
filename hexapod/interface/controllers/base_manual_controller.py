@@ -13,12 +13,6 @@ import threading
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-# Add the src directory to the path so we can import our modules
-SCRIPT_DIR = Path(__file__).resolve().parent
-SRC_DIR = (SCRIPT_DIR.parent.parent).resolve()
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
-
 from hexapod.robot import PredefinedPosition
 from hexapod.gait_generator import BaseGait, TripodGait
 from hexapod.utils import rename_thread

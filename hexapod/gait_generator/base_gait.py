@@ -1,3 +1,11 @@
+"""
+Base gait implementation for hexapod robot locomotion.
+
+This module defines the abstract BaseGait class and related data structures
+for implementing different walking gaits. It provides the foundation for
+gait patterns, phase management, and leg coordination algorithms.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging

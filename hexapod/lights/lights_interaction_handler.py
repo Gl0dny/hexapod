@@ -8,7 +8,7 @@ import hexapod.lights.animations as animations
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional, Dict
-    from typing import Animation
+    from hexapod.lights.animations import Animation
 
 logger = logging.getLogger("lights_logger")
 

@@ -1,3 +1,11 @@
+"""
+Base task class for hexapod robot operations.
+
+This module defines the abstract Task class which serves as the base class
+for all robot tasks and behaviors. It provides common functionality for
+task execution, threading, and lifecycle management.
+"""
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging

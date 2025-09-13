@@ -17,17 +17,6 @@ from pathlib import Path
 import tempfile
 import sys
 
-if __name__ == "__main__":
-    script_path = Path(__file__).resolve()
-    project_root = script_path.parent.parent.parent
-    src_path = project_root / "src"
-
-    # If running as a script, add project root and src path to sys.path
-    if str(project_root) not in sys.path:
-        sys.path.append(str(project_root))
-    if str(src_path) not in sys.path:
-        sys.path.append(str(src_path))
-        
 from odas import ODASAudioProcessor
 
 def convert_odas_to_wav(input_file: Path, output_file: Path, sample_rate: int = 44100, channels: int = 4, selected_channel: int = 0):
@@ -110,6 +99,16 @@ def convert_odas_to_wav(input_file: Path, output_file: Path, sample_rate: int = 
     print(f"Converted {len(converted_audio)} chunks of audio")
 
 def main():
+    # Add project paths for imports when run as script
+    script_path = Path(__file__).resolve()
+    project_root = script_path.parent.parent.parent
+    src_path = project_root / "src"
+    
+    if str(project_root) not in sys.path:
+        sys.path.append(str(project_root))
+    if str(src_path) not in sys.path:
+        sys.path.append(str(src_path))
+    
     parser = argparse.ArgumentParser(description='Convert ODAS raw audio to WAV format compatible with Picovoice')
     parser.add_argument('input_file', type=str, help='Path to the input ODAS raw file')
     parser.add_argument('output_file', type=str, help='Path to save the output WAV file')

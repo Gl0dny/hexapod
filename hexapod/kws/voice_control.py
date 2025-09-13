@@ -1,5 +1,13 @@
+"""
+Voice control system for hexapod robot using Picovoice.
+
+This module provides the main VoiceControl class that integrates keyword wake word
+detection and intent recognition for controlling the hexapod robot.
+It uses Picovoice's Porcupine for wake word detection and Rhino for intent recognition.
+"""
+
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Callable
+from typing import TYPE_CHECKING
 import logging
 import threading
 import time
@@ -11,14 +19,13 @@ import os
 
 from picovoice import Picovoice
 
-from hexapod.kws import IntentDispatcher
+from hexapod.kws import IntentDispatcher, Recorder
 from hexapod.task_interface import TaskInterface
 from hexapod.lights import ColorRGB
 from hexapod.utils import rename_thread
-from .recorder import Recorder
 
 if TYPE_CHECKING:
-    from typing import Any, List
+    from typing import Optional, Callable, Any, List
     from hexapod.task_interface import Task
 
 # Configure logger

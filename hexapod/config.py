@@ -3,11 +3,16 @@ Configuration management for the Hexapod Voice Control System.
 Handles environment variables, configuration files, and command line arguments.
 """
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import os
 import argparse
 from pathlib import Path
-from typing import Optional, Dict, Any
+
 from dotenv import load_dotenv
+
+if TYPE_CHECKING:
+    from typing import Optional, Dict, Any
 
 
 class Config:

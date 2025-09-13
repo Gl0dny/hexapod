@@ -9,9 +9,9 @@ import gpiozero
 # This is necessary because lgpio requires GLIBC 2.33+ which isn't available on the hexapod's system
 # RPi.GPIO is more stable and compatible with older systems
 from gpiozero.pins.rpigpio import RPiGPIOFactory
-gpiozero.Device.pin_factory = RPiGPIOFactory()
-
 from gpiozero import LED
+
+gpiozero.Device.pin_factory = RPiGPIOFactory()
 
 from hexapod.lights import APA102
 

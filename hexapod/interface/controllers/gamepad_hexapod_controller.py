@@ -18,7 +18,6 @@ import time
 from enum import Enum
 
 # Silence pygame warnings and welcome message BEFORE importing pygame
-import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="pygame")
@@ -27,13 +26,6 @@ warnings.filterwarnings("ignore", message=".*pkg_resources.*")
 warnings.filterwarnings("ignore", message=".*neon capable.*")
 warnings.filterwarnings("ignore", message=".*pygame.*")
 
-# Add the src directory to the path so we can import our modules
-SCRIPT_DIR = Path(__file__).resolve().parent
-SRC_DIR = (SCRIPT_DIR.parent.parent).resolve()
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
-
-# Import base classes and mappings
 from hexapod.interface import ManualHexapodController
 from hexapod.interface import InputMapping, DualSenseUSBMapping
 from hexapod.interface import BaseGamepadLEDController, GamepadLEDColor, DualSenseLEDController
@@ -453,7 +445,6 @@ class GamepadHexapodController(ManualHexapodController):
                     preview_printed = True
         # Print preview if buffer changed this tick
         if preview_printed:
-            from .base_manual_controller import logger
             try:
                 base = self.gait_stance_height
             except AttributeError:
@@ -636,7 +627,6 @@ class GamepadHexapodController(ManualHexapodController):
             "  Lime Pulse      - Movement detected (both modes)\n"
             + "="*60
         )
-        from .base_manual_controller import logger
         logger.gamepad_mode_info(help_message)
     
     def cleanup_controller(self):
