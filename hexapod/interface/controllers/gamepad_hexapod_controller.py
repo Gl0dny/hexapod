@@ -26,9 +26,9 @@ warnings.filterwarnings("ignore", message=".*pkg_resources.*")
 warnings.filterwarnings("ignore", message=".*neon capable.*")
 warnings.filterwarnings("ignore", message=".*pygame.*")
 
-from hexapod.interface import ManualHexapodController
-from hexapod.interface import InputMapping, DualSenseUSBMapping
-from hexapod.interface import BaseGamepadLEDController, GamepadLEDColor, DualSenseLEDController
+from hexapod.interface.controllers import ManualHexapodController
+from hexapod.interface.input_mappings import InputMapping, DualSenseUSBMapping
+from hexapod.interface.controllers.gamepad_led_controllers import BaseGamepadLEDController, GamepadLEDColor, DualSenseLEDController
 from hexapod.utils import rename_thread
 
 logger = logging.getLogger("interface_logger")

@@ -13,6 +13,7 @@ import threading
 import math
 from enum import Enum
 from abc import ABC, abstractmethod
+
 from hexapod.utils import rename_thread
 
 if TYPE_CHECKING:

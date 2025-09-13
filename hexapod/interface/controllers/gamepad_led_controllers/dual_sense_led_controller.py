@@ -6,7 +6,7 @@ This module provides LED control functionality specifically for the PS5 DualSens
 
 import logging
 
-from hexapod.interface import BaseGamepadLEDController
+from hexapod.interface.controllers.gamepad_led_controllers import BaseGamepadLEDController
 
 logger = logging.getLogger("interface_logger")
 
