@@ -24,8 +24,13 @@ check_python_version() {
 
 # Function to install the package
 install_package() {
-    echo "Installing hexapod package..."
-    pip3 install -e .
+    if pip3 show hexapod-voice-control >/dev/null 2>&1; then
+        echo "Package 'hexapod-voice-control' is already installed."
+        echo "Skipping installation."
+    else
+        echo "Installing hexapod package..."
+        pip3 install -e .
+    fi
 }
 
 # Function to create directories
@@ -90,10 +95,9 @@ show_success_message() {
     echo "Installation completed successfully!"
     echo ""
     echo "Usage examples:"
-    echo "  hexapod --help                           # Show help"
-    echo "  hexapod --config $CONFIG_DIR/.picovoice.env        # Use config file"
-    echo ""
-    echo "Configuration file: $CONFIG_DIR/.picovoice.env"
+    echo "  hexapod --help"
+    echo "  hexapod --config $CONFIG_DIR/.picovoice.env"
+    echo "  hexapod --access-key YOUR_PICOVOICE_KEY --log-level INFO --clean"
 }
 
 # Main installation function

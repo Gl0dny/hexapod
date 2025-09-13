@@ -104,6 +104,4 @@ def setup_logging(log_dir: Optional[Path] = None, config_file: Optional[Path] = 
             rename_thread(queue_handler.listener._thread, "QueueHandlerListener")
             atexit.register(queue_handler.listener.stop)
     else:
-        logging.basicConfig(level=getattr(logging, log_level.upper(), logging.INFO))
-        logger = logging.getLogger("main_logger")
-        logger.warning(f"Logging configuration file not found at {config_file}. Using basic logging configuration") 
+        raise FileNotFoundError(f"Logging configuration file not found at {config_file}. Custom logging configuration is required.") 

@@ -80,9 +80,7 @@ def create_main_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Example usage:
-  hexapod --access-key "YOUR_PICOVOICE_KEY"
-  hexapod --log-level DEBUG --log-dir /tmp/logs
-  hexapod --clean --print-context
+  hexapod --access-key "YOUR_PICOVOICE_KEY" --log-level INFO --clean
         """
     )
     
@@ -95,8 +93,10 @@ Example usage:
     # Logging arguments
     parser.add_argument('--log-dir', type=Path, default=Path('logs'),
                         help='Directory to store logs (default: logs)')
+    # Get the package directory for absolute paths
+    package_dir = Path(__file__).resolve().parent
     parser.add_argument('--log-config-file', type=Path, 
-                        default=Path('hexapod/interface/logging/config/config.yaml'),
+                        default=package_dir / 'interface' / 'logging' / 'config' / 'config.yaml',
                         help='Path to log configuration file')
     parser.add_argument('--log-level', type=str, default='INFO', 
                         choices=['DEBUG', 'INFO', 'USER_INFO', 'ODAS_USER_INFO', 'GAMEPAD_MODE_INFO', 'WARNING', 'ERROR', 'CRITICAL'],

@@ -58,8 +58,8 @@ class Hexapod:
     
     def __init__(
         self, 
-        config_path: Path = Path('hexapod/robot/config/hexapod_config.yaml'),
-        calibration_data_path: Path = Path('hexapod/robot/config/calibration.json')
+        config_path: Path = None,
+        calibration_data_path: Path = None
     ) -> None:
         """
         Initializes the Hexapod robot by loading configuration parameters, setting up servo controllers,
@@ -70,11 +70,22 @@ class Hexapod:
             calibration_data_path (Path): Path to the calibration data JSON file.
         """
         
+        # Set default absolute paths if not provided
+        if config_path is None:
+            package_dir = Path(__file__).resolve().parent.parent
+            config_path = package_dir / 'robot' / 'config' / 'hexapod_config.yaml'
+        if calibration_data_path is None:
+            package_dir = Path(__file__).resolve().parent.parent
+            calibration_data_path = package_dir / 'robot' / 'config' / 'calibration.json'
+        
         if config_path.is_file():
             with config_path.open('r') as config_file:
                 config = yaml.safe_load(config_file)
         else:
             raise FileNotFoundError(f"Hexapod configuration file not found at {config_path}")
+        
+        if not calibration_data_path.is_file():
+            raise FileNotFoundError(f"Calibration data file not found at {calibration_data_path}")
         
         self.hexagon_side_length: float = config['hexagon_side_length']
         
