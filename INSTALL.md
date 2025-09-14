@@ -2,64 +2,88 @@
 
 [← Back to Documentation](docs/README.md) | [Next: System Overview →](docs/core/system_overview.md)
 
-This guide will help you install the Hexapod Voice Control System as a Python package with a global command-line interface.
+This guide will help you install the Hexapod Voice Control 
+System as a Python package with a global command-line 
+interface.
 
-## Prerequisites
+## Quick Start
 
-- Python 3.12 or higher
-- pip (Python package installer)
-- Raspberry Pi OS
+### Prerequisites
+- Raspberry Pi 4 with [Raspberry Pi OS Lite (32-bit) - 2023-05-03](https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2023-05-03/)
+- SSH access from development machine
+- GitHub account with SSH key access
 
-## Installation
+### Setup Steps
+1. **MAC SSH Setup**: 
+   ```bash
+   ssh-keygen -R <hexapod-ip>
+   ssh hexapod@<hexapod-ip>
+   ```
 
-```bash
-# Clone the repository (if not already done)
-git clone <your-repo-url>
-cd hexapod
+2. **RPI SSH Setup**: 
+   ```bash
+   ssh-keygen -t ed25519 -C "your_email@example.com"
 
-# Run the installation script
-./install.sh
-```
+   mkdir -p ~/.ssh
 
-The installation script will:
-- Check Python version compatibility
-- Install the package in development mode
-- Create configuration directories
-- Prompt for your Picovoice access key
-- Set up configuration file with your key
-- Test the installation
+   ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+   
+   cat ~/.ssh/id_ed25519.pub
+   # Add this key to GitHub at: https://github.com/settings/keys
+   ```
 
-## Configuration
+3. **Repository Setup**: 
+   ```bash
+   git clone git@github.com:Gl0dny/hexapod.git
+   cd hexapod/
+   git submodule update --init --recursive
+   ```
 
-### Picovoice Access Key
+4. **Run Install Script**: 
+   ```bash
+   ./install.sh
+   # or for development mode:
+   ./install.sh --dev
+   ```
+   
+> [!warning]
+> **Important**: You must rerun the script after each reboot until installation completes
 
-The installation script will prompt you for your Picovoice access key during installation. If you don't have one yet:
+### Recovery
+- Script is idempotent - safe to run multiple times
+- Reboot markers persist until successful completion
 
-**Get your free access key:**
-   - Visit [Picovoice Console](https://console.picovoice.ai/)
-   - Sign up for a free account
-   - Generate an access key
+## What the Install Script Does
 
-#### Available Configuration Options
+### System Configuration
+- Configures boot settings (UART, UART2, 32-bit kernel)
+- Enables hardware interfaces (UART, I2C, SPI)
+- Verifies system configuration and kernel version
+- Fixes broken packages and updates system
 
-**Picovoice Configuration (Required):**
-| Option | Environment Variable | Command Line | Default | Description |
-|--------|---------------------|--------------|---------|-------------|
-| Picovoice Key | `PICOVOICE_ACCESS_KEY` | `--access-key` | Required | Your Picovoice access key |
+### Development Environment
+- Installs Zsh, Oh My Zsh, and development tools
+- Sets up custom dotfiles and plugins
+- Installs Python 3.12 (via pyenv if needed)
+- Creates virtual environment
 
-**Application Options:**
-| Option | Command Line | Default | Description |
-|--------|--------------|---------|-------------|
-| Config File | `--config` | ~/.config/hexapod/.picovoice.env | Path to picovoice access_key configuration file |
-| Log Level | `--log-level` | INFO | Logging level (DEBUG, INFO, USER_INFO, ODAS_USER_INFO, GAMEPAD_MODE_INFO, WARNING, ERROR, CRITICAL) |
-| Log Directory | `--log-dir` | logs | Directory for log files |
-| Log Config File | `--log-config-file` | hexapod/interface/logging/config/config.yaml | Path to log configuration file |
-| Clean Logs | `--clean` | false | Clean all logs before running |
-| Print Context | `--print-context` | false | Print Picovoice context information |
+### Audio System
+- Installs ODAS and seeed voicecard drivers
+- Blocks kernel updates for voicecard compatibility
+- Verifies audio setup and tests recording
+
+### Python Environment
+- Installs Python compilation dependencies
+- Installs LLVM 15 (32-bit RPi only)
+- Installs hexapod package and requirements
+- Sets up Picovoice configuration
+
+### Reboot Management
+- Handles two required reboots automatically
+- Continues installation after each reboot
+- Cleans up reboot markers on successful completion
 
 ## Usage
-
-### Basic Usage
 
 ```bash
 # Show detailed help
@@ -81,22 +105,111 @@ hexapod --access-key "YOUR_KEY" --log-level DEBUG
 PICOVOICE_ACCESS_KEY="YOUR_KEY" hexapod
 ```
 
+## Configuration
+
+### Picovoice Access Key
+- Get free key from [Picovoice Console](https://console.picovoice.ai/)
+- Script prompts for key during installation
+
+### Available Options
+| Option | Command Line | Default | Description |
+|--------|--------------|---------|-------------|
+| Picovoice Key | `--access-key` | Required | Your Picovoice access key |
+| Config File | `--config` | ~/.config/hexapod/.picovoice.env | Configuration file path |
+| Log Level | `--log-level` | INFO | Logging level |
+| Clean Logs | `--clean` | false | Clean logs before running |
+
+## Troubleshooting
+
+### Voicecard Driver Issues
+
+**Problem**: Installation gets stuck during voicecard driver verification, with infinite checking for `arecord` command.
+
+**Symptoms**:
+- Script hangs at "Testing audio recording..." step
+- `arecord -l` command doesn't return or takes extremely long
+- Audio device verification fails repeatedly
+
+**Solution**: Hard reset required
+1. **Power cycle the Raspberry Pi**:
+   ```bash
+   sudo reboot
+   # If that doesn't work, physically unplug and replug power
+   ```
+
+2. **After reboot, continue installation**:
+   ```bash
+   ./install.sh
+   # Script will resume from the appropriate phase
+   ```
+
+**Root Cause**: This issue occurs due to kernel compatibility limitations with the seeed voicecard driver:
+
+- **Newer kernels**: Don't work at all with the voicecard driver
+- **Older kernels**: Would work fine with the voicecard driver but aren't compatible with other parts of the system
+- **Current kernel (5.4.51-v7l+)**: The compromise solution - works with both the voicecard driver and other system components, but may occasionally hang during initial verification due to:
+  - Kernel compatibility edge cases in the driver code
+  - Hardware timing issues during driver initialization
+  - System resource constraints during audio device enumeration
+
+**Note**: This hanging issue is hardware-dependent and currently has no known solution. The system is designed to comply with this limitation. If the hardware boots without this issue, everything works properly. The driver is production-stable and will work correctly once the system is fully booted and the driver is properly loaded. However, there have been individual cases where the driver can also get stuck during system initialization, requiring a hard reset to resolve.
+
+### Controller Pairing
+
+To pair a PlayStation controller with the system:
+
+```bash
+# Start Bluetooth control
+bluetoothctl
+
+# In bluetoothctl, run these commands:
+scan on
+# Wait for "Wireless Controller" or "DualSense" to appear
+# Note the MAC address (e.g., 00:11:22:33:44:55)
+  
+# Stop scanning
+scan off
+
+# Pair with your controller (replace XX:XX:XX:XX:XX:XX with actual MAC)
+pair XX:XX:XX:XX:XX:XX
+
+# Trust the device
+trust XX:XX:XX:XX:XX:XX
+
+# Connect
+connect XX:XX:XX:XX:XX:XX
+
+# paired check
+paired-devices
+# info about specific device
+info XX:XX:XX:XX:XX:XX
+# connected check
+devices
+
+# test with linux
+ls /dev/input/js*
+sudo apt install joystick
+jstest /dev/input/js0
+
+# disconnecting
+disconnect 88:03:4C:14:82:C8
+# forgetting
+remove 88:03:4C:14:82:C8
+
+# Exit
+quit
+```
+
 ## Uninstallation
 
-To uninstall the package:
-
+To uninstall the Python package:
 ```bash
 pip3 uninstall hexapod-voice-control
 ```
 
 To remove configuration files:
-
 ```bash
 rm -rf ~/.config/hexapod
-```
-
-```bash
-# Remove log files from current directory
 rm -f *.log *.log.*
 ```
 
