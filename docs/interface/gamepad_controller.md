@@ -30,7 +30,7 @@ The hexapod project features a sophisticated dual-mode gamepad controller that p
 
 ## Controller Architecture
 
-### **GamepadHexapodController** (`src/interface/controllers/gamepad_hexapod_controller.py`)
+### **GamepadHexapodController** (`hexapod/interface/controllers/gamepad_hexapod_controller.py`)
 
 **Role**: Main gamepad controller implementation
 - **Base Class**: Extends `ManualHexapodController` (threading.Thread)
@@ -44,7 +44,7 @@ The hexapod project features a sophisticated dual-mode gamepad controller that p
 - **Gait Integration**: Direct integration with hexapod gait generator
 - **Sensitivity Management**: Real-time sensitivity adjustment
 
-### **Base Manual Controller** (`src/interface/controllers/base_manual_controller.py`)
+### **Base Manual Controller** (`hexapod/interface/controllers/base_manual_controller.py`)
 
 **Role**: Abstract base class for all manual controllers
 - **Threading**: Runs as daemon thread with configurable update rate (20 Hz)
@@ -95,7 +95,7 @@ The hexapod project features a sophisticated dual-mode gamepad controller that p
 
 ## Input Mapping
 
-### **DualSense USB Mapping** (`src/interface/input_mappings/dual_sense_usb_mapping.py`)
+### **DualSense USB Mapping** (`hexapod/interface/input_mappings/dual_sense_usb_mapping.py`)
 
 **Axis Mappings**:
 - **Left Stick**: X=0, Y=1 (inverted)
@@ -128,7 +128,7 @@ The hexapod project features a sophisticated dual-mode gamepad controller that p
 
 ## LED Feedback System
 
-### **DualSense LED Controller** (`src/interface/controllers/gamepad_led_controllers/dual_sense_led_controller.py`)
+### **DualSense LED Controller** (`hexapod/interface/controllers/gamepad_led_controllers/dual_sense_led_controller.py`)
 
 **Role**: Provides visual feedback through PS5 DualSense lightbar
 - **Color Management**: RGB color control with smooth transitions
@@ -187,7 +187,7 @@ The hexapod project features a sophisticated dual-mode gamepad controller that p
 
 **Command Line**:
 ```bash
-python src/interface/controllers/gamepad_hexapod_controller.py
+python hexapod/interface/controllers/gamepad_hexapod_controller.py
 ```
 
 **Integration**:

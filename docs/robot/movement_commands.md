@@ -66,7 +66,7 @@ flowchart LR
 
 ### **Core Movement Tasks**
 
-#### **MoveTask** (`src/task_interface/tasks/move_task.py`)
+#### **MoveTask** (`hexapod/task_interface/tasks/move_task.py`)
 
 **Purpose**: Directional movement using gait generation
 - **Parameters**: Direction, cycles, duration
@@ -79,14 +79,14 @@ flowchart LR
 - **Gait Integration**: Uses tripod gait for efficient movement
 - **Safety**: Returns to zero position on completion
 
-#### **RotateTask** (`src/task_interface/tasks/rotate_task.py`)
+#### **RotateTask** (`hexapod/task_interface/tasks/rotate_task.py`)
 
 **Purpose**: Rotation movement with angle or direction control
 - **Parameters**: Angle, turn direction, cycles, duration
 - **Execution**: Uses gait generator for rotation
 - **Features**: Precise angle control or continuous rotation
 
-#### **MarchInPlaceTask** (`src/task_interface/tasks/march_in_place_task.py`)
+#### **MarchInPlaceTask** (`hexapod/task_interface/tasks/march_in_place_task.py`)
 
 **Purpose**: In-place marching with duration control
 - **Parameters**: Duration (optional)
@@ -95,7 +95,7 @@ flowchart LR
 
 ### **Advanced Movement Tasks**
 
-#### **FollowTask** (`src/task_interface/tasks/follow_task.py`)
+#### **FollowTask** (`hexapod/task_interface/tasks/follow_task.py`)
 
 **Purpose**: Target following using audio localization
 - **Parameters**: ODAS processor for sound source tracking
@@ -108,7 +108,7 @@ flowchart LR
 - **Gait Control**: Dynamic gait generation for following
 - **External Control**: Manages external control pausing
 
-#### **SoundSourceLocalizationTask** (`src/task_interface/tasks/sound_source_localization.py`)
+#### **SoundSourceLocalizationTask** (`hexapod/task_interface/tasks/sound_source_localization.py`)
 
 **Purpose**: Sound source localization without movement
 - **Parameters**: ODAS processor for audio analysis
@@ -117,28 +117,28 @@ flowchart LR
 
 ### **Entertainment Tasks**
 
-#### **SitUpTask** (`src/task_interface/tasks/sit_up_task.py`)
+#### **SitUpTask** (`hexapod/task_interface/tasks/sit_up_task.py`)
 
 **Purpose**: Sit-up motion sequence
 - **Parameters**: Lights handler for visual feedback
 - **Execution**: Sit-up movement pattern
 - **Features**: Coordinated leg movement and lighting
 
-#### **HelixTask** (`src/task_interface/tasks/helix_task.py`)
+#### **HelixTask** (`hexapod/task_interface/tasks/helix_task.py`)
 
 **Purpose**: Helical movement pattern
 - **Parameters**: Lights handler for visual effects
 - **Execution**: Spiral movement sequence
 - **Features**: Complex 3D movement patterns
 
-#### **ShowOffTask** (`src/task_interface/tasks/show_off_task.py`)
+#### **ShowOffTask** (`hexapod/task_interface/tasks/show_off_task.py`)
 
 **Purpose**: Demonstration routine
 - **Parameters**: Lights handler for visual effects
 - **Execution**: Showcase movement sequence
 - **Features**: Impressive movement demonstrations
 
-#### **SayHelloTask** (`src/task_interface/tasks/say_hello_task.py`)
+#### **SayHelloTask** (`hexapod/task_interface/tasks/say_hello_task.py`)
 
 **Purpose**: Greeting sequence
 - **Parameters**: Lights handler for visual feedback
@@ -174,7 +174,7 @@ flowchart LR
 
 ## Task Execution
 
-### **Task Base Class** (`src/task_interface/tasks/task.py`)
+### **Task Base Class** (`hexapod/task_interface/tasks/task.py`)
 
 **Role**: Abstract base class for all movement tasks
 - **Thread-based Execution**: Runs in separate thread

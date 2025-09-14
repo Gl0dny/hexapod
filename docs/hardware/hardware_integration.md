@@ -71,7 +71,7 @@ flowchart LR
 
 ## Servo Control System
 
-### **Maestro UART Controller** (`src/maestro/maestro_uart.py`)
+### **Maestro UART Controller** (`hexapod/maestro/maestro_uart.py`)
 
 **Role**: Low-level servo communication using Pololu protocol
 - **Communication**: UART at 9600 baud via `/dev/ttyAMA1`
@@ -85,7 +85,7 @@ flowchart LR
 - **Multi-servo Control**: Simultaneous control of multiple servos
 - **Position Feedback**: Real-time position reading and monitoring
 
-### **Joint Control** (`src/robot/joint.py`)
+### **Joint Control** (`hexapod/robot/joint.py`)
 
 **Role**: Individual servo joint management and control
 - **Angle Mapping**: Converts degrees to servo target values
@@ -115,7 +115,7 @@ flowchart LR
 
 ## Sensor Integration
 
-### **IMU Sensor** (`src/robot/sensors/imu.py`)
+### **IMU Sensor** (`hexapod/robot/sensors/imu.py`)
 
 **Role**: 9-DOF inertial measurement unit for orientation data
 - **Sensor**: ICM-20948 9-DOF IMU
@@ -134,7 +134,7 @@ flowchart LR
 - **Magnetometer**: Magnetic field strength and compass heading
 - **Temperature**: Thermal monitoring and calibration
 
-### **Button Input** (`src/robot/sensors/button_handler.py`)
+### **Button Input** (`hexapod/robot/sensors/button_handler.py`)
 
 **Role**: User input interface and system control
 - **GPIO Pin**: Pin 26 (BCM numbering)
@@ -149,7 +149,7 @@ flowchart LR
 
 ## Light System
 
-### **ReSpeaker 6 LED Control** (`src/lights/apa102.py`)
+### **ReSpeaker 6 LED Control** (`hexapod/lights/apa102.py`)
 
 **Role**: High-speed LED control and animation for ReSpeaker 6 integrated LEDs
 - **LED Type**: APA102 (DotStar) LEDs integrated into ReSpeaker 6
@@ -163,7 +163,7 @@ flowchart LR
 - **Color Mixing**: RGB color space with brightness control
 - **Animation Support**: Color wheel, rotation, and pattern effects
 
-### **Light Management** (`src/lights/lights.py`)
+### **Light Management** (`hexapod/lights/lights.py`)
 
 **Role**: High-level light control and visual feedback
 - **Power Control**: GPIO pin 5 for LED power management
@@ -187,7 +187,7 @@ flowchart LR
 
 ## Hardware Configuration
 
-### **Hexapod Configuration** (`src/robot/config/hexapod_config.yaml`)
+### **Hexapod Configuration** (`hexapod/robot/config/hexapod_config.yaml`)
 
 **Geometry Parameters**:
 - **Hexagon Side Length**: 137.0mm
@@ -207,7 +207,7 @@ flowchart LR
 - **Baud Rate**: 9600
 - **Protocol**: Pololu serial protocol
 
-### **Calibration Data** (`src/robot/config/calibration.json`)
+### **Calibration Data** (`hexapod/robot/config/calibration.json`)
 
 **Servo Calibration**: Individual servo min/max values
 - **Format**: JSON with leg and joint-specific values

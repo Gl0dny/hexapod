@@ -8,22 +8,25 @@
 
 - [Overview](#overview)
 - [Configuration Architecture](#configuration-architecture)
+- [Environment Configuration](#environment-configuration)
 - [Command Line Configuration](#command-line-configuration)
 - [Logging Configuration](#logging-configuration)
 - [Robot Configuration](#robot-configuration)
 - [ODAS Configuration](#odas-configuration)
 - [Calibration Data](#calibration-data)
+- [Dependencies](#dependencies)
 ---
 
 ## Overview
 
-The Hexapod system uses a simple but effective configuration approach with three main sources:
+The Hexapod system uses a modern configuration approach with multiple sources and a centralized configuration manager:
 
-1. **Command Line Arguments** - Runtime parameters and overrides
+1. **Environment Variables** - System-wide settings and secrets
 2. **Configuration Files** - Persistent settings for different components
-3. **Calibration Data** - Hardware-specific calibration values
+3. **Command Line Arguments** - Runtime parameters and overrides
+4. **Calibration Data** - Hardware-specific calibration values
 
-The system loads configuration at startup and uses it throughout operation. There's no complex configuration management system - each component loads its own configuration directly from files.
+The system features a centralized `Config` class that manages all configuration sources with proper validation and fallback mechanisms. Configuration is loaded at startup and used throughout operation with support for environment variables, `.env` files, and command line overrides.
 
 ## Configuration Architecture
 
@@ -32,11 +35,15 @@ The system loads configuration at startup and uses it throughout operation. Ther
 ```mermaid
 graph TB
     subgraph "Configuration Sources"
+        ENV[Environment Variables<br/>• System Settings<br/>• Secrets & Keys<br/>• Runtime Overrides]
+        ENVFILE[.env Files<br/>• Local Configuration<br/>• Development Settings<br/>• Default: ~/.config/hexapod/.picovoice.env]
         CLA[Command Line Args<br/>• Runtime Parameters<br/>• Override Settings<br/>• Required: Picovoice Key]
         CF[Configuration Files<br/>• YAML: Robot & Logging<br/>• CFG: ODAS Audio<br/>• JSON: Calibration]
         CD[Calibration Data<br/>• Hardware-Specific<br/>• Servo Limits<br/>• Measured Values]
     end
     
+    ENV --> ENVFILE
+    ENVFILE --> CLA
     CLA --> CF
     CF --> CD
 ```
@@ -45,60 +52,145 @@ graph TB
 
 ```mermaid
 flowchart LR
-    S[Startup] --> PA[Parse Args]
-    PA --> LL[Load Logging Config]
+    S[Startup] --> LC[Load .env File]
+    LC --> PA[Parse Args]
+    PA --> CV[Create Config Object]
+    CV --> VA[Validate Config]
+    VA --> LL[Load Logging Config]
     LL --> LR[Load Robot Config]
-    LR --> LC[Load Calibration]
-    LC --> LO[Load ODAS Config]
+    LR --> LC2[Load Calibration]
+    LC2 --> LO[Load ODAS Config]
     LO --> R[Run System]
 ```
+
+### Configuration Manager
+
+The system uses a centralized `Config` class (`hexapod/config.py`) that:
+
+- **Loads Environment Variables**: From system environment and `.env` files
+- **Validates Configuration**: Ensures required settings are present
+- **Provides Fallbacks**: Command line args override environment variables
+- **Manages Secrets**: Handles Picovoice access keys securely
+- **Supports Multiple Sources**: Environment → .env file → Command line
+
+## Environment Configuration
+
+### Environment Variables
+
+The system supports configuration through environment variables with the following priority:
+
+1. **Command Line Arguments** (highest priority)
+2. **Environment Variables** (system-wide)
+3. **.env Files** (local configuration)
+
+### Required Environment Variables
+
+```bash
+# Picovoice Access Key (required)
+export PICOVOICE_ACCESS_KEY="your_picovoice_key_here"
+```
+
+### Optional Environment Variables
+
+```bash
+# Logging Configuration
+export HEXAPOD_LOG_LEVEL="INFO"
+export HEXAPOD_LOG_DIR="/path/to/logs"
+
+# Audio Configuration
+export HEXAPOD_AUDIO_DEVICE_INDEX="-1"  # Auto-detect
+```
+
+### .env File Configuration
+
+Create a `.env` file in your home directory or project root:
+
+**Default Location**: `~/.config/hexapod/.picovoice.env`
+
+**Example .env file**:
+```bash
+# Picovoice Configuration
+PICOVOICE_ACCESS_KEY=your_picovoice_key_here
+
+# Logging Configuration
+HEXAPOD_LOG_LEVEL=INFO
+HEXAPOD_LOG_DIR=/home/pi/hexapod_logs
+
+# Audio Configuration
+HEXAPOD_AUDIO_DEVICE_INDEX=-1
+```
+
+### Environment Setup
+
+The system automatically loads environment variables from:
+
+1. **System Environment**: Variables set in your shell
+2. **.env File**: Located at `~/.config/hexapod/.picovoice.env` by default
+3. **Local .env**: `.env` file in the current working directory
 
 ## Command Line Configuration
 
 ### Required Parameters
 
 ```bash
---access-key "YOUR_PICOVOICE_KEY"
+--access-key "YOUR_PICOVOICE_KEY"         # Picovoice access key (can also be set via PICOVOICE_ACCESS_KEY env var)
 ```
 
 ### Optional Parameters
 
 ```bash
-# Audio Configuration
---audio-device-index 2                    # Specific audio device
---audio-device-index -1                   # Auto-select device (default)
+# Configuration File
+--config /path/to/.env                    # Path to .env configuration file (default: ~/.config/hexapod/.picovoice.env)
 
 # Logging Configuration
 --log-dir /path/to/logs                   # Log directory (default: logs)
---log-config-file config.yaml             # Log config file
---log-level DEBUG                         # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL, USER_INFO, ODAS_USER_INFO, GAMEPAD_MODE_INFO
---clean                                   # Clean existing logs
+--log-config-file config.yaml             # Log config file (default: hexapod/interface/logging/config/config.yaml)
+--log-level DEBUG                         # Log level: DEBUG, INFO, USER_INFO, ODAS_USER_INFO, GAMEPAD_MODE_INFO, WARNING, ERROR, CRITICAL
 
-# Debug Options
+# Utility Options
+--clean                                   # Clean existing logs before starting
 --print-context                           # Show voice context information
 ```
 
 ### Usage Examples
 
 ```bash
-# Basic operation
-python main.py --access-key "KEY123"
+# Basic operation (using environment variable)
+export PICOVOICE_ACCESS_KEY="KEY123"
+hexapod
+
+# Basic operation (using command line)
+hexapod --access-key "KEY123"
+
+# Using custom .env file
+hexapod --config /path/to/custom/.env
 
 # Debug mode with custom logging
-python main.py --access-key "KEY123" \
+hexapod --access-key "KEY123" \
     --log-level DEBUG \
     --log-dir /tmp/hexapod_logs \
     --print-context
 
 # Clean logs and start fresh
-python main.py --access-key "KEY123" --clean
+hexapod --access-key "KEY123" --clean
+
+# Using environment variable with overrides
+export PICOVOICE_ACCESS_KEY="KEY123"
+hexapod --log-level USER_INFO --print-context
 ```
+
+### Configuration Priority
+
+1. **Command Line Arguments** (highest priority)
+2. **Environment Variables** (system-wide)
+3. **.env File** (local configuration)
+4. **Default Values** (lowest priority)
 
 ## Logging Configuration
 
 ### Configuration File
 
-**Location**: `src/interface/logging/config/config.yaml`
+**Location**: `hexapod/interface/logging/config/config.yaml`
 
 ### Log Levels
 
@@ -132,7 +224,7 @@ python main.py --access-key "KEY123" --clean
 
 ### Configuration File
 
-**Location**: `src/robot/config/hexapod_config.yaml`
+**Location**: `hexapod/robot/config/hexapod_config.yaml`
 
 ### Key Parameters
 
@@ -172,7 +264,7 @@ python main.py --access-key "KEY123" --clean
 
 ### Configuration Files
 
-**Location**: `src/odas/config/`
+**Location**: `hexapod/odas/config/`
 
 #### Configuration Files
 - `local_odas.cfg`: Local audio processing settings
@@ -256,7 +348,7 @@ python main.py --access-key "KEY123" --clean
 
 ### Configuration File
 
-**Location**: `src/robot/config/calibration.json`
+**Location**: `hexapod/robot/config/calibration.json`
 
 ### Structure
 
@@ -285,6 +377,69 @@ python main.py --access-key "KEY123" --clean
 - **Measured Values**: Calibrated through physical testing
 - **Per-Leg Configuration**: Different values for each of the 6 legs
 - **Per-Joint Configuration**: Different values for coxa, femur, tibia joints
+
+## Dependencies
+
+### Python Dependencies
+
+The system requires Python 3.12+ and the following packages (managed via `pyproject.toml`):
+
+#### Core Dependencies
+- **picovoice==3.0.4**: Voice recognition and wake word detection
+- **pvporcupine==3.0.3**: Wake word detection engine
+- **pvrhino==3.0.3**: Speech-to-intent engine
+- **numpy==2.3.1**: Numerical computing
+- **PyYAML==6.0.2**: YAML configuration file parsing
+- **python-dotenv==1.0.0**: Environment variable management
+
+#### Hardware Dependencies
+- **RPi.GPIO==0.7.1**: Raspberry Pi GPIO control
+- **gpiozero==2.0.1**: High-level GPIO interface
+- **pyserial==3.5**: Serial communication with Maestro
+- **smbus2==0.5.0**: I2C communication for sensors
+- **spidev==3.7**: SPI communication for LED strips
+- **icm20948==1.0.0**: IMU sensor interface
+
+#### Audio Dependencies
+- **PyAudio==0.2.14**: Audio input/output
+- **pygame==2.6.1**: Audio playback and gamepad support
+
+#### Utility Dependencies
+- **colorzero==2.0**: Color manipulation for LEDs
+- **cryptography==45.0.5**: Security and encryption
+- **paramiko==3.5.1**: SSH communication
+- **bcrypt==4.3.0**: Password hashing
+
+### Installation
+
+Dependencies are automatically installed when setting up the project:
+
+```bash
+# Install from requirements.txt
+pip install -r requirements.txt
+
+# Or install as a package
+pip install -e .
+```
+
+### Configuration Files
+
+The system includes several configuration files that are automatically packaged:
+
+- **Logging Config**: `hexapod/interface/logging/config/*.yaml`
+- **Robot Config**: `hexapod/robot/config/*.yaml` and `*.json`
+- **ODAS Config**: `hexapod/odas/config/*.cfg`
+- **Voice Models**: `hexapod/kws/porcupine/*.ppn` and `hexapod/kws/rhino/*.rhn`
+
+### Environment Setup
+
+The system supports multiple configuration methods:
+
+1. **Environment Variables**: Set system-wide configuration
+2. **.env Files**: Local configuration files
+3. **Command Line**: Runtime parameter overrides
+4. **Configuration Files**: Component-specific settings
+
 ---
 
 [← Previous: Main Application](main_application.md) | [Next: Movement System →](../robot/movement_system.md)

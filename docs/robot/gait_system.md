@@ -65,7 +65,7 @@ flowchart LR
 
 ## Gait Patterns
 
-### **Tripod Gait** (`src/gait_generator/tripod_gait.py`)
+### **Tripod Gait** (`hexapod/gait_generator/tripod_gait.py`)
 
 **Pattern**: 3+3 leg groups alternating movement
 - **Group A**: Legs 0, 2, 4 (Right, Left Front, Left Back)
@@ -79,7 +79,7 @@ flowchart LR
 - **High Stability**: Maintains support polygon throughout movement
 - **Efficient Energy Use**: Optimal balance of speed and stability
 
-### **Wave Gait** (`src/gait_generator/wave_gait.py`)
+### **Wave Gait** (`hexapod/gait_generator/wave_gait.py`)
 
 **Pattern**: Sequential leg movement (one at a time)
 - **Sequence**: 0 → 1 → 2 → 3 → 4 → 5 → 0 → ...
@@ -192,7 +192,7 @@ class GaitState:
 
 ## Execution Engine
 
-### **Gait Generator** (`src/gait_generator/gait_generator.py`)
+### **Gait Generator** (`hexapod/gait_generator/gait_generator.py`)
 
 **Role**: Main gait execution coordinator
 - Manages gait state machine and execution

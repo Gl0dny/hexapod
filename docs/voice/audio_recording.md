@@ -4,7 +4,7 @@
 
 [← Back to Documentation](../README.md)
 
-This document describes the audio recording utilities available in the `src/utils/audio/record` directory. These utilities are designed to work with the ReSpeaker 6-Mic Array and provide different ways to record audio data.
+This document describes the audio recording utilities available in the `hexapod/utils/audio/record` directory. These utilities are designed to work with the ReSpeaker 6-Mic Array and provide different ways to record audio data.
 
 ## Prerequisites
 
