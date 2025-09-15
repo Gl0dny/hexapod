@@ -83,6 +83,27 @@ interface.
 - Continues installation after each reboot
 - Cleans up reboot markers on successful completion
 
+## Backup
+
+### Backup
+
+List the devices
+```bash
+diskutil list
+```
+Unmount the specific card
+```bash
+diskutil unmountDisk /dev/disk4
+```
+Backup save
+```bash
+sudo dd if=/dev/rdisk4 of=/Users/gl0dny/workspace/hexapod/firmware/hexapod_backups/hexapod_backup__$(date +%Y%m%d).img bs=64m status=progress
+```
+Backup load
+```bash
+sudo dd if=/Users/gl0dny/workspace/hexapod/firmware/hexapod_backups/hexapod_backup__$(date +%Y%m%d).img of=/dev/rdisk4 bs=64m status=progress
+```
+
 ## Usage
 
 ```bash
