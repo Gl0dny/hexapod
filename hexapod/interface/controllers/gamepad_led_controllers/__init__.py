@@ -8,8 +8,4 @@ using inheritance to support different controller types.
 from .gamepad_led_controller import BaseGamepadLEDController, GamepadLEDColor
 from .dual_sense_led_controller import DualSenseLEDController
 
-__all__ = [
-    'BaseGamepadLEDController',
-    'DualSenseLEDController', 
-    'GamepadLEDColor'
-] 
+__all__ = ["BaseGamepadLEDController", "DualSenseLEDController", "GamepadLEDColor"]

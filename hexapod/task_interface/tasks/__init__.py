@@ -12,16 +12,16 @@ from .sound_source_localization import SoundSourceLocalizationTask
 from .stream_odas_audio_task import StreamODASAudioTask
 
 __all__ = [
-    'Task',
-    'CompositeCalibrationTask',
-    'FollowTask',
-    'HelixTask',
-    'MarchInPlaceTask',
-    'MoveTask',
-    'RotateTask',
-    'SayHelloTask',
-    'ShowOffTask',
-    'SitUpTask',
-    'SoundSourceLocalizationTask',
-    'StreamODASAudioTask'
+    "Task",
+    "CompositeCalibrationTask",
+    "FollowTask",
+    "HelixTask",
+    "MarchInPlaceTask",
+    "MoveTask",
+    "RotateTask",
+    "SayHelloTask",
+    "ShowOffTask",
+    "SitUpTask",
+    "SoundSourceLocalizationTask",
+    "StreamODASAudioTask",
 ]

@@ -12,11 +12,18 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("task_interface_logger")
 
+
 class ShowOffTask(Task):
     """
     Task to perform show-off routine with the hexapod and manage lights.
     """
-    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, callback: Optional[Callable] = None) -> None:
+
+    def __init__(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        callback: Optional[Callable] = None,
+    ) -> None:
         """
         Initialize the ShowOffTask.
         """

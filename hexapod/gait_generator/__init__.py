@@ -4,10 +4,10 @@ from .wave_gait import WaveGait
 from .gait_generator import GaitGenerator
 
 __all__ = [
-    'BaseGait',
-    'GaitPhase',
-    'GaitState',
-    'TripodGait', 
-    'WaveGait',
-    'GaitGenerator'
+    "BaseGait",
+    "GaitPhase",
+    "GaitState",
+    "TripodGait",
+    "WaveGait",
+    "GaitGenerator",
 ]

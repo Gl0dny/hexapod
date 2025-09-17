@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class CalibrationAnimation(Animation):
     """
     Animation that updates LED colors based on the calibration status of each leg.
@@ -21,7 +22,13 @@ class CalibrationAnimation(Animation):
         - Red when a leg is not calibrated.
     """
 
-    def __init__(self, lights: Lights, calibration_status: Dict[int, str], leg_to_led: Dict[int, int], refresh_delay: float = 1.0) -> None:
+    def __init__(
+        self,
+        lights: Lights,
+        calibration_status: Dict[int, str],
+        leg_to_led: Dict[int, int],
+        refresh_delay: float = 1.0,
+    ) -> None:
         """
         Initialize the CalibrationAnimation.
 
@@ -45,7 +52,7 @@ class CalibrationAnimation(Animation):
             status_color_map = {
                 "calibrating": ColorRGB.YELLOW,
                 "calibrated": ColorRGB.GREEN,
-                "not_calibrated": ColorRGB.RED
+                "not_calibrated": ColorRGB.RED,
             }
             for leg_index, led_index in self.leg_to_led.items():
                 status = self.calibration_status.get(leg_index)

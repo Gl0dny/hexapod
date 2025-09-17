@@ -9,8 +9,4 @@ from .base_input_mapping import InputMapping
 from .dual_sense_usb_mapping import DualSenseUSBMapping
 from .dual_sense_bluetooth_mapping import DualSenseBluetoothMapping
 
-__all__ = [
-    'InputMapping',
-    'DualSenseUSBMapping',
-    'DualSenseBluetoothMapping'
-]
+__all__ = ["InputMapping", "DualSenseUSBMapping", "DualSenseBluetoothMapping"]

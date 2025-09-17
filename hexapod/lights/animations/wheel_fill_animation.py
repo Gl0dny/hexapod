@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class WheelFillAnimation(Animation):
     """
     Animation that fills the LEDs with colors from a color wheel.
@@ -21,7 +22,13 @@ class WheelFillAnimation(Animation):
         interval (float): The interval between filling LEDs.
     """
 
-    def __init__(self, lights: Lights, use_rainbow: bool = True, color: Optional[ColorRGB] = None, interval: float = 1) -> None:
+    def __init__(
+        self,
+        lights: Lights,
+        use_rainbow: bool = True,
+        color: Optional[ColorRGB] = None,
+        interval: float = 1,
+    ) -> None:
         """
         Initialize the WheelFillAnimation object.
 
@@ -30,7 +37,7 @@ class WheelFillAnimation(Animation):
             use_rainbow (bool): Whether to use rainbow colors.
             color (Optional[ColorRGB]): The color to use if not using rainbow colors.
             interval (float): The interval between filling LEDs.
-        
+
         Raises:
             ValueError: If `use_rainbow` is False and `color` is not provided.
         """
@@ -50,10 +57,10 @@ class WheelFillAnimation(Animation):
         for i in range(self.lights.num_led):
             if self.stop_event.wait(self.interval):
                 return
-            
+
             if self.use_rainbow:
                 rgb = self.lights.get_wheel_color(int(256 / self.lights.num_led * i))
             else:
                 rgb = self.color.rgb if self.color else (0, 0, 0)
-            
+
             self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)

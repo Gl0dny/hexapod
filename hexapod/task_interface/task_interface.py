@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("task_interface_logger")
 
+
 class TaskInterface:
     """
     Interface for controlling the hexapod based on voice commands.
@@ -41,10 +42,10 @@ class TaskInterface:
         self.hexapod = Hexapod()
         self.lights_handler = LightsInteractionHandler(self.hexapod.leg_to_led)
         self.voice_control: Optional[Any] = None
-        
+
         # Set up recording methods with proper dependency checking
         self._setup_recording_methods()
-        
+
         self.task: Optional[Task] = None
         self.voice_control_context_info: Optional[str] = None
         self._last_command: Optional[MethodType] = None
@@ -53,11 +54,13 @@ class TaskInterface:
         self._last_kwargs: Optional[dict] = None
         # Event to pause voice control
         self.voice_control_paused_event = threading.Event()
-        
+
         # Event to pause external control (button interactions) during particular operations
         # like calibration, shutdown, or other maintenance tasks
         self.external_control_paused_event = threading.Event()
-        self.button_handler = ButtonHandler(pin=26, external_control_paused_event=self.external_control_paused_event)
+        self.button_handler = ButtonHandler(
+            pin=26, external_control_paused_event=self.external_control_paused_event
+        )
         self.task_complete_callback: Optional[Callable[[Task], None]] = None
         logger.debug("TaskInterface initialized successfully.")
 
@@ -109,9 +112,11 @@ class TaskInterface:
         Returns:
             Callable: The decorated function with the hexapod injected.
         """
+
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             return func(self, self.hexapod, *args, **kwargs)
+
         return wrapper
 
     def inject_lights_handler(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -124,32 +129,37 @@ class TaskInterface:
         Returns:
             Callable: The decorated function with the lights handler injected.
         """
+
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             return func(self, self.lights_handler, *args, **kwargs)
+
         return wrapper
-
-
 
     def stop_task(self) -> None:
         """
         Stop any running task and reset the task attribute.
         """
-        if hasattr(self, 'task') and self.task:
+        if hasattr(self, "task") and self.task:
             try:
                 logger.debug(f"Stopping existing task {self.task}.")
-                
+
                 # Check if this is a task that needs unpausing (ODAS tasks and calibration)
                 task_name = self.task.__class__.__name__
-                needs_unpausing = task_name in ['SoundSourceLocalizationTask', 'FollowTask', 'StreamODASAudioTask', 'CompositeCalibrationTask']
-                
+                needs_unpausing = task_name in [
+                    "SoundSourceLocalizationTask",
+                    "FollowTask",
+                    "StreamODASAudioTask",
+                    "CompositeCalibrationTask",
+                ]
+
                 self.task.stop_task(timeout=5.0)
-                
+
                 # Unpause controls for tasks that were stopped manually
                 if needs_unpausing:
                     self.request_unpause_voice_control()
                     self.request_unblock_voice_control_pausing()
-                    
+
             except Exception as e:
                 logger.exception(f"Error stopping task: {e}")
         else:
@@ -159,9 +169,9 @@ class TaskInterface:
         """
         Decorator to manage the lifecycle of a Task within a method.
 
-        This decorator ensures that the decorated method properly initializes and starts a 
-        `Task`. It verifies that the method sets the `self.task` attribute 
-        and automatically starts the task after the method execution. If the `task` 
+        This decorator ensures that the decorated method properly initializes and starts a
+        `Task`. It verifies that the method sets the `self.task` attribute
+        and automatically starts the task after the method execution. If the `task`
         attribute is not set, it logs an error and raises an `AttributeError`.
 
         Args:
@@ -170,21 +180,27 @@ class TaskInterface:
         Returns:
             Callable: Wrapped method.
         """
+
         @wraps(method)
         def wrapper(self, *args, **kwargs):
             logger.debug(f"Starting task for method {method.__name__}.")
             result = method(self, *args, **kwargs)
 
-            if not hasattr(self, 'task') or self.task is None:
+            if not hasattr(self, "task") or self.task is None:
                 logger.error(f"{method.__name__} must set 'self.task' attribute")
-                raise AttributeError(f"{method.__name__} must set 'self.task' attribute")
-            
-            logger.debug(f"'{method.__name__}' successfully set task attribute: {self.task}")
+                raise AttributeError(
+                    f"{method.__name__} must set 'self.task' attribute"
+                )
+
+            logger.debug(
+                f"'{method.__name__}' successfully set task attribute: {self.task}"
+            )
 
             logger.debug(f"Starting task: {self.task}")
             self.task.start()
 
             return result
+
         return wrapper
 
     def voice_command(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -197,10 +213,12 @@ class TaskInterface:
         Returns:
             Callable: The decorated function with the voice command stored.
         """
+
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             self._store_last_command(func, *args, **kwargs)
             return func(self, *args, **kwargs)
+
         return wrapper
 
     def set_task_complete_callback(self, callback: Callable[[Task], None]) -> None:
@@ -222,13 +240,18 @@ class TaskInterface:
         """
         if self.task_complete_callback:
             self.task_complete_callback(task)
-        
+
         # Unpause controls for tasks that were paused before starting
         task_name = task.__class__.__name__
-        if task_name in ['SoundSourceLocalizationTask', 'FollowTask', 'StreamODASAudioTask', 'CompositeCalibrationTask']:
+        if task_name in [
+            "SoundSourceLocalizationTask",
+            "FollowTask",
+            "StreamODASAudioTask",
+            "CompositeCalibrationTask",
+        ]:
             self.request_unpause_voice_control()
             self.request_unblock_voice_control_pausing()
-        
+
         # Ensure self.task is cleared if the completed task is the current one
         if self.task is task:
             self.task = None
@@ -238,8 +261,10 @@ class TaskInterface:
         """
         Provide help information and set the lights to the ready state.
         """
-        if getattr(self, 'voice_control_context_info', None):
-            logger.user_info(f"Picovoice Context Info:\n {self.voice_control_context_info}")
+        if getattr(self, "voice_control_context_info", None):
+            logger.user_info(
+                f"Picovoice Context Info:\n {self.voice_control_context_info}"
+            )
         else:
             logger.warning("No context information available.")
         self.lights_handler.listen_wakeword()
@@ -247,7 +272,9 @@ class TaskInterface:
     @voice_command
     @inject_lights_handler
     @inject_hexapod
-    def system_status(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def system_status(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Report the current system status by executing a comprehensive status check.
 
@@ -259,11 +286,13 @@ class TaskInterface:
         status_report = self.status_reporter.get_complete_status(hexapod)
         logger.user_info(status_report)
         lights_handler.listen_wakeword()
-    
+
     @voice_command
     @inject_lights_handler
     @inject_hexapod
-    def shut_down(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def shut_down(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Initiate the shutdown sequence with a delay, allowing for cancellation.
 
@@ -280,30 +309,40 @@ class TaskInterface:
             self.request_block_voice_control_pausing()  # Signal voice control pausing blocked
 
             shutdown_delay = 15.0  # seconds
-            lights_handler.shutdown(interval=shutdown_delay / (lights_handler.lights.num_led * 1.1))
-            logger.critical(f"Shutting down robot. System will power off in {shutdown_delay} seconds.\nPress any key+Enter to cancel.")
-            
-            shutdown_timer = threading.Timer(shutdown_delay, self._perform_shutdown, args=(hexapod, lights_handler))
+            lights_handler.shutdown(
+                interval=shutdown_delay / (lights_handler.lights.num_led * 1.1)
+            )
+            logger.critical(
+                f"Shutting down robot. System will power off in {shutdown_delay} seconds.\nPress any key+Enter to cancel."
+            )
+
+            shutdown_timer = threading.Timer(
+                shutdown_delay, self._perform_shutdown, args=(hexapod, lights_handler)
+            )
             rename_thread(shutdown_timer, "ShutdownTimer")
             shutdown_timer.start()
-            
+
             # Start a separate thread to monitor user input
             shutdown_monitor_thread = threading.Thread(
                 target=self._shutdown_monitor,
                 args=(shutdown_timer, input_handler),
-                daemon=True
+                daemon=True,
             )
             rename_thread(shutdown_monitor_thread, "ShutdownMonitor")
             shutdown_monitor_thread.start()
-            
+
         except Exception as e:
             logger.exception("Exception occurred in shut_down: %s", e)
             raise
-    
-    def _shutdown_monitor(self, shutdown_timer: threading.Timer, input_handler: NonBlockingConsoleInputHandler) -> None:
+
+    def _shutdown_monitor(
+        self,
+        shutdown_timer: threading.Timer,
+        input_handler: NonBlockingConsoleInputHandler,
+    ) -> None:
         """
         Monitors for shutdown input and handles the shutdown process.
-        
+
         Args:
             shutdown_timer (threading.Timer): Timer for automatic shutdown.
             input_handler (NonBlockingConsoleInputHandler): Handles user input in a thread-safe manner.
@@ -324,12 +363,16 @@ class TaskInterface:
                 logger.user_info("No input received. Proceeding with shutdown.")
 
         except Exception as e:
-            logger.exception(f"Unexpected error occurred during shutdown monitoring: {e}")
+            logger.exception(
+                f"Unexpected error occurred during shutdown monitoring: {e}"
+            )
 
         finally:
             pass
 
-    def _perform_shutdown(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def _perform_shutdown(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Execute the system shutdown sequence.
 
@@ -345,7 +388,9 @@ class TaskInterface:
     @voice_command
     @inject_lights_handler
     @inject_hexapod
-    def wake_up(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def wake_up(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Activate the robot from a sleep state.
 
@@ -361,7 +406,7 @@ class TaskInterface:
             hexapod.move_to_position(PredefinedPosition.ZERO)
             hexapod.wait_until_motion_complete()
             logger.user_info("Robot activated")
-            
+
         except Exception as e:
             logger.exception(f"Activating robot failed: {e}")
 
@@ -379,11 +424,13 @@ class TaskInterface:
         try:
             logger.user_info("Deactivating robot...")
             lights_handler.set_brightness(5)
-            lights_handler.pulse_smoothly(base_color=ColorRGB.INDIGO, pulse_color=ColorRGB.BLACK, pulse_speed=0.1)
+            lights_handler.pulse_smoothly(
+                base_color=ColorRGB.INDIGO, pulse_color=ColorRGB.BLACK, pulse_speed=0.1
+            )
             hexapod.wait_until_motion_complete()
             hexapod.deactivate_all_servos()
             logger.user_info("Robot deactivated")
-            
+
         except Exception as e:
             logger.exception(f"Deactivating robot failed: {e}")
 
@@ -391,7 +438,9 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def calibrate(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def calibrate(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Initiate the calibration process in a separate thread to avoid blocking other activities.
 
@@ -403,13 +452,13 @@ class TaskInterface:
             self.request_pause_voice_control()  # Signal voice control paused
             self.request_block_voice_control_pausing()  # Signal voice control pausing blocked
             self.task = tasks.CompositeCalibrationTask(
-                hexapod, 
-                lights_handler, 
-                self.external_control_paused_event, 
-                callback=lambda: self._notify_task_completion(self.task)
+                hexapod,
+                lights_handler,
+                self.external_control_paused_event,
+                callback=lambda: self._notify_task_completion(self.task),
             )
             logger.user_info("Calibration process started.")
-        
+
         except Exception as e:
             logger.exception(f"Calibration failed: {e}")
 
@@ -422,8 +471,10 @@ class TaskInterface:
             self._last_command(*self._last_args, **self._last_kwargs)
         else:
             logger.error("No last command to repeat.")
-            self.lights_handler.listen_wakeword(base_color=ColorRGB.RED, pulse_color=ColorRGB.GOLDEN)
-        
+            self.lights_handler.listen_wakeword(
+                base_color=ColorRGB.RED, pulse_color=ColorRGB.GOLDEN
+            )
+
     def _store_last_command(self, func: MethodType, *args: Any, **kwargs: Any) -> None:
         """
         Store the last executed command and its arguments.
@@ -433,16 +484,20 @@ class TaskInterface:
             *args (Any): Positional arguments for the function.
             **kwargs (Any): Keyword arguments for the function.
         """
-        logger.debug(f"Storing last command: {func.__name__} with args={args}, kwargs={kwargs}.")
+        logger.debug(
+            f"Storing last command: {func.__name__} with args={args}, kwargs={kwargs}."
+        )
         if not isinstance(func, MethodType):
             func = MethodType(func, self)
         self._last_command = func
         self._last_args = args
         self._last_kwargs = kwargs
 
-    @voice_command            
+    @voice_command
     @inject_lights_handler
-    def turn_lights(self, lights_handler: LightsInteractionHandler, switch_state: str) -> None:
+    def turn_lights(
+        self, lights_handler: LightsInteractionHandler, switch_state: str
+    ) -> None:
         """
         Turn the lights on or off based on the switch state.
 
@@ -450,7 +505,7 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             switch_state (str): State to switch the lights to ('on' or 'off').
         """
-        if switch_state == 'off':
+        if switch_state == "off":
             logger.user_info("Turning lights off")
             lights_handler.off()
         else:
@@ -459,7 +514,9 @@ class TaskInterface:
 
     @voice_command
     @inject_lights_handler
-    def change_color(self, lights_handler: LightsInteractionHandler, color: str) -> None:
+    def change_color(
+        self, lights_handler: LightsInteractionHandler, color: str
+    ) -> None:
         """
         Change the color of the lights.
 
@@ -476,7 +533,9 @@ class TaskInterface:
 
     @voice_command
     @inject_lights_handler
-    def set_brightness(self, lights_handler: LightsInteractionHandler, brightness_percentage: float) -> None:
+    def set_brightness(
+        self, lights_handler: LightsInteractionHandler, brightness_percentage: float
+    ) -> None:
         """
         Set the brightness of the lights.
 
@@ -491,7 +550,12 @@ class TaskInterface:
     @voice_command
     @inject_lights_handler
     @inject_hexapod
-    def set_speed(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, speed_percentage: float) -> None:
+    def set_speed(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        speed_percentage: float,
+    ) -> None:
         """
         Set the speed of all servos.
 
@@ -502,11 +566,16 @@ class TaskInterface:
         logger.debug(f"Setting speed to {speed_percentage}%.")
         hexapod.set_all_servos_speed(speed_percentage)
         lights_handler.listen_wakeword()
-   
-    @voice_command 
+
+    @voice_command
     @inject_lights_handler
     @inject_hexapod
-    def set_accel(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, accel_percentage: float) -> None:
+    def set_accel(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        accel_percentage: float,
+    ) -> None:
         """
         Set the acceleration of all servos.
 
@@ -522,7 +591,12 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def march_in_place(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, duration: Optional[float] = None) -> None:
+    def march_in_place(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        duration: Optional[float] = None,
+    ) -> None:
         """
         Execute the marching in place task.
 
@@ -533,10 +607,10 @@ class TaskInterface:
         """
         try:
             self.task = tasks.MarchInPlaceTask(
-                hexapod, 
+                hexapod,
                 lights_handler,
                 duration=duration,
-                callback=lambda: self._notify_task_completion(self.task)
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"March in place task failed: {e}")
@@ -544,7 +618,9 @@ class TaskInterface:
     @voice_command
     @inject_lights_handler
     @inject_hexapod
-    def idle_stance(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def idle_stance(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Initiate the idle stance by setting the hexapod to the home position.
 
@@ -557,7 +633,7 @@ class TaskInterface:
             hexapod.wait_until_motion_complete()
             logger.debug("Hexapod set to home position")
             lights_handler.listen_wakeword()
-                
+
         except Exception as e:
             logger.exception(f"Setting idle stance failed: {e}")
 
@@ -565,7 +641,14 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def move(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, direction: str, cycles: int = None, duration: float = None) -> None:
+    def move(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        direction: str,
+        cycles: int = None,
+        duration: float = None,
+    ) -> None:
         """
         Initiate a move in the specified direction, for a number of cycles or duration if provided.
 
@@ -583,7 +666,7 @@ class TaskInterface:
                 direction,
                 cycles=cycles,
                 duration=duration,
-                callback=lambda: self._notify_task_completion(self.task)
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"Move task failed: {e}")
@@ -592,7 +675,15 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def rotate(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, angle: float = None, turn_direction: str = None, cycles: int = None, duration: float = None) -> None:
+    def rotate(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        angle: float = None,
+        turn_direction: str = None,
+        cycles: int = None,
+        duration: float = None,
+    ) -> None:
         """
         Rotate the hexapod by a specified angle, direction, cycles, or duration.
 
@@ -612,7 +703,7 @@ class TaskInterface:
                 turn_direction=turn_direction,
                 cycles=cycles,
                 duration=duration,
-                callback=lambda: self._notify_task_completion(self.task)
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"Rotate task failed: {e}")
@@ -621,7 +712,9 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def follow(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def follow(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Initiate a follow task to follow a target.
 
@@ -633,16 +726,17 @@ class TaskInterface:
             # Pause both voice control and external control before starting ODAS task
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
-            
+
             from hexapod.odas import ODASDoASSLProcessor
+
             odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
-            
+
             self.task = tasks.FollowTask(
                 hexapod,
                 lights_handler,
                 odas_processor,
                 self.external_control_paused_event,
-                callback=lambda: self._notify_task_completion(self.task)
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"Follow task failed: {e}")
@@ -651,7 +745,9 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def sound_source_localization(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def sound_source_localization(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Initiate sound source localization.
 
@@ -663,16 +759,17 @@ class TaskInterface:
             # Pause both voice control and external control before starting ODAS task
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
-            
+
             from hexapod.odas import ODASDoASSLProcessor
+
             odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
-            
+
             self.task = tasks.SoundSourceLocalizationTask(
-                hexapod=hexapod, 
+                hexapod=hexapod,
                 lights_handler=lights_handler,
                 odas_processor=odas_processor,
                 external_control_paused_event=self.external_control_paused_event,
-                callback=lambda: self._notify_task_completion(self.task)
+                callback=lambda: self._notify_task_completion(self.task),
             )
             logger.user_info("Sound source localization started.")
         except Exception as e:
@@ -682,7 +779,12 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def stream_odas_audio(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, stream_type: str = "separated") -> None:
+    def stream_odas_audio(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        stream_type: str = "separated",
+    ) -> None:
         """
         Initiate the ODAS audio streaming task. First runs sound source localization to ensure ODAS is properly initialized.
 
@@ -695,17 +797,18 @@ class TaskInterface:
             # Pause both voice control and external control before starting ODAS task
             self.request_pause_voice_control()
             self.request_block_voice_control_pausing()
-            
+
             from hexapod.odas import ODASDoASSLProcessor
+
             odas_processor = ODASDoASSLProcessor(lights_handler=lights_handler)
-            
+
             self.task = tasks.StreamODASAudioTask(
-                hexapod=hexapod, 
+                hexapod=hexapod,
                 lights_handler=lights_handler,
                 odas_processor=odas_processor,
                 external_control_paused_event=self.external_control_paused_event,
                 stream_type=stream_type,
-                callback=lambda: self._notify_task_completion(self.task)
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"ODAS audio streaming task failed: {e}")
@@ -721,7 +824,7 @@ class TaskInterface:
         """
         try:
             lights_handler.police()
-                
+
         except Exception as e:
             logger.exception(f"Turning on police lights failed: {e}")
 
@@ -744,7 +847,9 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def sit_up(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def sit_up(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Initiate the sit-up routine.
 
@@ -754,9 +859,9 @@ class TaskInterface:
         """
         try:
             self.task = tasks.SitUpTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
+                hexapod,
+                lights_handler,
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"Sit-up task failed: {e}")
@@ -775,9 +880,9 @@ class TaskInterface:
         """
         try:
             self.task = tasks.DanceTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
+                hexapod,
+                lights_handler,
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"Dance task failed: {e}")
@@ -796,11 +901,11 @@ class TaskInterface:
         """
         try:
             self.task = tasks.HelixTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
+                hexapod,
+                lights_handler,
+                callback=lambda: self._notify_task_completion(self.task),
             )
-            
+
         except Exception as e:
             logger.exception(f"Helix maneuver failed: {e}")
 
@@ -808,7 +913,9 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def show_off(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def show_off(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Initiate the show-off routine.
 
@@ -818,9 +925,9 @@ class TaskInterface:
         """
         try:
             self.task = tasks.ShowOffTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
+                hexapod,
+                lights_handler,
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"Show-off task failed: {e}")
@@ -829,7 +936,9 @@ class TaskInterface:
     @task
     @inject_lights_handler
     @inject_hexapod
-    def say_hello(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler) -> None:
+    def say_hello(
+        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
+    ) -> None:
         """
         Execute the say hello task.
 
@@ -839,9 +948,9 @@ class TaskInterface:
         """
         try:
             self.task = tasks.SayHelloTask(
-                hexapod, 
-                lights_handler, 
-                callback=lambda: self._notify_task_completion(self.task)
+                hexapod,
+                lights_handler,
+                callback=lambda: self._notify_task_completion(self.task),
             )
         except Exception as e:
             logger.exception(f"Say hello task failed: {e}")
@@ -856,7 +965,7 @@ class TaskInterface:
         try:
             # Stop any running task
             if self.task:
-            # Deactivate servos
+                # Deactivate servos
                 if hexapod:
                     if hexapod.gait_generator.is_gait_running():
                         hexapod.gait_generator.stop()
@@ -869,7 +978,7 @@ class TaskInterface:
                 logger.user_info("No active task to stop.")
         except Exception as e:
             logger.exception(f"Stop failed: {e}")
-            
+
     def cleanup(self) -> None:
         """
         Clean up the task interface.
@@ -904,7 +1013,7 @@ class TaskInterface:
         """
         Set the voice control instance after initialization.
         This allows for proper dependency injection.
-        
+
         Args:
             voice_control: VoiceControl instance
         """
@@ -914,39 +1023,49 @@ class TaskInterface:
 
     @voice_command
     @inject_lights_handler
-    def start_recording(self, lights_handler: LightsInteractionHandler, duration: Optional[float] = None) -> None:
+    def start_recording(
+        self, lights_handler: LightsInteractionHandler, duration: Optional[float] = None
+    ) -> None:
         """
         Start audio recording via voice command.
-        
+
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
             duration (Optional[float]): Recording duration in seconds. If None, records until stopped.
         """
         if not self._recording_available:
-            logger.warning("Recording functionality not available - voice_control not set")
+            logger.warning(
+                "Recording functionality not available - voice_control not set"
+            )
             lights_handler.listen_wakeword()
             return
-            
+
         try:
             # Check if already recording to provide better feedback
             current_status = self.voice_control.get_recording_status()
             was_recording = current_status.get("is_recording", False)
-            
+
             filename = self.voice_control.start_recording(duration=duration)
-            
+
             if was_recording:
                 if duration:
-                    logger.user_info(f"Previous recording saved. New recording started for {duration} seconds: {filename}")
+                    logger.user_info(
+                        f"Previous recording saved. New recording started for {duration} seconds: {filename}"
+                    )
                 else:
-                    logger.user_info(f"Previous recording saved. New continuous recording started: {filename}")
+                    logger.user_info(
+                        f"Previous recording saved. New continuous recording started: {filename}"
+                    )
             else:
                 if duration:
-                    logger.user_info(f"Recording started for {duration} seconds: {filename}")
+                    logger.user_info(
+                        f"Recording started for {duration} seconds: {filename}"
+                    )
                 else:
                     logger.user_info(f"Recording started (continuous): {filename}")
-            
+
             lights_handler.listen_wakeword()
-                
+
         except Exception as e:
             logger.error(f"Failed to start recording: {e}")
             lights_handler.listen_wakeword()
@@ -956,24 +1075,26 @@ class TaskInterface:
     def stop_recording(self, lights_handler: LightsInteractionHandler) -> None:
         """
         Stop audio recording via voice command.
-        
+
         Args:
             lights_handler (LightsInteractionHandler): Handles lights activity.
         """
         if not self._recording_available:
-            logger.warning("Recording functionality not available - voice_control not set")
+            logger.warning(
+                "Recording functionality not available - voice_control not set"
+            )
             lights_handler.listen_wakeword()
             return
-            
+
         try:
             filename = self.voice_control.stop_recording()
             if filename:
                 logger.user_info(f"Recording stopped and saved: {filename}")
             else:
                 logger.user_info("No active recording to stop")
-            
+
             lights_handler.listen_wakeword()
-            
+
         except Exception as e:
             logger.error(f"Failed to stop recording: {e}")
             lights_handler.listen_wakeword()

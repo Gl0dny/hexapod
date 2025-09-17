@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("task_interface_logger")
 
+
 class Task(threading.Thread, abc.ABC):
     """
     Abstract base class for tasks executed by the hexapod.
@@ -86,13 +87,18 @@ class Task(threading.Thread, abc.ABC):
         self.stop_event.set()
         if self.is_alive():
             try:
-                logger.info(f"Waiting for task {self.__class__.__name__} to stop (timeout: {timeout} seconds)")
+                logger.info(
+                    f"Waiting for task {self.__class__.__name__} to stop (timeout: {timeout} seconds)"
+                )
                 self.join(timeout=timeout)
                 if self.is_alive():
-                    logger.error(f"Task {self.__class__.__name__} did not stop within {timeout}s timeout")
+                    logger.error(
+                        f"Task {self.__class__.__name__} did not stop within {timeout}s timeout"
+                    )
             except Exception as e:
-                logger.error(f"Error while stopping task {self.__class__.__name__}: {e}")
+                logger.error(
+                    f"Error while stopping task {self.__class__.__name__}: {e}"
+                )
         if self.callback and not self._callback_called:
             self._callback_called = True
             self.callback()
-

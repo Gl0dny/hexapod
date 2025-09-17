@@ -5,14 +5,14 @@ Pololu Maestro servo controller board library
 
 ### Pololu Protocol
 
-This protocol is compatible with the serial protocol used by our other serial motor and servo controllers. 
-As such, you can daisy-chain a Maestro on a single serial line along with our other serial controllers (including additional Maestros) and, using this protocol, 
+This protocol is compatible with the serial protocol used by our other serial motor and servo controllers.
+As such, you can daisy-chain a Maestro on a single serial line along with our other serial controllers (including additional Maestros) and, using this protocol,
 send commands specifically to the desired Maestro without confusing the other devices on the line.
 
-To use the Pololu protocol, you transmit 0xAA (170 in decimal) as the first (command) byte, followed by a Device Number data byte. 
-The default Device Number for the Maestro is **12**, but this is a configuration parameter you can change. 
-Any Maestro on the line whose device number matches the specified device number accepts the command that follows; all other Pololu devices ignore the command. 
-The remaining bytes in the command packet are the same as the compact protocol command packet you would send, with one key difference: 
+To use the Pololu protocol, you transmit 0xAA (170 in decimal) as the first (command) byte, followed by a Device Number data byte.
+The default Device Number for the Maestro is **12**, but this is a configuration parameter you can change.
+Any Maestro on the line whose device number matches the specified device number accepts the command that follows; all other Pololu devices ignore the command.
+The remaining bytes in the command packet are the same as the compact protocol command packet you would send, with one key difference:
 the compact protocol command byte is now a data byte for the command 0xAA and hence **must have its most significant bit cleared**. -> & 0x7F
 Therefore, the command packet is:
 
@@ -20,7 +20,7 @@ Therefore, the command packet is:
 
 For example, if we want to set the target of servo 0 to 1500 µs for a Maestro with device number 12, we could send the following byte sequence:
 
-in hex: **0xAA, 0x0C, 0x04, 0x00, 0x70, 0x2E**  
+in hex: **0xAA, 0x0C, 0x04, 0x00, 0x70, 0x2E**
 in decimal: **170, 12, 4, 0, 112, 46**
 
 Note that 0x04 is the command 0x84 with its most significant bit cleared.
@@ -37,25 +37,30 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("maestro_logger")
 
-class MaestroUART(object):
-    COMMAND_START: int = 0xAA				 # Start byte for Pololu protocol commands
-    DEFAULT_DEVICE_NUMBER: int = 0x0C 	     # Default device number for Maestro UART
-    COMMAND_GET_ERROR: int = 0x21 			 # Command to retrieve error status from the Maestro
-    COMMAND_GET_POSITION: int = 0x10 		 # Command to get the current position of a servo
-    COMMAND_SET_SPEED: int = 0x07 		 	 # Command to set the speed of a servo
-    COMMAND_SET_ACCELERATION: int = 0x09 	 # Command to set the acceleration of a servo
-    COMMAND_SET_TARGET: int = 0x04 		 	 # Command to set the target position of a servo
-    COMMAND_GO_HOME: int = 0x22 			 # Command to move all servos to their home positions
-    COMMAND_GET_MOVING_STATE: int = 0x13 	 # Command to check if any servos are still moving
-    COMMAND_SET_MULTIPLE_TARGETS: int = 0x1F # Command to set multiple servo targets simultaneously
 
-    def __init__(self, device: str = '/dev/ttyS0', baudrate: int = 9600) -> None:
+class MaestroUART(object):
+    COMMAND_START: int = 0xAA  # Start byte for Pololu protocol commands
+    DEFAULT_DEVICE_NUMBER: int = 0x0C  # Default device number for Maestro UART
+    COMMAND_GET_ERROR: int = 0x21  # Command to retrieve error status from the Maestro
+    COMMAND_GET_POSITION: int = 0x10  # Command to get the current position of a servo
+    COMMAND_SET_SPEED: int = 0x07  # Command to set the speed of a servo
+    COMMAND_SET_ACCELERATION: int = 0x09  # Command to set the acceleration of a servo
+    COMMAND_SET_TARGET: int = 0x04  # Command to set the target position of a servo
+    COMMAND_GO_HOME: int = 0x22  # Command to move all servos to their home positions
+    COMMAND_GET_MOVING_STATE: int = (
+        0x13  # Command to check if any servos are still moving
+    )
+    COMMAND_SET_MULTIPLE_TARGETS: int = (
+        0x1F  # Command to set multiple servo targets simultaneously
+    )
+
+    def __init__(self, device: str = "/dev/ttyS0", baudrate: int = 9600) -> None:
         """Open the given serial port and do any setup for the serial port.
 
         Args:
             device: The name of the serial port that the Maestro is connected to.
                 Default is '/dev/ttyS0'.
-                Examples: "/dev/ttyAMA0" for Raspberry Pi 2, "/dev/ttyS0" for 
+                Examples: "/dev/ttyAMA0" for Raspberry Pi 2, "/dev/ttyS0" for
                 Raspberry Pi 3.
             baudrate: Default is 9600.
         """
@@ -65,9 +70,11 @@ class MaestroUART(object):
         self.ser.parity = serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.xonxoff = False
-        self.ser.timeout = 0 # makes the read non-blocking
+        self.ser.timeout = 0  # makes the read non-blocking
         self.lock = threading.Lock()
-        logger.debug(f"MaestroUART initialized successfully with device={device}, baudrate={baudrate}")
+        logger.debug(
+            f"MaestroUART initialized successfully with device={device}, baudrate={baudrate}"
+        )
 
     def get_error(self) -> int:
         """Check if there was an error and print the corresponding error messages.
@@ -108,46 +115,65 @@ class MaestroUART(object):
         """
         logger.debug("Checking for errors.")
         self.ser.reset_input_buffer()
-        command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_GET_ERROR])
+        command = bytes(
+            [self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_GET_ERROR]
+        )
 
         with self.lock:
             self.ser.write(command)
 
-            data = [b'\x00', b'\x00']
+            data = [b"\x00", b"\x00"]
             n = 0
             while n != 2:
                 data[n] = self.ser.read(1)
-                if data[n] == b'': continue
+                if data[n] == b"":
+                    continue
                 n = n + 1
 
-        error_code = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
+        error_code = int.from_bytes(data[0], byteorder="big") + (
+            int.from_bytes(data[1], byteorder="big") << 8
+        )
 
         if error_code != 0:
             logger.error(f"Error detected with code: {error_code}")
             if error_code & (1 << 0):
-                logger.error("Serial signal error: Stop bit not detected at the expected place.")
+                logger.error(
+                    "Serial signal error: Stop bit not detected at the expected place."
+                )
             if error_code & (1 << 1):
                 logger.error("Serial overrun error: UART's internal buffer filled up.")
             if error_code & (1 << 2):
-                logger.error("Serial buffer full: Firmware buffer for received bytes is full.")
+                logger.error(
+                    "Serial buffer full: Firmware buffer for received bytes is full."
+                )
             if error_code & (1 << 3):
-                logger.error("Serial CRC error: CRC byte does not match the computed CRC.")
+                logger.error(
+                    "Serial CRC error: CRC byte does not match the computed CRC."
+                )
             if error_code & (1 << 4):
-                logger.error("Serial protocol error: Incorrectly formatted or nonsensical command packet.")
+                logger.error(
+                    "Serial protocol error: Incorrectly formatted or nonsensical command packet."
+                )
             if error_code & (1 << 5):
-                logger.error("Serial timeout: Timeout period elapsed without receiving valid serial commands.")
+                logger.error(
+                    "Serial timeout: Timeout period elapsed without receiving valid serial commands."
+                )
             if error_code & (1 << 6):
                 logger.error("Script stack error: Stack overflow or underflow.")
             if error_code & (1 << 7):
-                logger.error("Script call stack error: Call stack overflow or underflow.")
+                logger.error(
+                    "Script call stack error: Call stack overflow or underflow."
+                )
             if error_code & (1 << 8):
-                logger.error("Script program counter error: Program counter went out of bounds.")
-                
+                logger.error(
+                    "Script program counter error: Program counter went out of bounds."
+                )
+
         return error_code
 
     def get_position(self, channel: int) -> int:
         """Gets the position of a servo from a Maestro channel.
-    
+
         Args:
             channel: The channel for the servo motor (0, 1, ...).
 
@@ -155,21 +181,31 @@ class MaestroUART(object):
             >0: the servo position in quarter-microseconds
             0: error getting the position, check the connections, could also be
             low power
-        """ 
+        """
         self.ser.reset_input_buffer()
-        command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_GET_POSITION, channel])
+        command = bytes(
+            [
+                self.COMMAND_START,
+                self.DEFAULT_DEVICE_NUMBER,
+                self.COMMAND_GET_POSITION,
+                channel,
+            ]
+        )
 
         with self.lock:
             self.ser.write(command)
 
-            data = [b'\x00', b'\x00']
+            data = [b"\x00", b"\x00"]
             n = 0
             while n != 2:
                 data[n] = self.ser.read(1)
-                if data[n] == b'': continue
+                if data[n] == b"":
+                    continue
                 n = n + 1
 
-        position = int.from_bytes(data[0], byteorder='big') + (int.from_bytes(data[1], byteorder='big') << 8)
+        position = int.from_bytes(data[0], byteorder="big") + (
+            int.from_bytes(data[1], byteorder="big") << 8
+        )
         logger.info(f"Position for channel {channel} is {position}.")
         logger.debug(f"Position for channel {channel} is {position}.")
         return position
@@ -179,27 +215,36 @@ class MaestroUART(object):
 
         Args:
             channel: The channel for the servo motor (0, 1, ...).
-            speed: The speed you want the motor to move at. The units of 
-                'speed' are in units of (0.25us/10ms). A speed of 0 means 
+            speed: The speed you want the motor to move at. The units of
+                'speed' are in units of (0.25us/10ms). A speed of 0 means
                 unlimited.
 
         Example (speed is 32):
-        Let's say the distance from your current position to the target 
-        is 1008us and you want to take 1.25 seconds (1250ms) to get there. 
+        Let's say the distance from your current position to the target
+        is 1008us and you want to take 1.25 seconds (1250ms) to get there.
         The required speed is (1008us/1250ms) = 0.8064us/ms.
-        Converting to units of (0.25us/10ms), 
+        Converting to units of (0.25us/10ms),
         0.8064us/ms / (0.25us/10ms) = 32.256.
         So we'll use 32 for the speed.
 
         Example (speed is 140, from the Maestro manual):
-        Let's say we set the speed to 140. That is a speed of 
-        3.5us/ms (140 * 0.25us/10ms = 3.5us/ms). If your target is such that 
+        Let's say we set the speed to 140. That is a speed of
+        3.5us/ms (140 * 0.25us/10ms = 3.5us/ms). If your target is such that
         you're going from 1000us to 1350us, then it will take 100ms.
 
         Returns:
             none
         """
-        command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_SET_SPEED, channel, speed & 0x7F, (speed >> 7) & 0x7F])
+        command = bytes(
+            [
+                self.COMMAND_START,
+                self.DEFAULT_DEVICE_NUMBER,
+                self.COMMAND_SET_SPEED,
+                channel,
+                speed & 0x7F,
+                (speed >> 7) & 0x7F,
+            ]
+        )
         with self.lock:
             self.ser.write(command)
         logger.debug(f"Speed for channel {channel} set to {speed}.")
@@ -216,10 +261,10 @@ class MaestroUART(object):
                 The value is in units of (0.25 us)/(10 ms)/(80 ms).
 
         Example (acceleration is ):
-        Let's say our motor is currently not moving and we're setting our 
+        Let's say our motor is currently not moving and we're setting our
         speed to 32, meaning 0.8064us/ms (see the example for set_speed()).
-        Let's say we want to get up to that speed in 0.5 seconds. 
-        Think of 0.8064us/ms as you would 0.8064m/ms (m for meters) if you 
+        Let's say we want to get up to that speed in 0.5 seconds.
+        Think of 0.8064us/ms as you would 0.8064m/ms (m for meters) if you
         find the 'us' confusing.
         Step 1. Find the acceleration in units of us/ms/ms:
         accel = (Vfinal - Vinitial) / time, V means velocity or speed
@@ -229,7 +274,7 @@ class MaestroUART(object):
         Therefore:
         accel = (0.8064us/ms - 0us/ms) / 500ms = 0.0016128us/ms/ms
         Step 2. Convert to units of (0.25 us)/(10 ms)/(80 ms):
-        0.0016128us/ms/ms / [(0.25 us)/(10 ms)/(80 ms)] = 
+        0.0016128us/ms/ms / [(0.25 us)/(10 ms)/(80 ms)] =
         0.0016128us/ms/ms / 0.0003125us/ms/ms = 5.16096
         So we'll set the acceleration to 5.
 
@@ -242,28 +287,46 @@ class MaestroUART(object):
         Returns:
             none
         """
-        command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_SET_ACCELERATION, channel, accel & 0x7F, (accel >> 7) & 0x7F])
+        command = bytes(
+            [
+                self.COMMAND_START,
+                self.DEFAULT_DEVICE_NUMBER,
+                self.COMMAND_SET_ACCELERATION,
+                channel,
+                accel & 0x7F,
+                (accel >> 7) & 0x7F,
+            ]
+        )
         with self.lock:
             self.ser.write(command)
         logger.debug(f"Acceleration for channel {channel} set to {accel}.")
 
     def set_target(self, channel: int, target: int) -> None:
-        """Sets the target of a Maestro channel. 
+        """Sets the target of a Maestro channel.
 
         Args:
             channel: The channel for the servo motor (0, 1, ...).
             target: Where you want the servo to move to in quarter-microseconds.
                 Allowing quarter-microseconds gives you more resolution to work
                 with.
-                Example: If you want to move it to 2000us then pass 
+                Example: If you want to move it to 2000us then pass
                 8000us (4 x 2000us).
 
                 A target value of 0 tells the Maestro to stop sending pulses to the servo.
-                
+
         Returns:
             none
         """
-        command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_SET_TARGET, channel, target & 0x7F, (target >> 7) & 0x7F])
+        command = bytes(
+            [
+                self.COMMAND_START,
+                self.DEFAULT_DEVICE_NUMBER,
+                self.COMMAND_SET_TARGET,
+                channel,
+                target & 0x7F,
+                (target >> 7) & 0x7F,
+            ]
+        )
         with self.lock:
             self.ser.write(command)
         logger.debug(f"Target for channel {channel} set to {target}.")
@@ -274,20 +337,20 @@ class MaestroUART(object):
         This command simultaneously sets the targets for a contiguous block of channels.
         **Note:** Targets must be provided in sequential order by channel number.
 
-        The first byte specifies how many channels are in the contiguous block; this is the 
-        number of target values you will need to send. The second byte specifies the lowest 
-        channel number in the block. The subsequent bytes contain the target values for each 
-        of the channels, in order by channel number, in the same format as the Set Target 
+        The first byte specifies how many channels are in the contiguous block; this is the
+        number of target values you will need to send. The second byte specifies the lowest
+        channel number in the block. The subsequent bytes contain the target values for each
+        of the channels, in order by channel number, in the same format as the Set Target
         command above.
 
-        For example, to set channel 3 to 0 (off) and channel 4 to 6000 (neutral), you would 
+        For example, to set channel 3 to 0 (off) and channel 4 to 6000 (neutral), you would
         send the following bytes:
         0x9F, 0x02, 0x03, 0x00, 0x00, 0x70, 0x2E
 
-        The Set Multiple Targets command allows high-speed updates to your Maestro, which 
-        is especially useful when controlling a large number of servos in a chained configuration. 
-        For example, using the Pololu protocol at 115.2 kbps, sending the Set Multiple Targets 
-        command lets you set the targets of 24 servos in 4.6 ms, while sending 24 individual Set 
+        The Set Multiple Targets command allows high-speed updates to your Maestro, which
+        is especially useful when controlling a large number of servos in a chained configuration.
+        For example, using the Pololu protocol at 115.2 kbps, sending the Set Multiple Targets
+        command lets you set the targets of 24 servos in 4.6 ms, while sending 24 individual Set
         Target commands would take 12.5 ms.
 
         Args:
@@ -300,7 +363,15 @@ class MaestroUART(object):
             raise ValueError("Channels are not sequential.")
         num_targets = len(targets)
         first_channel = targets[0][0]
-        command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_SET_MULTIPLE_TARGETS, num_targets, first_channel])
+        command = bytes(
+            [
+                self.COMMAND_START,
+                self.DEFAULT_DEVICE_NUMBER,
+                self.COMMAND_SET_MULTIPLE_TARGETS,
+                num_targets,
+                first_channel,
+            ]
+        )
         for _, target in targets:
             command += bytes([target & 0x7F, (target >> 7) & 0x7F])
         with self.lock:
@@ -324,7 +395,9 @@ class MaestroUART(object):
         Returns:
             none
         """
-        command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_GO_HOME])
+        command = bytes(
+            [self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_GO_HOME]
+        )
         with self.lock:
             self.ser.write(command)
         logger.debug("Go Home command sent.")
@@ -333,11 +406,11 @@ class MaestroUART(object):
     def get_moving_state(self) -> Optional[int]:
         """
         Checks if any servos are still moving.
-        This command is used to determine whether the servo outputs have reached 
-        their targets or are still changing and will return 1 as long as there is 
+        This command is used to determine whether the servo outputs have reached
+        their targets or are still changing and will return 1 as long as there is
         at least one servo that is limited by a speed or acceleration setting still moving.
-        Using this command together with the Set Target command, you can initiate several 
-        servo movements and wait for all the movements to finish before moving on to the 
+        Using this command together with the Set Target command, you can initiate several
+        servo movements and wait for all the movements to finish before moving on to the
         next step of your program.
 
         Args:
@@ -349,13 +422,19 @@ class MaestroUART(object):
             0x01: if at least one servo is still moving
         """
         self.ser.reset_input_buffer()
-        command = bytes([self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_GET_MOVING_STATE])
+        command = bytes(
+            [
+                self.COMMAND_START,
+                self.DEFAULT_DEVICE_NUMBER,
+                self.COMMAND_GET_MOVING_STATE,
+            ]
+        )
         with self.lock:
             self.ser.write(command)
 
             # Read a single byte response indicating the moving state
             response = self.ser.read(1)
-        if response == b'':
+        if response == b"":
             logger.debug("Failed to get moving state.")
             logger.debug("Failed to get moving state.")
             return None
@@ -378,17 +457,18 @@ class MaestroUART(object):
             self.ser.close()
         logger.info("Serial port closed.")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # min_pos and max_pos are the minimum and maxium positions for the servos
     # in quarter-microseconds. The defaults are 992*4 and 2000*4. See the Maestro
     # manual for how to change these values.
     # Allowing quarter-microseconds gives you more resolution to work with.
     # e.g. If you want a maximum of 2000us then use 8000us (4 x 2000us).
 
-    min_pos = 1100*4
-    max_pos = 1800*4
+    min_pos = 1100 * 4
+    max_pos = 1800 * 4
 
-    mu = MaestroUART('/dev/ttyS0', 9600)
+    mu = MaestroUART("/dev/ttyS0", 9600)
     channel = 8
 
     error = mu.get_error()
@@ -403,18 +483,17 @@ if __name__ == '__main__':
 
     position = mu.get_position(channel)
 
-    print('Position is: %d quarter-microseconds' % position)
+    print("Position is: %d quarter-microseconds" % position)
 
-    if position < min_pos+((max_pos - min_pos)/2): # if less than halfway
+    if position < min_pos + ((max_pos - min_pos) / 2):  # if less than halfway
         target = max_pos
     else:
         target = min_pos
 
-    print('Moving to: %d quarter-microseconds' % target)
+    print("Moving to: %d quarter-microseconds" % target)
 
     mu.set_target(channel, target)
 
-    
     first_iteration = True
     while True:
         moving_state = mu.get_moving_state()

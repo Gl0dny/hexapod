@@ -1,6 +1,7 @@
 """
 Logger module for the Hexapod project. Provides custom logging levels and formatters.
 """
+
 from __future__ import annotations
 from typing import TYPE_CHECKING, override
 import logging
@@ -13,12 +14,13 @@ if TYPE_CHECKING:
 # Define built-in log record attributes for custom formatting
 LOG_RECORD_BUILTIN_ATTRS = {...}
 
+
 def add_user_info_level() -> None:
     """
     Initialize and add a custom logging level 'USER_INFO' to the logging module.
-    
-    This function sets up a new logging level with a numeric value of 25 and 
-    associates it with the name "USER_INFO". It also adds the `user_info` method 
+
+    This function sets up a new logging level with a numeric value of 25 and
+    associates it with the name "USER_INFO". It also adds the `user_info` method
     to the `logging.Logger` class for ease of logging at this level.
     """
     USER_INFO_LEVEL = 25
@@ -33,7 +35,7 @@ def add_user_info_level() -> None:
             message (str): The message to be logged.
             *args (Any): Variable length argument list.
             **kwargs (Any): Arbitrary keyword arguments.
-        
+
         Returns:
             None
         """
@@ -42,12 +44,13 @@ def add_user_info_level() -> None:
 
     logging.Logger.user_info = user_info
 
+
 def add_odas_user_info() -> None:
     """
     Initialize and add a custom logging level 'ODAS_USER_INFO' to the logging module.
-    
-    This function sets up a new logging level with a numeric value of 24 and 
-    associates it with the name "ODAS_USER_INFO". It also adds the `odas_user_info` method 
+
+    This function sets up a new logging level with a numeric value of 24 and
+    associates it with the name "ODAS_USER_INFO". It also adds the `odas_user_info` method
     to the `logging.Logger` class for ease of logging at this level.
     """
     ODAS_USER_INFO_LEVEL = 26
@@ -62,7 +65,7 @@ def add_odas_user_info() -> None:
             message (str): The message to be logged.
             *args (Any): Variable length argument list.
             **kwargs (Any): Arbitrary keyword arguments.
-        
+
         Returns:
             None
         """
@@ -71,11 +74,12 @@ def add_odas_user_info() -> None:
 
     logging.Logger.odas_user_info = odas_user_info
 
+
 def add_gamepad_mode_info_level() -> None:
     """
     Initialize and add a custom logging level 'GAMEPAD_MODE_INFO' to the logging module.
-    This function sets up a new logging level with a numeric value of 27 and 
-    associates it with the name "GAMEPAD_MODE_INFO". It also adds the `gamepad_mode_info` method 
+    This function sets up a new logging level with a numeric value of 27 and
+    associates it with the name "GAMEPAD_MODE_INFO". It also adds the `gamepad_mode_info` method
     to the `logging.Logger` class for ease of logging at this level.
     """
     GAMEPAD_MODE_INFO_LEVEL = 27
@@ -90,6 +94,7 @@ def add_gamepad_mode_info_level() -> None:
             self._log(GAMEPAD_MODE_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
 
     logging.Logger.gamepad_mode_info = gamepad_mode_info
+
 
 add_user_info_level()
 add_odas_user_info()
@@ -108,7 +113,7 @@ class MyJSONFormatter(logging.Formatter):
 
         Args:
             fmt_keys (Optional[Dict[str, str]]): A dictionary mapping of format keys.
-        
+
         Returns:
             None
         """
@@ -121,26 +126,28 @@ class MyJSONFormatter(logging.Formatter):
 
         Args:
             record (logging.LogRecord): The log record to format.
-        
+
         Returns:
             str: The formatted log record as a JSON string.
         """
         message = self._prepare_log_dict(record)
         return json.dumps(message, default=str)
-    
+
     def _prepare_log_dict(self, record: logging.LogRecord) -> Dict[str, Any]:
         """
         Prepare the log record dictionary with specified format keys.
 
         Args:
             record (logging.LogRecord): The log record to prepare.
-        
+
         Returns:
             Dict[str, Any]: The prepared log record dictionary.
         """
         always_fields = {
             "message": record.getMessage(),
-            "timestamp": dt.datetime.fromtimestamp(record.created, tz=dt.timezone.utc).isoformat(),
+            "timestamp": dt.datetime.fromtimestamp(
+                record.created, tz=dt.timezone.utc
+            ).isoformat(),
         }
         if record.exc_info is not None:
             always_fields["exc_info"] = self.formatException(record.exc_info)
@@ -149,19 +156,28 @@ class MyJSONFormatter(logging.Formatter):
             always_fields["stack_info"] = self.formatStack(record.stack_info)
 
         message = {
-            key: msg_val
-            if (msg_val := always_fields.pop(val, None)) is not None
-            else getattr(record, val)
+            key: (
+                msg_val
+                if (msg_val := always_fields.pop(val, None)) is not None
+                else getattr(record, val)
+            )
             for key, val in self.fmt_keys.items()
         }
         message.update(always_fields)
 
         return message
-    
+
+
 class VerboseFormatter(logging.Formatter):
     """Formatter that outputs verbose logs with additional context."""
 
-    def __init__(self, fmt: Optional[str] = None, datefmt: Optional[str] = None, style: str = '%', validate: bool = True) -> None:
+    def __init__(
+        self,
+        fmt: Optional[str] = None,
+        datefmt: Optional[str] = None,
+        style: str = "%",
+        validate: bool = True,
+    ) -> None:
         """Initialize the verbose formatter with optional format and date format.
 
         Args:
@@ -169,7 +185,7 @@ class VerboseFormatter(logging.Formatter):
             datefmt (Optional[str]): The date format string.
             style (str): The style of the format string.
             validate (bool): Whether to validate the format string.
-        
+
         Returns:
             None
         """
@@ -178,13 +194,13 @@ class VerboseFormatter(logging.Formatter):
         if datefmt is None:
             datefmt = "%Y-%m-%dT%H:%M:%S%z"
         super().__init__(fmt=fmt, datefmt=datefmt, style=style, validate=validate)
-    
+
     def format(self, record: logging.LogRecord) -> str:
         """Format the log record with custom spacing.
 
         Args:
             record (logging.LogRecord): The log record to format.
-        
+
         Returns:
             str: The formatted log record string.
         """
@@ -194,25 +210,26 @@ class VerboseFormatter(logging.Formatter):
         record.funcName = f"{record.funcName:^30}"
         return super().format(record)
 
+
 class ColoredTerminalFormatter(logging.Formatter):
     """Formatter that adds ANSI color codes to log messages based on severity."""
 
     # ANSI color codes for different log levels
     ANSI_COLORS = {
-        'BLUE': '\033[94m',
-        'GREEN': '\033[92m',
-        'CYAN': '\033[96m',
-        'YELLOW': '\033[93m',
-        'RED': '\033[91m',
-        'BOLD_RED': '\033[1;31m',
-        'MAGENTA': '\033[95m',
-        'ORANGE': '\033[38;5;208m',
-        'PINK': '\033[38;5;205m',
-        'PURPLE': '\033[35m',
+        "BLUE": "\033[94m",
+        "GREEN": "\033[92m",
+        "CYAN": "\033[96m",
+        "YELLOW": "\033[93m",
+        "RED": "\033[91m",
+        "BOLD_RED": "\033[1;31m",
+        "MAGENTA": "\033[95m",
+        "ORANGE": "\033[38;5;208m",
+        "PINK": "\033[38;5;205m",
+        "PURPLE": "\033[35m",
     }
 
     # Reset color code to default
-    RESET_COLOR = '\033[0m'
+    RESET_COLOR = "\033[0m"
 
     # Log message format string
     FMT = "[{levelname:^9} - {module:^30} - {asctime}] - {message}"
@@ -234,7 +251,7 @@ class ColoredTerminalFormatter(logging.Formatter):
 
         Args:
             record (logging.LogRecord): The log record to format.
-        
+
         Returns:
             str: The formatted log record string with ANSI color codes.
         """

@@ -9,13 +9,13 @@ from .wheel_animation import WheelAnimation
 from .wheel_fill_animation import WheelFillAnimation
 
 __all__ = [
-    'Animation',
-    'AlternateRotateAnimation',
-    'CalibrationAnimation',
-    'DirectionOfArrivalAnimation',
-    'OppositeRotateAnimation',
-    'PulseAnimation',
-    'PulseSmoothlyAnimation',
-    'WheelAnimation',
-    'WheelFillAnimation'
+    "Animation",
+    "AlternateRotateAnimation",
+    "CalibrationAnimation",
+    "DirectionOfArrivalAnimation",
+    "OppositeRotateAnimation",
+    "PulseAnimation",
+    "PulseSmoothlyAnimation",
+    "WheelAnimation",
+    "WheelFillAnimation",
 ]

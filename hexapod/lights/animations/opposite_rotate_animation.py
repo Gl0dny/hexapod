@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class OppositeRotateAnimation(Animation):
     """
     Animation that lights up LEDs moving in opposite directions, creating a symmetrical effect.
@@ -23,10 +24,13 @@ class OppositeRotateAnimation(Animation):
         color (ColorRGB): ColorRGB of the LEDs.
         direction (int): Current direction of the animation.
     """
+
     FORWARD: int = 1
     BACKWARD: int = -1
 
-    def __init__(self, lights: Lights, interval: float = 0.1, color: ColorRGB = ColorRGB.WHITE) -> None:
+    def __init__(
+        self, lights: Lights, interval: float = 0.1, color: ColorRGB = ColorRGB.WHITE
+    ) -> None:
         """
         Initialize the OppositeRotateAnimation object.
 
@@ -51,7 +55,7 @@ class OppositeRotateAnimation(Animation):
             # Light up the starting LED
             if self.stop_event.wait(self.interval):
                 return
-    
+
             self.lights.clear()
             self.lights.set_color(self.color, led_index=start_index)
 
@@ -60,7 +64,7 @@ class OppositeRotateAnimation(Animation):
             for offset in range(1, max_offset):
                 if self.stop_event.wait(self.interval):
                     return
-        
+
                 index1 = (start_index + offset * self.direction) % num_leds
                 index2 = (start_index - offset * self.direction) % num_leds
 
@@ -75,7 +79,9 @@ class OppositeRotateAnimation(Animation):
 
             if self.stop_event.wait(self.interval):
                 return
-            
+
             # Switch direction and update starting index
-            self.direction = self.BACKWARD if self.direction == self.FORWARD else self.FORWARD
+            self.direction = (
+                self.BACKWARD if self.direction == self.FORWARD else self.FORWARD
+            )
             start_index = end_index

@@ -20,10 +20,13 @@ import sounddevice as sd
 import argparse
 from pathlib import Path
 
-def play_raw_audio(audio_file: Path, sample_rate: int = 44100, channels: int = 4, bit_depth: int = 16):
+
+def play_raw_audio(
+    audio_file: Path, sample_rate: int = 44100, channels: int = 4, bit_depth: int = 16
+):
     """
     Play a raw audio file.
-    
+
     Args:
         audio_file (Path): Path to the raw audio file
         sample_rate (int): Sample rate of the audio (default: 44100 Hz for postfiltered/separated)
@@ -32,7 +35,7 @@ def play_raw_audio(audio_file: Path, sample_rate: int = 44100, channels: int = 4
     """
     # Read the raw audio file
     print(f"Reading audio file: {audio_file}")
-    with open(audio_file, 'rb') as f:
+    with open(audio_file, "rb") as f:
         audio_data = f.read()
 
     # Convert to numpy array based on bit depth
@@ -44,15 +47,15 @@ def play_raw_audio(audio_file: Path, sample_rate: int = 44100, channels: int = 4
         raise ValueError(f"Unsupported bit depth: {bit_depth}. Must be 16 or 32.")
 
     audio_array = np.frombuffer(audio_data, dtype=dtype)
-    
+
     # Reshape to channels
     audio_array = audio_array.reshape(-1, channels)
-    
+
     # Mix down all channels (average them)
     audio_mono = np.mean(audio_array, axis=1)
-    
+
     # Normalize audio for playback
-    max_value = float(2**(bit_depth-1) - 1)
+    max_value = float(2 ** (bit_depth - 1) - 1)
     audio_float = audio_mono.astype(np.float32) / max_value
 
     # Play the audio at original sample rate
@@ -61,24 +64,36 @@ def play_raw_audio(audio_file: Path, sample_rate: int = 44100, channels: int = 4
     sd.wait()  # Wait for playback to finish
     print("Done playing audio")
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Play raw audio file from ODAS')
-    parser.add_argument('audio_file', help='Path to raw audio file')
-    parser.add_argument('--sample-rate', type=int, default=44100, 
-                       help='Sample rate (default: 44100 Hz for postfiltered/separated)')
-    parser.add_argument('--channels', type=int, default=4, 
-                       help='Number of channels (default: 4 for postfiltered/separated)')
-    parser.add_argument('--bit-depth', type=int, default=16, choices=[16, 32],
-                       help='Bit depth (default: 16 for postfiltered/separated)')
-    
-    args = parser.parse_args()
-    
-    play_raw_audio(
-        Path(args.audio_file),
-        args.sample_rate,
-        args.channels,
-        args.bit_depth
+    parser = argparse.ArgumentParser(description="Play raw audio file from ODAS")
+    parser.add_argument("audio_file", help="Path to raw audio file")
+    parser.add_argument(
+        "--sample-rate",
+        type=int,
+        default=44100,
+        help="Sample rate (default: 44100 Hz for postfiltered/separated)",
+    )
+    parser.add_argument(
+        "--channels",
+        type=int,
+        default=4,
+        help="Number of channels (default: 4 for postfiltered/separated)",
+    )
+    parser.add_argument(
+        "--bit-depth",
+        type=int,
+        default=16,
+        choices=[16, 32],
+        help="Bit depth (default: 16 for postfiltered/separated)",
     )
 
+    args = parser.parse_args()
+
+    play_raw_audio(
+        Path(args.audio_file), args.sample_rate, args.channels, args.bit_depth
+    )
+
+
 if __name__ == "__main__":
-    main() 
+    main()

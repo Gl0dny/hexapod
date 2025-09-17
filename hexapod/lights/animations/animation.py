@@ -7,6 +7,7 @@ from hexapod.utils import rename_thread
 
 logger = logging.getLogger("lights_logger")
 
+
 class Animation(threading.Thread, abc.ABC):
     """
     Abstract base class for animations using Lights.
@@ -38,14 +39,14 @@ class Animation(threading.Thread, abc.ABC):
         logger.debug(f"Starting animation: {self.__class__.__name__}")
         self.stop_event.clear()
         super().start()
-        
+
     def run(self):
         """
         Execute the animation.
         """
         logger.debug(f"Running animation: {self.__class__.__name__}")
         self.execute_animation()
-    
+
     @abc.abstractmethod
     def execute_animation(self) -> None:
         """

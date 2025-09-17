@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class LightsInteractionHandler:
     """
     A class to handle interactions with the Lights object, including animations.
@@ -29,7 +30,9 @@ class LightsInteractionHandler:
         Args:
             leg_to_led (dict): Mapping from leg indices to LED indices.
         """
-        logger.debug(f"Initializing LightsInteractionHandler with leg_to_led: {leg_to_led}")
+        logger.debug(
+            f"Initializing LightsInteractionHandler with leg_to_led: {leg_to_led}"
+        )
         self.lights: Lights = Lights()
         self.animation: Animation = None
         self.leg_to_led = leg_to_led
@@ -39,7 +42,7 @@ class LightsInteractionHandler:
         """
         Stop any running animation and reset the animation attribute.
         """
-        if hasattr(self, 'animation') and self.animation:
+        if hasattr(self, "animation") and self.animation:
             logger.debug(f"Stopping currently running animation {self.animation}")
             self.animation.stop_animation()
             self.animation = None
@@ -50,9 +53,9 @@ class LightsInteractionHandler:
         """
         Decorator to manage animations within methods.
 
-        This decorator ensures that the decorated method properly initializes and sets the 
-        `self.animation` attribute. After the method execution, it verifies that the 
-        `self.animation` attribute is set and starts the animation. If the `animation` 
+        This decorator ensures that the decorated method properly initializes and sets the
+        `self.animation` attribute. After the method execution, it verifies that the
+        `self.animation` attribute is set and starts the animation. If the `animation`
         attribute is not set, it logs an error and raises an `AttributeError`.
 
         Args:
@@ -61,23 +64,31 @@ class LightsInteractionHandler:
         Returns:
             Callable: Wrapped method.
         """
+
         @wraps(method)
         def wrapper(self, *args, **kwargs):
             logger.debug(f"Starting animation {method.__name__}.")
             try:
                 result = method(self, *args, **kwargs)
-                
-                if not hasattr(self, 'animation') or self.animation is None:
-                    logger.error(f"{method.__name__} must set 'self.animation' attribute.")
-                    raise AttributeError(f"{method.__name__} must set 'self.animation' attribute")
-                
-                logger.debug(f"'{method.__name__}' successfully set animation attribute: {self.animation}")
+
+                if not hasattr(self, "animation") or self.animation is None:
+                    logger.error(
+                        f"{method.__name__} must set 'self.animation' attribute."
+                    )
+                    raise AttributeError(
+                        f"{method.__name__} must set 'self.animation' attribute"
+                    )
+
+                logger.debug(
+                    f"'{method.__name__}' successfully set animation attribute: {self.animation}"
+                )
                 self.animation.start()
 
                 return result
             except Exception as e:
                 logger.error(f"Error in {method.__name__}: {str(e)}")
                 raise
+
         return wrapper
 
     def off(self) -> None:
@@ -88,7 +99,9 @@ class LightsInteractionHandler:
         self.lights.clear()
         logger.debug("Lights turned off.")
 
-    def set_single_color(self, color: ColorRGB, led_index: Optional[int] = None) -> None:
+    def set_single_color(
+        self, color: ColorRGB, led_index: Optional[int] = None
+    ) -> None:
         """
         Set a single LED or all LEDs to a single color.
 
@@ -119,7 +132,7 @@ class LightsInteractionHandler:
         self,
         use_rainbow: bool = True,
         color: Optional[ColorRGB] = None,
-        interval: float = 0.2
+        interval: float = 0.2,
     ) -> None:
         """
         Start the rainbow animation.
@@ -142,8 +155,8 @@ class LightsInteractionHandler:
         self,
         base_color: ColorRGB = ColorRGB.BLUE,
         pulse_color: ColorRGB = ColorRGB.GREEN,
-        pulse_speed: float = 0.05
-        ) -> None:
+        pulse_speed: float = 0.05,
+    ) -> None:
         """
         Start the listen_wakeword animation.
 
@@ -157,7 +170,7 @@ class LightsInteractionHandler:
             lights=self.lights,
             base_color=base_color,
             pulse_color=pulse_color,
-            pulse_speed=pulse_speed
+            pulse_speed=pulse_speed,
         )
 
     @animation
@@ -165,7 +178,7 @@ class LightsInteractionHandler:
         self,
         color_even: ColorRGB = ColorRGB.WHITE,
         color_odd: ColorRGB = ColorRGB.BLACK,
-        delay: float = 0.15
+        delay: float = 0.15,
     ) -> None:
         """
         Start the listen_intent animation.
@@ -177,18 +190,11 @@ class LightsInteractionHandler:
         """
         self.off()
         self.animation = animations.AlternateRotateAnimation(
-            lights=self.lights,
-            color_even=color_even,
-            color_odd=color_odd,
-            delay=delay
+            lights=self.lights, color_even=color_even, color_odd=color_odd, delay=delay
         )
 
     @animation
-    def think(
-        self,
-        color: ColorRGB = ColorRGB.LIME,
-        interval: float = 0.1
-    ) -> None:
+    def think(self, color: ColorRGB = ColorRGB.LIME, interval: float = 0.1) -> None:
         """
         Start the think animation.
 
@@ -216,7 +222,7 @@ class LightsInteractionHandler:
             lights=self.lights,
             base_color=ColorRGB.BLUE,
             pulse_color=ColorRGB.RED,
-            pulse_speed=pulse_speed
+            pulse_speed=pulse_speed,
         )
 
     @animation
@@ -229,17 +235,16 @@ class LightsInteractionHandler:
         """
         self.off()
         self.animation = animations.WheelFillAnimation(
-            lights=self.lights,
-            use_rainbow=False,
-            color=ColorRGB.RED,
-            interval=interval
+            lights=self.lights, use_rainbow=False, color=ColorRGB.RED, interval=interval
         )
 
     @animation
-    def update_calibration_leds_status(self, calibration_status: Dict[int, str]) -> None:
+    def update_calibration_leds_status(
+        self, calibration_status: Dict[int, str]
+    ) -> None:
         """
         Update each leg's LED color based on calibration status.
-        
+
         Args:
             calibration_status (dict): Dictionary with leg indices as keys and their calibration status.
         """
@@ -247,7 +252,7 @@ class LightsInteractionHandler:
         self.animation = animations.CalibrationAnimation(
             lights=self.lights,
             calibration_status=calibration_status,
-            leg_to_led=self.leg_to_led
+            leg_to_led=self.leg_to_led,
         )
 
     @animation
@@ -264,11 +269,11 @@ class LightsInteractionHandler:
         self,
         refresh_delay: float = 0.1,
         source_colors: list[ColorRGB] = [
-            ColorRGB.TEAL,   # First source
-            ColorRGB.INDIGO,   # Second source
-            ColorRGB.YELLOW,     # Third source
-            ColorRGB.LIME    # Fourth source
-        ]
+            ColorRGB.TEAL,  # First source
+            ColorRGB.INDIGO,  # Second source
+            ColorRGB.YELLOW,  # Third source
+            ColorRGB.LIME,  # Fourth source
+        ],
     ) -> None:
         """
         Start the direction of arrival animation to visualize sound source locations.
@@ -280,13 +285,11 @@ class LightsInteractionHandler:
         """
         self.off()
         self.animation = animations.DirectionOfArrivalAnimation(
-            lights=self.lights,
-            refresh_delay=refresh_delay,
-            source_colors=source_colors
+            lights=self.lights, refresh_delay=refresh_delay, source_colors=source_colors
         )
 
     @animation
-    def odas_loading(self, interval: float = 1.5/12) -> None:
+    def odas_loading(self, interval: float = 1.5 / 12) -> None:
         """
         Start the ODAS loading animation using WheelFillAnimation with teal color.
         The animation completes one full circle in 1.5 seconds.
@@ -300,7 +303,7 @@ class LightsInteractionHandler:
             lights=self.lights,
             use_rainbow=False,
             color=ColorRGB.TEAL,
-            interval=interval
+            interval=interval,
         )
 
     @animation
@@ -308,7 +311,7 @@ class LightsInteractionHandler:
         self,
         base_color: ColorRGB = ColorRGB.BLUE,
         pulse_color: ColorRGB = ColorRGB.BLACK,
-        pulse_speed: float = 0.05
+        pulse_speed: float = 0.05,
     ) -> None:
         """
         Start a smooth pulse animation between two colors with gradual transitions.
@@ -323,7 +326,7 @@ class LightsInteractionHandler:
             lights=self.lights,
             base_color=base_color,
             pulse_color=pulse_color,
-            pulse_speed=pulse_speed
+            pulse_speed=pulse_speed,
         )
 
     @animation
@@ -331,7 +334,7 @@ class LightsInteractionHandler:
         self,
         use_rainbow: bool = True,
         color: Optional[ColorRGB] = None,
-        interval: float = 0.1
+        interval: float = 0.1,
     ) -> None:
         """
         Start the wheel animation that rotates through colors or LEDs.
@@ -343,8 +346,5 @@ class LightsInteractionHandler:
         """
         self.off()
         self.animation = animations.WheelAnimation(
-            lights=self.lights,
-            use_rainbow=use_rainbow,
-            color=color,
-            interval=interval
+            lights=self.lights, use_rainbow=use_rainbow, color=color, interval=interval
         )

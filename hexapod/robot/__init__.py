@@ -13,13 +13,13 @@ except ImportError:
 from .balance_compensator import BalanceCompensator
 
 __all__ = [
-    'Joint',
-    'Leg',
-    'Calibration',
-    'Imu',
-    'Hexapod',
-    'PredefinedPosition',
-    'PredefinedAnglePosition',
-    'ButtonHandler',
-    'BalanceCompensator'
+    "Joint",
+    "Leg",
+    "Calibration",
+    "Imu",
+    "Hexapod",
+    "PredefinedPosition",
+    "PredefinedAnglePosition",
+    "ButtonHandler",
+    "BalanceCompensator",
 ]

@@ -14,20 +14,22 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("task_interface_logger")
 
+
 class SoundSourceLocalizationTask(Task):
     """
     Task to analyze sound sources and manage related lights.
 
     Processes incoming sound data to determine source directions and updates lights based on analysis.
     """
+
     def __init__(
-            self, 
-            hexapod: Hexapod, 
-            lights_handler: LightsInteractionHandler, 
-            odas_processor: ODASDoASSLProcessor, 
-            external_control_paused_event: threading.Event, 
-            callback: Optional[Callable] = None
-            ) -> None:
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        odas_processor: ODASDoASSLProcessor,
+        external_control_paused_event: threading.Event,
+        callback: Optional[Callable] = None,
+    ) -> None:
         """
         Initialize the SoundSourceLocalizationTask.
 
@@ -60,18 +62,18 @@ class SoundSourceLocalizationTask(Task):
             time.sleep(4)  # Wait for Voice Control to pause and release resources
 
             self.lights_handler.off()
-            
+
             # Start ODAS processor
             self.odas_processor.start()
-            
+
             # Wait for the task to complete or be stopped
             while not self.stop_event.is_set():
                 self.stop_event.wait(0.1)
-                
+
         except Exception as e:
             logger.exception(f"Sound source localization task failed: {e}")
         finally:
             # Ensure ODAS processor is closed
-            if hasattr(self, 'odas_processor'):
+            if hasattr(self, "odas_processor"):
                 self.odas_processor.close()
             logger.info("SoundSourceLocalizationTask completed")

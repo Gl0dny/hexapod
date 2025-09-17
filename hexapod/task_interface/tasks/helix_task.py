@@ -13,11 +13,18 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("task_interface_logger")
 
+
 class HelixTask(Task):
     """
     Task to perform a helix maneuver with the hexapod and manage lights.
     """
-    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, callback: Optional[Callable] = None) -> None:
+
+    def __init__(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        callback: Optional[Callable] = None,
+    ) -> None:
         """
         Initialize the HelixTask.
         """
@@ -33,11 +40,11 @@ class HelixTask(Task):
         1. Moving to helix_maximum position
         2. Moving to helix_minimum position
         3. Repeating the cycle
-        
+
         This creates a twisting motion that resembles a helix pattern.
         """
         logger.info("Starting helix maneuver")
-        
+
         self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         self.hexapod.wait_until_motion_complete(self.stop_event)
 
@@ -47,33 +54,37 @@ class HelixTask(Task):
             # Read the current angles
             _, femur_angle, tibia_angle = self.hexapod.current_leg_angles[i]
             # Use coxa min or max, keep femur/tibia from the cache
-            helix_min_positions.append((self.hexapod.coxa_params['angle_min']+25, femur_angle, tibia_angle))
-            helix_max_positions.append((self.hexapod.coxa_params['angle_max'], femur_angle, tibia_angle))
+            helix_min_positions.append(
+                (self.hexapod.coxa_params["angle_min"] + 25, femur_angle, tibia_angle)
+            )
+            helix_max_positions.append(
+                (self.hexapod.coxa_params["angle_max"], femur_angle, tibia_angle)
+            )
 
         self.helix_positions = {
-            'helix_minimum': helix_min_positions,
-            'helix_maximum': helix_max_positions,
+            "helix_minimum": helix_min_positions,
+            "helix_maximum": helix_max_positions,
         }
 
         # Parameters for the helix motion
         repetitions = 2  # number of helix cycles to perform
-        
+
         for rep in range(repetitions):
             if self.stop_event.is_set():
                 logger.info("Helix task interrupted.")
                 return
-                
+
             logger.info(f"Performing helix repetition {rep + 1}/{repetitions}")
 
             logger.debug("Helix maneuver: Moving to 'helix_maximum'")
-            self.hexapod.move_all_legs_angles(self.helix_positions['helix_maximum'])
+            self.hexapod.move_all_legs_angles(self.helix_positions["helix_maximum"])
 
             self.hexapod.wait_until_motion_complete(self.stop_event)
             if self.stop_event.is_set():
                 return
 
             logger.debug("Helix maneuver: Moving to 'helix_minimum'")
-            self.hexapod.move_all_legs_angles(self.helix_positions['helix_minimum'])
+            self.hexapod.move_all_legs_angles(self.helix_positions["helix_minimum"])
 
             self.hexapod.wait_until_motion_complete(self.stop_event)
             if self.stop_event.is_set():

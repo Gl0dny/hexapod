@@ -7,6 +7,7 @@ capabilities using various game controllers.
 Usage:
     python gamepad_hexapod_controller.py
 """
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging
@@ -18,7 +19,7 @@ import time
 from enum import Enum
 
 # Silence pygame warnings and welcome message BEFORE importing pygame
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="pygame")
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame")
@@ -28,13 +29,18 @@ warnings.filterwarnings("ignore", message=".*pygame.*")
 
 from hexapod.interface.controllers import ManualHexapodController
 from hexapod.interface.input_mappings import InputMapping, DualSenseUSBMapping
-from hexapod.interface.controllers.gamepad_led_controllers import BaseGamepadLEDController, GamepadLEDColor, DualSenseLEDController
+from hexapod.interface.controllers.gamepad_led_controllers import (
+    BaseGamepadLEDController,
+    GamepadLEDColor,
+    DualSenseLEDController,
+)
 from hexapod.utils import rename_thread
 
 logger = logging.getLogger("interface_logger")
 
 try:
     import pygame
+
     PYGAME_AVAILABLE = True
 except ImportError:
     PYGAME_AVAILABLE = False
@@ -44,6 +50,7 @@ if TYPE_CHECKING:
     from typing import Optional
     from hexapod.kws import VoiceControl
     from hexapod.task_interface import TaskInterface
+
 
 class GamepadHexapodController(ManualHexapodController):
     """Gamepad-based hexapod controller implementation."""
@@ -55,9 +62,9 @@ class GamepadHexapodController(ManualHexapodController):
     class InputMappingType(Enum):
         DUALSENSE_USB = 1
         DUALSENSE_BLUETOOTH = 2
-    
+
     BUTTON_DEBOUNCE_INTERVAL = 0.3  # seconds
-    
+
     @staticmethod
     def find_gamepad(input_mapping, check_only: bool = False):
         """
@@ -68,18 +75,20 @@ class GamepadHexapodController(ManualHexapodController):
         Returns:
             Joystick object if found (and not check_only), True if available (check_only), else None/False
         """
-        if not 'PYGAME_AVAILABLE' in globals() or not PYGAME_AVAILABLE:
+        if not "PYGAME_AVAILABLE" in globals() or not PYGAME_AVAILABLE:
             return False if check_only else None
         try:
-            os.environ['SDL_VIDEODRIVER'] = 'dummy'
-            os.environ['SDL_AUDIODRIVER'] = 'dummy'
+            os.environ["SDL_VIDEODRIVER"] = "dummy"
+            os.environ["SDL_AUDIODRIVER"] = "dummy"
             pygame.init()
             pygame.joystick.init()
             joystick_count = pygame.joystick.get_count()
             for i in range(joystick_count):
                 joystick = pygame.joystick.Joystick(i)
                 name = joystick.get_name().lower()
-                if any(keyword in name for keyword in input_mapping.get_interface_names()):
+                if any(
+                    keyword in name for keyword in input_mapping.get_interface_names()
+                ):
                     if check_only:
                         pygame.quit()
                         return True
@@ -104,13 +113,13 @@ class GamepadHexapodController(ManualHexapodController):
         return "usb"
 
     def __init__(
-            self, 
-            task_interface: TaskInterface,
-            voice_control: Optional['VoiceControl'] = None,
-            input_mapping_type: 'GamepadHexapodController.InputMappingType' = None,
-            led_controller_type: 'GamepadHexapodController.LEDControllerType' = None,
-            shutdown_callback: Optional[callable] = None
-            ):
+        self,
+        task_interface: TaskInterface,
+        voice_control: Optional["VoiceControl"] = None,
+        input_mapping_type: "GamepadHexapodController.InputMappingType" = None,
+        led_controller_type: "GamepadHexapodController.LEDControllerType" = None,
+        shutdown_callback: Optional[callable] = None,
+    ):
         """
         Initialize the gamepad hexapod controller.
 
@@ -121,12 +130,16 @@ class GamepadHexapodController(ManualHexapodController):
             led_controller_type: Enum specifying which LED controller to use
             shutdown_callback: Optional callback function to call when PS5 button is pressed
         """
-        super().__init__(task_interface=task_interface, voice_control=voice_control, shutdown_callback=shutdown_callback)
+        super().__init__(
+            task_interface=task_interface,
+            voice_control=voice_control,
+            shutdown_callback=shutdown_callback,
+        )
         rename_thread(self, "GamepadHexapodController")
-        
+
         if not PYGAME_AVAILABLE:
             raise ImportError("pygame is required for gamepad support")
-        
+
         # Set defaults to DUALSENSE if not provided
         if input_mapping_type is None:
             input_mapping_type = self.InputMappingType.DUALSENSE_BLUETOOTH
@@ -137,14 +150,18 @@ class GamepadHexapodController(ManualHexapodController):
         self.input_mapping = None
         if input_mapping_type == self.InputMappingType.DUALSENSE_BLUETOOTH:
             from hexapod.interface import DualSenseBluetoothMapping
+
             self.input_mapping = DualSenseBluetoothMapping()
         elif input_mapping_type == self.InputMappingType.DUALSENSE_USB:
             from hexapod.interface import DualSenseUSBMapping
+
             self.input_mapping = DualSenseUSBMapping()
-        
+
         if self.input_mapping is None:
-            raise ValueError("No valid input mapping type provided or mapping instantiation failed.")
-        
+            raise ValueError(
+                "No valid input mapping type provided or mapping instantiation failed."
+            )
+
         # Initialize gamepad state
         self.gamepad = None
         self.analog_inputs = {}
@@ -153,32 +170,43 @@ class GamepadHexapodController(ManualHexapodController):
         self._button_last_press_time = {}
         self.current_led_state = None
         self.marching_enabled = False  # Marching (neutral gait) is off by default
-        
+
         # Set display environment for headless systems
-        os.environ['SDL_VIDEODRIVER'] = 'dummy'
-        os.environ['SDL_AUDIODRIVER'] = 'dummy'
-        
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
+        os.environ["SDL_AUDIODRIVER"] = "dummy"
+
         # Initialize pygame for gamepad support
         pygame.init()
         pygame.joystick.init()
-        
+
         # Find and initialize gamepad
         self.gamepad = self.find_gamepad(self.input_mapping, check_only=False)
         if not self.gamepad:
             # If Bluetooth mapping failed, try USB mapping as fallback
             if input_mapping_type == self.InputMappingType.DUALSENSE_BLUETOOTH:
-                logger.user_info("Bluetooth mapping failed, trying USB mapping as fallback...")
+                logger.user_info(
+                    "Bluetooth mapping failed, trying USB mapping as fallback..."
+                )
                 from hexapod.interface import DualSenseUSBMapping
+
                 self.input_mapping = DualSenseUSBMapping()
                 self.gamepad = self.find_gamepad(self.input_mapping, check_only=False)
-            
+
             if not self.gamepad:
-                logger.user_info("No compatible gamepad found - falling back to voice control mode")
-                raise RuntimeError(f"Gamepad not found. This script only supports: {', '.join(self.input_mapping.get_interface_names())}")
+                logger.user_info(
+                    "No compatible gamepad found - falling back to voice control mode"
+                )
+                raise RuntimeError(
+                    f"Gamepad not found. This script only supports: {', '.join(self.input_mapping.get_interface_names())}"
+                )
             else:
-                logger.user_info("Compatible gamepad found (USB mode) - starting manual control mode")
+                logger.user_info(
+                    "Compatible gamepad found (USB mode) - starting manual control mode"
+                )
         else:
-            logger.user_info("Compatible gamepad found (Bluetooth mode) - starting manual control mode")
+            logger.user_info(
+                "Compatible gamepad found (Bluetooth mode) - starting manual control mode"
+            )
 
         # Now it's safe to get connection_type
         connection_type = self.get_gamepad_connection_type(self.gamepad)
@@ -187,27 +215,44 @@ class GamepadHexapodController(ManualHexapodController):
         if connection_type != "bluetooth" and led_controller_type is not None:
             if led_controller_type == self.LEDControllerType.DUALSENSE:
                 try:
-                    from hexapod.interface.controllers.gamepad_led_controllers import DualSenseLEDController
+                    from hexapod.interface.controllers.gamepad_led_controllers import (
+                        DualSenseLEDController,
+                    )
+
                     self.led_controller = DualSenseLEDController()
                 except Exception as e:
-                    logger.warning(f"Failed to initialize DualSense LED controller: {e}")
-        elif connection_type == "bluetooth" and led_controller_type is not None and led_controller_type != self.LEDControllerType.NONE:
-            logger.warning("Gamepad is in Bluetooth mode: Gamepad LED controller is not supported and will not be initialized.")
-        
-        logger.gamepad_mode_info(f"Gamepad '{self.gamepad.get_name()}' initialized successfully")
+                    logger.warning(
+                        f"Failed to initialize DualSense LED controller: {e}"
+                    )
+        elif (
+            connection_type == "bluetooth"
+            and led_controller_type is not None
+            and led_controller_type != self.LEDControllerType.NONE
+        ):
+            logger.warning(
+                "Gamepad is in Bluetooth mode: Gamepad LED controller is not supported and will not be initialized."
+            )
+
+        logger.gamepad_mode_info(
+            f"Gamepad '{self.gamepad.get_name()}' initialized successfully"
+        )
         logger.gamepad_mode_info(f"Current mode: {self.current_mode}")
 
         # Deadzone for analog sticks (specific to gamepad hardware)
         self.deadzone = 0.1
-        
+
         # Initialize LED controller if provided
         if self.led_controller is not None:
             if self.led_controller.is_available():
                 # Set initial LED animation based on controller type
                 if "dualsense" or "ps5" in self.gamepad.get_name().lower():
-                    self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)  # Infinite blue pulse
+                    self.led_controller.pulse(
+                        GamepadLEDColor.BLUE, duration=2.0, cycles=0
+                    )  # Infinite blue pulse
                 else:
-                    self.led_controller.pulse(GamepadLEDColor.GREEN, duration=2.0, cycles=0)  # Infinite green pulse
+                    self.led_controller.pulse(
+                        GamepadLEDColor.GREEN, duration=2.0, cycles=0
+                    )  # Infinite green pulse
             else:
                 logger.warning("Gamepad LED control not available")
                 logger.warning("Make sure:")
@@ -218,8 +263,8 @@ class GamepadHexapodController(ManualHexapodController):
 
         # For buffered stance height adjustment
         self._stance_height_buffer = 0.0
-        self._stance_height_hold_start = {'l2': None, 'r2': None}
-        self._stance_height_last_increment = {'l2': None, 'r2': None}
+        self._stance_height_hold_start = {"l2": None, "r2": None}
+        self._stance_height_last_increment = {"l2": None, "r2": None}
 
     def _start_initial_animation(self):
         """
@@ -227,21 +272,23 @@ class GamepadHexapodController(ManualHexapodController):
         """
         # Call parent method to start hexapod light animations
         super()._start_initial_animation()
-        
+
         # Handle gamepad LED feedback - synchronized with hexapod LEDs (2.0s cycle)
         if not (self.led_controller and self.led_controller.is_available()):
             return
-        
+
         if self.current_mode == self.GAIT_CONTROL_MODE:
             self.led_controller.pulse(GamepadLEDColor.INDIGO, duration=2.0, cycles=0)
-            self.current_led_state = 'gait_mode'
+            self.current_led_state = "gait_mode"
         elif self.current_mode == self.BODY_CONTROL_MODE:
             self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)
-            self.current_led_state = 'body_mode'
+            self.current_led_state = "body_mode"
         elif self.current_mode == self.VOICE_CONTROL_MODE:
-            self.led_controller.pulse_two_colors(GamepadLEDColor.BLUE, GamepadLEDColor.GREEN, duration=2.0, cycles=0)
-            self.current_led_state = 'voice_mode'
-    
+            self.led_controller.pulse_two_colors(
+                GamepadLEDColor.BLUE, GamepadLEDColor.GREEN, duration=2.0, cycles=0
+            )
+            self.current_led_state = "voice_mode"
+
     def _apply_deadzone(self, value):
         """Apply deadzone to analog stick values."""
         if abs(value) < self.deadzone:
@@ -250,95 +297,101 @@ class GamepadHexapodController(ManualHexapodController):
         sign = 1 if value > 0 else -1
         normalized = (abs(value) - self.deadzone) / (1.0 - self.deadzone)
         return sign * normalized
-    
+
     def _get_analog_inputs(self):
         """Get analog stick inputs with deadzone applied."""
         # Process events to update gamepad state
         for event in pygame.event.get():
             pass
-        
+
         # Get axes using input mapping
         axis_mappings = self.input_mapping.get_axis_mappings()
-        left_x = self._apply_deadzone(self.gamepad.get_axis(axis_mappings['left_x']))
-        left_y = self._apply_deadzone(self.gamepad.get_axis(axis_mappings['left_y']))
-        right_x = self._apply_deadzone(self.gamepad.get_axis(axis_mappings['right_x']))
-        l2 = self._apply_deadzone(self.gamepad.get_axis(axis_mappings['l2']))
-        r2 = self._apply_deadzone(self.gamepad.get_axis(axis_mappings['r2']))
-        right_y = self._apply_deadzone(self.gamepad.get_axis(axis_mappings['right_y']))
-        
+        left_x = self._apply_deadzone(self.gamepad.get_axis(axis_mappings["left_x"]))
+        left_y = self._apply_deadzone(self.gamepad.get_axis(axis_mappings["left_y"]))
+        right_x = self._apply_deadzone(self.gamepad.get_axis(axis_mappings["right_x"]))
+        l2 = self._apply_deadzone(self.gamepad.get_axis(axis_mappings["l2"]))
+        r2 = self._apply_deadzone(self.gamepad.get_axis(axis_mappings["r2"]))
+        right_y = self._apply_deadzone(self.gamepad.get_axis(axis_mappings["right_y"]))
+
         return {
-            'left_x': left_x,
-            'left_y': left_y,
-            'right_x': right_x,
-            'right_y': right_y,
-            'l2': l2,
-            'r2': r2
+            "left_x": left_x,
+            "left_y": left_y,
+            "right_x": right_x,
+            "right_y": right_y,
+            "l2": l2,
+            "r2": r2,
         }
-    
+
     def _get_button_states(self):
         """Get current button states."""
         # Process events to clear pygame event queue, update gamepad state - prevents button stuck issue
         for event in pygame.event.get():
             pass
-        
+
         # Get buttons using input mapping
         button_mappings = self.input_mapping.get_button_mappings()
         axis_mappings = self.input_mapping.get_axis_mappings()
         buttons = {
-            'square': self.gamepad.get_button(button_mappings['square']),
-            'x': self.gamepad.get_button(button_mappings['x']),
-            'circle': self.gamepad.get_button(button_mappings['circle']),
-            'triangle': self.gamepad.get_button(button_mappings['triangle']),
-            'l1': self.gamepad.get_button(button_mappings['l1']),
-            'r1': self.gamepad.get_button(button_mappings['r1']),
-            'create': self.gamepad.get_button(button_mappings['create']),
-            'options': self.gamepad.get_button(button_mappings['options']),
-            'l3': self.gamepad.get_button(button_mappings['l3']),
-            'r3': self.gamepad.get_button(button_mappings['r3']),
-            'ps5': self.gamepad.get_button(button_mappings['ps5']),
-            'touchpad': self.gamepad.get_button(button_mappings['touchpad'])
+            "square": self.gamepad.get_button(button_mappings["square"]),
+            "x": self.gamepad.get_button(button_mappings["x"]),
+            "circle": self.gamepad.get_button(button_mappings["circle"]),
+            "triangle": self.gamepad.get_button(button_mappings["triangle"]),
+            "l1": self.gamepad.get_button(button_mappings["l1"]),
+            "r1": self.gamepad.get_button(button_mappings["r1"]),
+            "create": self.gamepad.get_button(button_mappings["create"]),
+            "options": self.gamepad.get_button(button_mappings["options"]),
+            "l3": self.gamepad.get_button(button_mappings["l3"]),
+            "r3": self.gamepad.get_button(button_mappings["r3"]),
+            "ps5": self.gamepad.get_button(button_mappings["ps5"]),
+            "touchpad": self.gamepad.get_button(button_mappings["touchpad"]),
         }
-        
+
         # Handle D-pad based on mapping type
         dpad_states = self._get_dpad_states(button_mappings)
         buttons.update(dpad_states)
-        
+
         # Treat L2/R2 as digital buttons: pressed if axis > 0.5
-        l2_axis = self.gamepad.get_axis(axis_mappings['l2']) if 'l2' in axis_mappings else 0.0
-        r2_axis = self.gamepad.get_axis(axis_mappings['r2']) if 'r2' in axis_mappings else 0.0
-        buttons['l2'] = l2_axis > 0.5
-        buttons['r2'] = r2_axis > 0.5
+        l2_axis = (
+            self.gamepad.get_axis(axis_mappings["l2"]) if "l2" in axis_mappings else 0.0
+        )
+        r2_axis = (
+            self.gamepad.get_axis(axis_mappings["r2"]) if "r2" in axis_mappings else 0.0
+        )
+        buttons["l2"] = l2_axis > 0.5
+        buttons["r2"] = r2_axis > 0.5
         return buttons
 
     def _get_dpad_states(self, button_mappings):
         """Get D-pad button states based on mapping type."""
         hat_mappings = self.input_mapping.get_hat_mappings()
-        if hat_mappings and 'dpad' in hat_mappings:
-            dpad_mapping = hat_mappings['dpad']
-            if dpad_mapping == 'buttons':
+        if hat_mappings and "dpad" in hat_mappings:
+            dpad_mapping = hat_mappings["dpad"]
+            if dpad_mapping == "buttons":
                 # USB mode: D-pad as buttons
                 return {
-                    'dpad_up': self.gamepad.get_button(button_mappings['dpad_up']),
-                    'dpad_down': self.gamepad.get_button(button_mappings['dpad_down']),
-                    'dpad_left': self.gamepad.get_button(button_mappings['dpad_left']),
-                    'dpad_right': self.gamepad.get_button(button_mappings['dpad_right'])
+                    "dpad_up": self.gamepad.get_button(button_mappings["dpad_up"]),
+                    "dpad_down": self.gamepad.get_button(button_mappings["dpad_down"]),
+                    "dpad_left": self.gamepad.get_button(button_mappings["dpad_left"]),
+                    "dpad_right": self.gamepad.get_button(
+                        button_mappings["dpad_right"]
+                    ),
                 }
-            elif dpad_mapping == 'hat':
+            elif dpad_mapping == "hat":
                 # Bluetooth mode: D-pad as actual hat
                 hat_value = self.gamepad.get_hat(0)
                 return {
-                    'dpad_up': hat_value[1] == 1,
-                    'dpad_down': hat_value[1] == -1,
-                    'dpad_left': hat_value[0] == -1,
-                    'dpad_right': hat_value[0] == 1
+                    "dpad_up": hat_value[1] == 1,
+                    "dpad_down": hat_value[1] == -1,
+                    "dpad_left": hat_value[0] == -1,
+                    "dpad_right": hat_value[0] == 1,
                 }
-        
+
         # Fallback: D-pad as buttons
         return {
-            'dpad_up': self.gamepad.get_button(button_mappings.get('dpad_up', 0)),
-            'dpad_down': self.gamepad.get_button(button_mappings.get('dpad_down', 0)),
-            'dpad_left': self.gamepad.get_button(button_mappings.get('dpad_left', 0)),
-            'dpad_right': self.gamepad.get_button(button_mappings.get('dpad_right', 0))
+            "dpad_up": self.gamepad.get_button(button_mappings.get("dpad_up", 0)),
+            "dpad_down": self.gamepad.get_button(button_mappings.get("dpad_down", 0)),
+            "dpad_left": self.gamepad.get_button(button_mappings.get("dpad_left", 0)),
+            "dpad_right": self.gamepad.get_button(button_mappings.get("dpad_right", 0)),
         }
 
     def _check_button_press(self, button_name):
@@ -352,29 +405,29 @@ class GamepadHexapodController(ManualHexapodController):
                 self._button_last_press_time[button_name] = now
                 return True
         return False
-    
+
     def _on_mode_toggled(self, new_mode: str):
         """
         Handle LED feedback when mode is toggled.
         """
         # Call parent method to start hexapod light animations
         super()._on_mode_toggled(new_mode)
-        
+
         if not (self.led_controller and self.led_controller.is_available()):
             return
         self.led_controller.stop_animation()
         if new_mode == self.GAIT_CONTROL_MODE:
             self.led_controller.pulse(GamepadLEDColor.INDIGO, duration=2.0, cycles=0)
-            self.current_led_state = 'gait_mode'
+            self.current_led_state = "gait_mode"
         elif new_mode == self.BODY_CONTROL_MODE:
             self.led_controller.pulse(GamepadLEDColor.BLUE, duration=2.0, cycles=0)
-            self.current_led_state = 'body_mode'
+            self.current_led_state = "body_mode"
         elif new_mode == self.VOICE_CONTROL_MODE:
-            self.led_controller.pulse_two_colors(GamepadLEDColor.BLUE, GamepadLEDColor.GREEN, duration=2.0, cycles=0)
-            self.current_led_state = 'voice_mode'
-    
+            self.led_controller.pulse_two_colors(
+                GamepadLEDColor.BLUE, GamepadLEDColor.GREEN, duration=2.0, cycles=0
+            )
+            self.current_led_state = "voice_mode"
 
-    
     def get_inputs(self):
         """Get current input values from the gamepad."""
         # Get gamepad inputs
@@ -382,15 +435,15 @@ class GamepadHexapodController(ManualHexapodController):
         self.button_states = self._get_button_states()
 
         # Always allow shutdown with PS5 button, regardless of mode
-        if self._check_button_press('ps5'):
+        if self._check_button_press("ps5"):
             self.trigger_shutdown()
 
         # Handle mode toggles
-        if self._check_button_press('options'):
+        if self._check_button_press("options"):
             # Only toggle manual control modes if not in voice control mode
             if self.current_mode != self.VOICE_CONTROL_MODE:
                 self.toggle_mode()
-        if self._check_button_press('create'):
+        if self._check_button_press("create"):
             self.toggle_voice_control_mode()
 
         # Only process manual inputs if not in voice control mode
@@ -405,11 +458,11 @@ class GamepadHexapodController(ManualHexapodController):
         """Handle L2/R2 stance height adjustment with buffering, timing, and preview printing. Returns stance_height_delta."""
         now = time.time()
         debounce = self.BUTTON_DEBOUNCE_INTERVAL
-        l2_held = self.button_states.get('l2', False)
-        r2_held = self.button_states.get('r2', False)
+        l2_held = self.button_states.get("l2", False)
+        r2_held = self.button_states.get("r2", False)
         preview_printed = False
         # Track hold start times and last increment times
-        for btn, held in [('l2', l2_held), ('r2', r2_held)]:
+        for btn, held in [("l2", l2_held), ("r2", r2_held)]:
             if held:
                 if self._stance_height_hold_start[btn] is None:
                     self._stance_height_hold_start[btn] = now
@@ -418,30 +471,30 @@ class GamepadHexapodController(ManualHexapodController):
                 # If released before debounce, treat as a single click
                 start = self._stance_height_hold_start[btn]
                 if start is not None and (now - start) < debounce:
-                    if btn == 'l2' and not r2_held:
+                    if btn == "l2" and not r2_held:
                         self._stance_height_buffer -= self.GAIT_STANCE_HEIGHT_STEP
                         preview_printed = True
-                    elif btn == 'r2' and not l2_held:
+                    elif btn == "r2" and not l2_held:
                         self._stance_height_buffer += self.GAIT_STANCE_HEIGHT_STEP
                         preview_printed = True
                 self._stance_height_hold_start[btn] = None
                 self._stance_height_last_increment[btn] = None
         # Accumulate buffer only if held long enough, and repeat every debounce interval
         if l2_held and not r2_held:
-            start = self._stance_height_hold_start['l2']
-            last = self._stance_height_last_increment['l2']
+            start = self._stance_height_hold_start["l2"]
+            last = self._stance_height_last_increment["l2"]
             if start is not None and (now - start) >= debounce:
                 if last is None or (now - last) >= debounce:
                     self._stance_height_buffer -= self.GAIT_STANCE_HEIGHT_STEP
-                    self._stance_height_last_increment['l2'] = now
+                    self._stance_height_last_increment["l2"] = now
                     preview_printed = True
         elif r2_held and not l2_held:
-            start = self._stance_height_hold_start['r2']
-            last = self._stance_height_last_increment['r2']
+            start = self._stance_height_hold_start["r2"]
+            last = self._stance_height_last_increment["r2"]
             if start is not None and (now - start) >= debounce:
                 if last is None or (now - last) >= debounce:
                     self._stance_height_buffer += self.GAIT_STANCE_HEIGHT_STEP
-                    self._stance_height_last_increment['r2'] = now
+                    self._stance_height_last_increment["r2"] = now
                     preview_printed = True
         # Print preview if buffer changed this tick
         if preview_printed:
@@ -461,133 +514,132 @@ class GamepadHexapodController(ManualHexapodController):
     def _get_body_control_inputs(self):
         """Process inputs for body control mode."""
         # Process analog inputs for movement (raw values, sensitivity applied in base class)
-        tx = self.analog_inputs['left_x']
-        ty = -self.analog_inputs['left_y']  # Invert Y axis
-        roll = self.analog_inputs['right_x']
-        pitch = -self.analog_inputs['right_y']  # Invert Y axis
-        tz = (self.analog_inputs['r2'] - self.analog_inputs['l2'])
+        tx = self.analog_inputs["left_x"]
+        ty = -self.analog_inputs["left_y"]  # Invert Y axis
+        roll = self.analog_inputs["right_x"]
+        pitch = -self.analog_inputs["right_y"]  # Invert Y axis
+        tz = self.analog_inputs["r2"] - self.analog_inputs["l2"]
         yaw = 0.0
-        
+
         # Process button inputs
         stance_height_delta = 0.0  # Stance height is only for gait mode
-        if self._check_button_press('triangle'):
+        if self._check_button_press("triangle"):
             self.reset_position()
-        elif self._check_button_press('square'):
+        elif self._check_button_press("square"):
             self.show_current_position()
-        elif self._check_button_press('circle'):
+        elif self._check_button_press("circle"):
             self.print_help()
-        
+
         # Continuous yaw while holding L1/R1
-        if self.button_states.get('l1', False):
+        if self.button_states.get("l1", False):
             yaw = -1.0  # Raw value, sensitivity applied in base class
-        if self.button_states.get('r1', False):
-            yaw = 1.0   # Raw value, sensitivity applied in base class
-        
+        if self.button_states.get("r1", False):
+            yaw = 1.0  # Raw value, sensitivity applied in base class
+
         # Handle D-pad sensitivity adjustments
-        sensitivity_deltas = {
-            'translation_delta': 0.0,
-            'rotation_delta': 0.0
-        }
-        
+        sensitivity_deltas = {"translation_delta": 0.0, "rotation_delta": 0.0}
+
         # D-pad left/right: Adjust translation sensitivity (only on press)
-        if self._check_button_press('dpad_left'):
-            sensitivity_deltas['translation_delta'] = -self.SENSITIVITY_ADJUSTMENT_STEP
-        
-        if self._check_button_press('dpad_right'):
-            sensitivity_deltas['translation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
-        
+        if self._check_button_press("dpad_left"):
+            sensitivity_deltas["translation_delta"] = -self.SENSITIVITY_ADJUSTMENT_STEP
+
+        if self._check_button_press("dpad_right"):
+            sensitivity_deltas["translation_delta"] = self.SENSITIVITY_ADJUSTMENT_STEP
+
         # D-pad down/up: Adjust rotation sensitivity (only on press)
-        if self._check_button_press('dpad_down'):
-            sensitivity_deltas['rotation_delta'] = -self.SENSITIVITY_ADJUSTMENT_STEP
-        
-        if self._check_button_press('dpad_up'):
-            sensitivity_deltas['rotation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
-        
+        if self._check_button_press("dpad_down"):
+            sensitivity_deltas["rotation_delta"] = -self.SENSITIVITY_ADJUSTMENT_STEP
+
+        if self._check_button_press("dpad_up"):
+            sensitivity_deltas["rotation_delta"] = self.SENSITIVITY_ADJUSTMENT_STEP
+
         # Update button states for next frame
         self.last_button_states = self.button_states.copy()
-        
+
         return {
-            'tx': tx,
-            'ty': ty,
-            'tz': tz,
-            'roll': roll,
-            'pitch': pitch,
-            'yaw': yaw,
-            'sensitivity_deltas': sensitivity_deltas,
-            'stance_height_delta': stance_height_delta
+            "tx": tx,
+            "ty": ty,
+            "tz": tz,
+            "roll": roll,
+            "pitch": pitch,
+            "yaw": yaw,
+            "sensitivity_deltas": sensitivity_deltas,
+            "stance_height_delta": stance_height_delta,
         }
-    
+
     def _get_gait_control_inputs(self):
         """Process inputs for gait control mode - returns raw input values."""
-        
+
         # Process analog inputs for gait control (raw values, sensitivity applied in base class)
         # Left stick controls movement direction
-        direction_x = self.analog_inputs['left_x']
-        direction_y = -self.analog_inputs['left_y']  # Invert Y axis
+        direction_x = self.analog_inputs["left_x"]
+        direction_y = -self.analog_inputs["left_y"]  # Invert Y axis
 
         # Marching toggle logic: just toggle marching_enabled and print status
-        if self._check_button_press('x'):
+        if self._check_button_press("x"):
             self.marching_enabled = not self.marching_enabled
             if self.marching_enabled:
-                logger.gamepad_mode_info("Marching (neutral gait) ENABLED. Press X again to stop.")
+                logger.gamepad_mode_info(
+                    "Marching (neutral gait) ENABLED. Press X again to stop."
+                )
             else:
-                logger.gamepad_mode_info("Marching (neutral gait) DISABLED. Press X to start.")
+                logger.gamepad_mode_info(
+                    "Marching (neutral gait) DISABLED. Press X to start."
+                )
 
         # Right stick X controls rotation
-        rotation = self.analog_inputs['right_x']
+        rotation = self.analog_inputs["right_x"]
 
         # Process L2/R2 stance height adjustment
         stance_height_delta = self._process_stance_height_l2_r2()
 
         # Process button inputs
-        if self._check_button_press('triangle'):
+        if self._check_button_press("triangle"):
             self.reset_position()
-        elif self._check_button_press('square'):
+        elif self._check_button_press("square"):
             self.show_current_position()
-        elif self._check_button_press('circle'):
+        elif self._check_button_press("circle"):
             self.print_help()
-        elif self._check_button_press('ps5'):
+        elif self._check_button_press("ps5"):
             self.trigger_shutdown()
-        
+
         # Handle D-pad sensitivity adjustments
-        sensitivity_deltas = {
-            'translation_delta': 0.0,
-            'rotation_delta': 0.0
-        }
-        
+        sensitivity_deltas = {"translation_delta": 0.0, "rotation_delta": 0.0}
+
         # D-pad left/right: Adjust gait direction sensitivity (only on press)
-        if self._check_button_press('dpad_left'):
-            sensitivity_deltas['translation_delta'] = -self.SENSITIVITY_ADJUSTMENT_STEP
-        
-        if self._check_button_press('dpad_right'):
-            sensitivity_deltas['translation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
-        
+        if self._check_button_press("dpad_left"):
+            sensitivity_deltas["translation_delta"] = -self.SENSITIVITY_ADJUSTMENT_STEP
+
+        if self._check_button_press("dpad_right"):
+            sensitivity_deltas["translation_delta"] = self.SENSITIVITY_ADJUSTMENT_STEP
+
         # D-pad down/up: Adjust gait rotation sensitivity (only on press)
-        if self._check_button_press('dpad_down'):
-            sensitivity_deltas['rotation_delta'] = -self.SENSITIVITY_ADJUSTMENT_STEP
-        
-        if self._check_button_press('dpad_up'):
-            sensitivity_deltas['rotation_delta'] = self.SENSITIVITY_ADJUSTMENT_STEP
-        
+        if self._check_button_press("dpad_down"):
+            sensitivity_deltas["rotation_delta"] = -self.SENSITIVITY_ADJUSTMENT_STEP
+
+        if self._check_button_press("dpad_up"):
+            sensitivity_deltas["rotation_delta"] = self.SENSITIVITY_ADJUSTMENT_STEP
+
         # Update button states for next frame
         self.last_button_states = self.button_states.copy()
-        
+
         # Return raw input values for base class to process
         return {
-            'direction_x': direction_x,
-            'direction_y': direction_y,
-            'rotation': rotation,
-            'sensitivity_deltas': sensitivity_deltas,
-            'stance_height_delta': stance_height_delta
+            "direction_x": direction_x,
+            "direction_y": direction_y,
+            "rotation": rotation,
+            "sensitivity_deltas": sensitivity_deltas,
+            "stance_height_delta": stance_height_delta,
         }
 
     def print_help(self):
         """Print the help menu using a single gamepad_mode_info log message."""
-        controller_type = type(self.input_mapping).__name__.replace('Mappings', '').replace('_', ' ')
+        controller_type = (
+            type(self.input_mapping).__name__.replace("Mappings", "").replace("_", " ")
+        )
         help_message = (
-            "\n" + "="*60 + "\n"
-            f"{controller_type.upper()} GAMEPAD HEXAPOD CONTROLLER\n"
-            + "="*60 + "\n"
+            "\n" + "=" * 60 + "\n"
+            f"{controller_type.upper()} GAMEPAD HEXAPOD CONTROLLER\n" + "=" * 60 + "\n"
             "MODE CONTROLS:\n"
             "  Options Button - Toggle between Body Control and Gait Control modes\n"
             "  Create Button  - Toggle Voice Control mode (enable/disable voice commands)\n"
@@ -624,15 +676,14 @@ class GamepadHexapodController(ManualHexapodController):
             "LED INDICATORS:\n"
             "  Blue Pulse      - Body control mode (idle)\n"
             "  Purple Pulse    - Gait control mode (idle)\n"
-            "  Lime Pulse      - Movement detected (both modes)\n"
-            + "="*60
+            "  Lime Pulse      - Movement detected (both modes)\n" + "=" * 60
         )
         logger.gamepad_mode_info(help_message)
-    
+
     def cleanup_controller(self):
         """Clean up gamepad-specific resources."""
         # Cleanup LED controller
-        if hasattr(self, 'led_controller') and self.led_controller:
+        if hasattr(self, "led_controller") and self.led_controller:
             try:
                 if self.led_controller:
                     self.led_controller.turn_off()
@@ -640,7 +691,7 @@ class GamepadHexapodController(ManualHexapodController):
                     logger.debug("Gamepad LED turned off")
             except Exception as e:
                 logger.exception(f"Error during LED cleanup: {e}")
-        
+
         # Cleanup pygame
         if PYGAME_AVAILABLE:
             pygame.quit()

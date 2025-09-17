@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class PulseSmoothlyAnimation(Animation):
     """
     Animation that smoothly pulses between two colors.
@@ -20,7 +21,13 @@ class PulseSmoothlyAnimation(Animation):
         pulse_speed (float): The speed of the pulse.
     """
 
-    def __init__(self, lights: Lights, base_color: ColorRGB = ColorRGB.BLUE, pulse_color: ColorRGB = ColorRGB.GREEN, pulse_speed: float = 0.05) -> None:
+    def __init__(
+        self,
+        lights: Lights,
+        base_color: ColorRGB = ColorRGB.BLUE,
+        pulse_color: ColorRGB = ColorRGB.GREEN,
+        pulse_speed: float = 0.05,
+    ) -> None:
         """
         Initialize the PulseSmoothlyAnimation object.
 
@@ -46,21 +53,21 @@ class PulseSmoothlyAnimation(Animation):
             for i in range(0, 100, 5):
                 if self.stop_event.wait(self.pulse_speed):
                     return
-        
+
                 interp_rgb = (
                     int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
                     int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
-                    int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
+                    int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100),
                 )
                 self.lights.set_color_rgb(interp_rgb)
 
             for i in range(100, 0, -5):
                 if self.stop_event.wait(self.pulse_speed):
                     return
-                
+
                 interp_rgb = (
                     int(base_rgb[0] + (pulse_rgb[0] - base_rgb[0]) * i / 100),
                     int(base_rgb[1] + (pulse_rgb[1] - base_rgb[1]) * i / 100),
-                    int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100)
+                    int(base_rgb[2] + (pulse_rgb[2] - base_rgb[2]) * i / 100),
                 )
                 self.lights.set_color_rgb(interp_rgb)

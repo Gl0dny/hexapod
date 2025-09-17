@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class WheelAnimation(Animation):
     """
     Animation that rotates through colors on a color wheel or rotates through LEDs with one specific color.
@@ -21,7 +22,13 @@ class WheelAnimation(Animation):
         interval (float): The interval between changing colors.
     """
 
-    def __init__(self, lights: Lights, use_rainbow: bool = True, color: Optional[ColorRGB] = None, interval: float = 0.2) -> None:
+    def __init__(
+        self,
+        lights: Lights,
+        use_rainbow: bool = True,
+        color: Optional[ColorRGB] = None,
+        interval: float = 0.2,
+    ) -> None:
         """
         Initialize the WheelAnimation object.
 
@@ -30,7 +37,7 @@ class WheelAnimation(Animation):
             use_rainbow (bool): Whether to use rainbow colors.
             color (Optional[ColorRGB]): The color to use if not using rainbow colors.
             interval (float): The interval between changing colors.
-        
+
         Raises:
             ValueError: If `use_rainbow` is False and `color` is not provided.
         """
@@ -51,11 +58,13 @@ class WheelAnimation(Animation):
             for i in range(self.lights.num_led):
                 if self.stop_event.wait(self.interval):
                     return
-        
+
                 if self.use_rainbow:
-                    rgb = self.lights.get_wheel_color(int(256 / self.lights.num_led * i))
+                    rgb = self.lights.get_wheel_color(
+                        int(256 / self.lights.num_led * i)
+                    )
                 else:
                     rgb = self.color.rgb if self.color else (0, 0, 0)
-                
+
                 self.lights.clear()
                 self.lights.set_color_rgb(rgb_tuple=rgb, led_index=i)

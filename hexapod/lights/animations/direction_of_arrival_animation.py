@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class DirectionOfArrivalAnimation(Animation):
     """
     Animation that visualizes Direction of Arrival (DoA) data using LEDs.
@@ -29,11 +30,11 @@ class DirectionOfArrivalAnimation(Animation):
         lights: Lights,
         refresh_delay: float = 0.1,
         source_colors: list[ColorRGB] = [
-            ColorRGB.TEAL,   # First source
-            ColorRGB.INDIGO,   # Second source
-            ColorRGB.YELLOW,     # Third source
-            ColorRGB.LIME    # Fourth source
-        ]
+            ColorRGB.TEAL,  # First source
+            ColorRGB.INDIGO,  # Second source
+            ColorRGB.YELLOW,  # Third source
+            ColorRGB.LIME,  # Fourth source
+        ],
     ) -> None:
         """
         Initialize the DirectionOfArrivalAnimation object.
@@ -71,7 +72,7 @@ class DirectionOfArrivalAnimation(Animation):
         """
         angle = math.radians(azimuth)
         # Adjust angle to match hexapod orientation (front at pi/2)
-        angle = (math.pi/2 - angle) % (2 * math.pi)
+        angle = (math.pi / 2 - angle) % (2 * math.pi)
         main_index = int((angle / (2 * math.pi)) * self.lights.num_led)
         left_index = (main_index - 1) % self.lights.num_led
         right_index = (main_index + 1) % self.lights.num_led
@@ -85,12 +86,14 @@ class DirectionOfArrivalAnimation(Animation):
         while not self.stop_event.is_set():
             # Clear all LEDs first
             self.lights.clear()
-            
+
             # Keep track of currently active LEDs
             current_active_leds: set[int] = set()
 
             # Light up LEDs for tracked sources
-            for i, (source_id, azimuth) in enumerate(getattr(self, 'azimuths', {}).items()):
+            for i, (source_id, azimuth) in enumerate(
+                getattr(self, "azimuths", {}).items()
+            ):
                 # Get color for this source (cycle through colors if more than 4 sources)
                 color = self.source_colors[i % len(self.source_colors)]
                 led_indices = self._get_led_indices_from_azimuth(azimuth)
@@ -103,4 +106,4 @@ class DirectionOfArrivalAnimation(Animation):
 
             # Wait for the next update
             if self.stop_event.wait(self.refresh_delay):
-                return 
+                return

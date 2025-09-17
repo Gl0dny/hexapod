@@ -6,62 +6,69 @@ This module provides LED control functionality specifically for the PS5 DualSens
 
 import logging
 
-from hexapod.interface.controllers.gamepad_led_controllers import BaseGamepadLEDController
+from hexapod.interface.controllers.gamepad_led_controllers import (
+    BaseGamepadLEDController,
+)
 
 logger = logging.getLogger("interface_logger")
 
+
 class DualSenseLEDController(BaseGamepadLEDController):
     """LED controller implementation for PS5 DualSense controller."""
-    
+
     def __init__(self):
         """Initialize the DualSense LED controller."""
         super().__init__()
-        
+
         try:
             from dualsense_controller import DualSenseController
+
             self.DualSenseController = DualSenseController
         except ImportError:
-            logger.exception("dualsense-controller library not available. Install with: pip install dualsense-controller")
+            logger.exception(
+                "dualsense-controller library not available. Install with: pip install dualsense-controller"
+            )
             self.DualSenseController = None
             return
-        
+
         self.dualsense_controller = None
         self._connect_controller()
-    
+
     def _connect_controller(self) -> bool:
         """Connect to the DualSense controller."""
         if self.DualSenseController is None:
             return False
-        
+
         try:
             # Check if devices are available first
             device_infos = self.DualSenseController.enumerate_devices()
             if len(device_infos) < 1:
-                logger.warning("No DualSense devices found. Make sure the controller is connected via USB or Bluetooth")
+                logger.warning(
+                    "No DualSense devices found. Make sure the controller is connected via USB or Bluetooth"
+                )
                 return False
-            
+
             self.dualsense_controller = self.DualSenseController(
-                microphone_invert_led=True,
-                microphone_initially_muted=True
+                microphone_invert_led=True, microphone_initially_muted=True
             )
-            
+
             # Activate without the microphone not properly initialized workaround warning
             self.dualsense_controller._core.init()
             self.dualsense_controller._properties.microphone.set_muted()
             self.dualsense_controller.wait_until_updated()
-            
+
             self.is_connected = True
             logger.info("Connected to DualSense controller for LED control")
-            
+
             # Set initial color
             self.set_color(self.current_color)
             return True
-            
+
         except Exception as e:
             logger.exception(f"Failed to connect to DualSense controller: {e}")
             logger.error("Make sure the controller is connected via USB or Bluetooth")
             return False
-    
+
     def _set_color_internal(self, r: int, g: int, b: int) -> bool:
         """Set the LED color on the DualSense controller."""
         try:
@@ -70,7 +77,7 @@ class DualSenseLEDController(BaseGamepadLEDController):
         except Exception as e:
             logger.exception(f"Failed to set DualSense LED color: {e}")
             return False
-    
+
     def _cleanup_internal(self):
         """Clean up DualSense controller resources."""
         if self.dualsense_controller:

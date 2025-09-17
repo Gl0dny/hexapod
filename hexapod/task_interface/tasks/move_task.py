@@ -13,13 +13,21 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("task_interface_logger")
 
+
 class MoveTask(Task):
     """
     Task to move the hexapod in a specified direction using gait generation.
     """
-    def __init__(self, hexapod: Hexapod, lights_handler: LightsInteractionHandler, direction: str, 
-                 cycles: Optional[int] = None, duration: Optional[float] = None, 
-                 callback: Optional[Callable] = None) -> None:
+
+    def __init__(
+        self,
+        hexapod: Hexapod,
+        lights_handler: LightsInteractionHandler,
+        direction: str,
+        cycles: Optional[int] = None,
+        duration: Optional[float] = None,
+        callback: Optional[Callable] = None,
+    ) -> None:
         """
         Args:
             hexapod: The hexapod object to control.
@@ -40,7 +48,7 @@ class MoveTask(Task):
     def _perform_movement(self) -> None:
         """
         Performs the movement using gait generation.
-        
+
         The movement consists of:
         1. Moving to high profile position
         2. Creating and configuring the gait
@@ -48,9 +56,9 @@ class MoveTask(Task):
         4. Handling stop events during execution
         """
         logger.info(f"Starting movement in {self.direction} direction")
-        
+
         # Define gait parameters
-        gait_params = self.hexapod.gait_params.get('translation', {})
+        gait_params = self.hexapod.gait_params.get("translation", {})
 
         # Start in a stable position
         self.hexapod.move_to_position(PredefinedPosition.ZERO)
@@ -59,35 +67,41 @@ class MoveTask(Task):
         if self.stop_event.is_set():
             logger.warning("Move task interrupted during position change.")
             return
-        
-        self.hexapod.gait_generator.create_gait('tripod', **gait_params)
+
+        self.hexapod.gait_generator.create_gait("tripod", **gait_params)
         self.hexapod.gait_generator.current_gait.set_direction(self.direction)
-        
+
         if self.cycles is not None:
             # Execute specific number of cycles
             logger.info(f"Executing {self.cycles} gait cycles")
             self.hexapod.gait_generator.execute_cycles(self.cycles)
-            logger.info(f"Started execution of {self.cycles} cycles in background thread")
+            logger.info(
+                f"Started execution of {self.cycles} cycles in background thread"
+            )
             # Wait for the gait generator thread to finish
             if self.hexapod.gait_generator.thread:
                 self.hexapod.gait_generator.thread.join()
             logger.info(f"Completed {self.cycles} cycles")
-            
+
         elif self.duration is not None:
             # Execute for specific duration
             logger.info(f"Executing gait for {self.duration} seconds")
             self.hexapod.gait_generator.run_for_duration(self.duration)
-            logger.info(f"Started duration-based movement for {self.duration} seconds in background thread")
+            logger.info(
+                f"Started duration-based movement for {self.duration} seconds in background thread"
+            )
             # Wait for the gait generator thread to finish
             if self.hexapod.gait_generator.thread:
                 self.hexapod.gait_generator.thread.join()
             logger.info(f"Completed duration-based movement")
-            
+
         else:
             # Start infinite gait generation (no cycles or duration specified)
             logger.info("Starting infinite gait generation")
             self.hexapod.gait_generator.start()
-            logger.warning("Infinite gait generation started - will continue until stopped externally")
+            logger.warning(
+                "Infinite gait generation started - will continue until stopped externally"
+            )
             # Wait for the gait generator thread to finish
             if self.hexapod.gait_generator.thread:
                 self.hexapod.gait_generator.thread.join()
@@ -109,5 +123,5 @@ class MoveTask(Task):
             logger.exception(f"Error in MoveTask: {e}")
         finally:
             self.hexapod.move_to_position(PredefinedPosition.ZERO)
-            self.hexapod.wait_until_motion_complete(self.stop_event) 
+            self.hexapod.wait_until_motion_complete(self.stop_event)
             logger.info("MoveTask completed")

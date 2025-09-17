@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class AlternateRotateAnimation(Animation):
     """
     Animation that alternates colors and rotates the LEDs.
@@ -21,7 +22,14 @@ class AlternateRotateAnimation(Animation):
         positions (int): The number of positions to rotate.
     """
 
-    def __init__(self, lights: Lights, color_even: ColorRGB = ColorRGB.INDIGO, color_odd: ColorRGB = ColorRGB.GOLDEN, delay: float = 0.25, positions: int = 12) -> None:
+    def __init__(
+        self,
+        lights: Lights,
+        color_even: ColorRGB = ColorRGB.INDIGO,
+        color_odd: ColorRGB = ColorRGB.GOLDEN,
+        delay: float = 0.25,
+        positions: int = 12,
+    ) -> None:
         """
         Initialize the AlternateRotateAnimation object.
 
@@ -46,13 +54,13 @@ class AlternateRotateAnimation(Animation):
         for i in range(self.lights.num_led):
             if self.stop_event.wait(self.delay):
                 return
-            
+
             color = self.color_even if i % 2 == 0 else self.color_odd
             self.lights.set_color(color, led_index=i)
-            
+
         while not self.stop_event.is_set():
             for _ in range(self.positions):
                 if self.stop_event.wait(self.delay):
                     return
-                
+
                 self.lights.rotate(1)

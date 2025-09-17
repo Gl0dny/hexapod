@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("robot_logger")
 
+
 class Leg:
     """
     Initialize a single leg of the hexapod robot.
@@ -35,11 +36,16 @@ class Leg:
         femur (Joint): The femur joint instance.
         tibia (Joint): The tibia joint instance.
         end_effector_offset (tuple): (x, y, z) offset for the end effector's position relative to the leg's base.
-        FEMUR_ANGLE_OFFSET (int): 
-        TIBIA_ANGLE_OFFSET (int): 
+        FEMUR_ANGLE_OFFSET (int):
+        TIBIA_ANGLE_OFFSET (int):
     """
-    FEMUR_ANGLE_OFFSET = -90 # Default angle offset for the femur joint in degrees derived from the adopted reference frame.
-    TIBIA_ANGLE_OFFSET = -90 # Default angle offset for the tibia joint in degrees derived from the adopted reference frame.
+
+    FEMUR_ANGLE_OFFSET = (
+        -90
+    )  # Default angle offset for the femur joint in degrees derived from the adopted reference frame.
+    TIBIA_ANGLE_OFFSET = (
+        -90
+    )  # Default angle offset for the tibia joint in degrees derived from the adopted reference frame.
 
     def __init__(
         self,
@@ -47,7 +53,7 @@ class Leg:
         femur_params: Dict[str, Union[float, bool]],
         tibia_params: Dict[str, Union[float, bool]],
         controller: MaestroUART,
-        end_effector_offset: Tuple[float, float, float]
+        end_effector_offset: Tuple[float, float, float],
     ) -> None:
         """
         Initialize a single leg of the hexapod robot.
@@ -62,10 +68,10 @@ class Leg:
         self.coxa_params = dict(coxa_params)
         self.femur_params = dict(femur_params)
         self.tibia_params = dict(tibia_params)
-        
-        self.coxa_z_offset = self.coxa_params.pop('z_offset', 0.0)
-        self.tibia_x_offset = self.tibia_params.pop('x_offset', 0.0)
-        
+
+        self.coxa_z_offset = self.coxa_params.pop("z_offset", 0.0)
+        self.tibia_x_offset = self.tibia_params.pop("x_offset", 0.0)
+
         self.coxa = Joint(controller, **self.coxa_params)
         self.femur = Joint(controller, **self.femur_params)
         self.tibia = Joint(controller, **self.tibia_params)
@@ -74,28 +80,39 @@ class Leg:
     def _validate_triangle_inequality(self, a: float, b: float, c: float) -> None:
         """
         Validate the triangle inequality for the given side lengths.
-        
+
         Args:
             a (float): Length of side a.
             b (float): Length of side b.
             c (float): Length of side c.
-        
+
         Raises:
             ValueError: If the triangle inequality is not satisfied, with details.
         """
         errors = []
         if a + b <= c:
-            errors.append(f"Triangle Inequality Failed: {a} + {b} <= {c} ({a} + {b} = {a + b} <= {c})")
+            errors.append(
+                f"Triangle Inequality Failed: {a} + {b} <= {c} ({a} + {b} = {a + b} <= {c})"
+            )
         if a + c <= b:
-            errors.append(f"Triangle Inequality Failed: {a} + {c} <= {b} ({a} + {c} = {a + c} <= {b})")
+            errors.append(
+                f"Triangle Inequality Failed: {a} + {c} <= {b} ({a} + {c} = {a + c} <= {b})"
+            )
         if b + c <= a:
-            errors.append(f"Triangle Inequality Failed: {b} + {c} <= {a} ({b} + {c} = {b + c} <= {a})")
+            errors.append(
+                f"Triangle Inequality Failed: {b} + {c} <= {a} ({b} + {c} = {b + c} <= {a})"
+            )
         if errors:
-            error_message = "Invalid joint lengths: Triangle inequality not satisfied.\n" + "\n".join(errors)
+            error_message = (
+                "Invalid joint lengths: Triangle inequality not satisfied.\n"
+                + "\n".join(errors)
+            )
             logger.error(f"Triangle inequality validation failed with errors: {errors}")
             raise ValueError(error_message)
 
-    def compute_inverse_kinematics(self, x: float, y: float, z: float) -> Tuple[float, float, float]:
+    def compute_inverse_kinematics(
+        self, x: float, y: float, z: float
+    ) -> Tuple[float, float, float]:
         """
         Calculate the necessary joint angles to position the foot at the specified coordinates.
 
@@ -110,7 +127,9 @@ class Leg:
         Raises:
             ValueError: If the target position is beyond the leg's maximum reach.
         """
-        logger.debug(f"Computing inverse kinematics for position x: {x}, y: {y}, z: {z}")
+        logger.debug(
+            f"Computing inverse kinematics for position x: {x}, y: {y}, z: {z}"
+        )
         # Compensate for end effector offset
         ox, oy, oz = self.end_effector_offset
         x += ox
@@ -129,29 +148,37 @@ class Leg:
         # Distance from femur joint to foot adjusted for coxa length offset
         F = math.hypot(R - self.coxa.length, z - self.coxa_z_offset)
         logger.debug(f"F (distance from femur joint to foot position): {F}")
-        
+
         max_reach = self.femur.length + self.tibia.length
         logger.debug(f"Maximum reach: {max_reach}")
-        
+
         if F > max_reach:
             raise ValueError("Target is out of reach.")
 
         # Inverse kinematics calculations to find joint angles
         alpha1 = math.atan((R - self.coxa.length) / abs(z - self.coxa_z_offset))
-        
+
         # Replace triangle inequality checks with helper function
         self._validate_triangle_inequality(self.femur.length, self.tibia.length, F)
-        
-        alpha2 = math.acos((self.tibia.length**2 - self.femur.length**2 - F**2) / (-2 * self.femur.length * F))
-       
+
+        alpha2 = math.acos(
+            (self.tibia.length**2 - self.femur.length**2 - F**2)
+            / (-2 * self.femur.length * F)
+        )
+
         logger.debug(f"alpha1 (radians): {alpha1}")
         logger.debug(f"alpha2 (radians): {alpha2}")
 
-        beta = math.acos((F**2 - self.femur.length**2 - self.tibia.length**2) / (-2 * self.femur.length * self.tibia.length))
+        beta = math.acos(
+            (F**2 - self.femur.length**2 - self.tibia.length**2)
+            / (-2 * self.femur.length * self.tibia.length)
+        )
         logger.debug(f"beta (radians): {beta}")
 
         coxa_angle_deg = math.degrees(coxa_angle)
-        femur_angle_deg = math.degrees(alpha1) + math.degrees(alpha2) + Leg.FEMUR_ANGLE_OFFSET
+        femur_angle_deg = (
+            math.degrees(alpha1) + math.degrees(alpha2) + Leg.FEMUR_ANGLE_OFFSET
+        )
         tibia_angle_deg = math.degrees(beta) + Leg.TIBIA_ANGLE_OFFSET
 
         # Round angles to eliminate floating-point precision errors
@@ -168,10 +195,14 @@ class Leg:
         logger.debug(f"femur_angle_deg: {femur_angle_deg}")
         logger.debug(f"tibia_angle_deg: {tibia_angle_deg}")
 
-        logger.info(f"Calculated angles - coxa_angle_deg: {coxa_angle_deg}, femur_angle_deg: {femur_angle_deg}, tibia_angle_deg: {tibia_angle_deg}")
+        logger.info(
+            f"Calculated angles - coxa_angle_deg: {coxa_angle_deg}, femur_angle_deg: {femur_angle_deg}, tibia_angle_deg: {tibia_angle_deg}"
+        )
         return coxa_angle_deg, femur_angle_deg, tibia_angle_deg
 
-    def compute_forward_kinematics(self, coxa_angle_deg: float, femur_angle_deg: float, tibia_angle_deg: float) -> Tuple[float, float, float]:
+    def compute_forward_kinematics(
+        self, coxa_angle_deg: float, femur_angle_deg: float, tibia_angle_deg: float
+    ) -> Tuple[float, float, float]:
         """
         Calculate the foot position based on the given joint angles.
 
@@ -215,14 +246,21 @@ class Leg:
         logger.debug(f"y_femur: {y_femur}")
 
         # Compute the distance from femur to tibia using the law of cosines
-        F = math.sqrt(self.femur.length**2 + self.tibia.length**2 - 2 * self.femur.length * self.tibia.length * math.cos(beta))
+        F = math.sqrt(
+            self.femur.length**2
+            + self.tibia.length**2
+            - 2 * self.femur.length * self.tibia.length * math.cos(beta)
+        )
         logger.debug(f"F (distance from femur to end effector): {F}")
 
         # Replace triangle inequality checks with helper function
         self._validate_triangle_inequality(self.femur.length, self.tibia.length, F)
 
         # Calculate angle alpha2 using the law of cosines
-        alpha2 = math.acos((self.femur.length**2 + F**2 - self.tibia.length**2) / (2 * self.femur.length * F))
+        alpha2 = math.acos(
+            (self.femur.length**2 + F**2 - self.tibia.length**2)
+            / (2 * self.femur.length * F)
+        )
         logger.debug(f"alpha2 (radians): {alpha2}")
 
         # Adjust alpha2 by femur angle to get alpha3
@@ -267,7 +305,9 @@ class Leg:
         logger.debug(f"Computed forward kinematics - x: {x}, y: {y}, z: {z}")
         return x, y, z
 
-    def _validate_angle(self, joint: Joint, angle: float, check_custom_limits: bool) -> None:
+    def _validate_angle(
+        self, joint: Joint, angle: float, check_custom_limits: bool
+    ) -> None:
         """
         Validate the angle against both default and custom limits for a given joint.
 
@@ -283,19 +323,21 @@ class Leg:
             return
 
         if not (joint.angle_min <= angle <= joint.angle_max):
-            raise ValueError(f"{joint} angle {angle}° is out of bounds ({joint.angle_min}° to {joint.angle_max}°).")
-        
+            raise ValueError(
+                f"{joint} angle {angle}° is out of bounds ({joint.angle_min}° to {joint.angle_max}°)."
+            )
+
         if joint.angle_limit_min is not None and angle < joint.angle_limit_min:
-            raise ValueError(f"{joint} angle {angle}° is below custom limit ({joint.angle_limit_min}°).")
+            raise ValueError(
+                f"{joint} angle {angle}° is below custom limit ({joint.angle_limit_min}°)."
+            )
         if joint.angle_limit_max is not None and angle > joint.angle_limit_max:
-            raise ValueError(f"{joint} angle {angle}° is above custom limit ({joint.angle_limit_max}°).")
+            raise ValueError(
+                f"{joint} angle {angle}° is above custom limit ({joint.angle_limit_max}°)."
+            )
 
     def move_to(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        check_custom_limits: bool = True
+        self, x: float, y: float, z: float, check_custom_limits: bool = True
     ) -> None:
         """
         Move the leg's end effector to the specified (x, y, z) coordinates.
@@ -306,10 +348,12 @@ class Leg:
             z (float): Target Z coordinate.
             check_custom_limits (bool, optional): Whether to check custom angle limits. Defaults to True.
         """
-        logger.debug(f"Moving to x: {x}, y: {y}, z: {z} with speed/accel set at hexapod level")
+        logger.debug(
+            f"Moving to x: {x}, y: {y}, z: {z} with speed/accel set at hexapod level"
+        )
 
         coxa_angle, femur_angle, tibia_angle = self.compute_inverse_kinematics(x, y, z)
-        
+
         # Validate each joint's angle using the helper method
         self._validate_angle(self.coxa, coxa_angle, check_custom_limits)
         self._validate_angle(self.femur, femur_angle, check_custom_limits)
@@ -318,14 +362,16 @@ class Leg:
         self.coxa.set_angle(coxa_angle, check_custom_limits)
         self.femur.set_angle(femur_angle, check_custom_limits)
         self.tibia.set_angle(tibia_angle, check_custom_limits)
-        logger.debug(f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
+        logger.debug(
+            f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}"
+        )
 
     def move_to_angles(
         self,
         coxa_angle: float,
         femur_angle: float,
         tibia_angle: float,
-        check_custom_limits: bool = True
+        check_custom_limits: bool = True,
     ) -> None:
         """
         Move the leg's end effector to the specified angles.
@@ -344,4 +390,6 @@ class Leg:
         self.coxa.set_angle(coxa_angle, check_custom_limits)
         self.femur.set_angle(femur_angle, check_custom_limits)
         self.tibia.set_angle(tibia_angle, check_custom_limits)
-        logger.debug(f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}")
+        logger.debug(
+            f"Set angles - coxa: {coxa_angle}, femur: {femur_angle}, tibia: {tibia_angle}"
+        )

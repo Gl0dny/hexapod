@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class PulseAnimation(Animation):
     """
     Animation that pulses between two colors.
@@ -20,7 +21,13 @@ class PulseAnimation(Animation):
         pulse_speed (float): The speed of the pulse.
     """
 
-    def __init__(self, lights: Lights, base_color: ColorRGB = ColorRGB.BLUE, pulse_color: ColorRGB = ColorRGB.RED, pulse_speed: float = 0.3) -> None:
+    def __init__(
+        self,
+        lights: Lights,
+        base_color: ColorRGB = ColorRGB.BLUE,
+        pulse_color: ColorRGB = ColorRGB.RED,
+        pulse_speed: float = 0.3,
+    ) -> None:
         """
         Initialize the PulseAnimation object.
 
@@ -43,10 +50,10 @@ class PulseAnimation(Animation):
         while not self.stop_event.is_set():
             if self.stop_event.wait(self.pulse_speed):
                 return
-    
+
             self.lights.set_color(self.base_color)
 
             if self.stop_event.wait(self.pulse_speed):
                 return
-            
+
             self.lights.set_color(self.pulse_color)

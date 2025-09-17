@@ -15,12 +15,13 @@ p = pyaudio.PyAudio()
 
 # Open audio stream
 stream = p.open(
-            rate=RESPEAKER_RATE,
-            format=p.get_format_from_width(RESPEAKER_WIDTH),
-            channels=RESPEAKER_CHANNELS,
-            input=True,
-            input_device_index=RESPEAKER_INDEX,
-            frames_per_buffer=CHUNK)
+    rate=RESPEAKER_RATE,
+    format=p.get_format_from_width(RESPEAKER_WIDTH),
+    channels=RESPEAKER_CHANNELS,
+    input=True,
+    input_device_index=RESPEAKER_INDEX,
+    frames_per_buffer=CHUNK,
+)
 
 print("* recording")
 
@@ -31,7 +32,7 @@ for i in range(0, int(RESPEAKER_RATE / CHUNK * RECORD_SECONDS)):
     data = stream.read(CHUNK)
     # Convert data to numpy array
     audio_data = np.frombuffer(data, dtype=np.int16)
-    
+
     # Split and store the data for each channel
     for ch in range(RESPEAKER_CHANNELS):
         frames[ch].append(audio_data[ch::RESPEAKER_CHANNELS].tobytes())
@@ -45,11 +46,11 @@ p.terminate()
 
 # Save each channel's data to a separate file
 for ch in range(RESPEAKER_CHANNELS):
-    wf = wave.open(WAVE_OUTPUT_FILENAME_TEMPLATE.format(ch), 'wb')
+    wf = wave.open(WAVE_OUTPUT_FILENAME_TEMPLATE.format(ch), "wb")
     wf.setnchannels(1)
     wf.setsampwidth(p.get_sample_size(p.get_format_from_width(RESPEAKER_WIDTH)))
     wf.setframerate(RESPEAKER_RATE)
-    wf.writeframes(b''.join(frames[ch]))
+    wf.writeframes(b"".join(frames[ch]))
     wf.close()
 
 print(f"Recorded 8 channels to separate files.")

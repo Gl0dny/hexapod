@@ -6,4 +6,4 @@ except ImportError:
     # ButtonHandler is only available on Raspberry Pi
     ButtonHandler = None
 
-__all__ = ['Imu', 'ButtonHandler'] 
+__all__ = ["Imu", "ButtonHandler"]

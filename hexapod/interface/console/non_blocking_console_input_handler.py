@@ -20,12 +20,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("interface_logger")
 
+
 class NonBlockingConsoleInputHandler(threading.Thread):
     """
     Handles non-blocking console user input by running a listener in a separate thread.
-    
+
     Inherits from `threading.Thread` to allow non-blocking input listening.
-    
+
     Attributes:
         input_queue (queue.Queue): Queue to store user inputs.
         stop_input_listener (bool): Flag to stop the input listener thread.
@@ -39,7 +40,7 @@ class NonBlockingConsoleInputHandler(threading.Thread):
         self.input_queue = queue.Queue()
         self.stop_input_listener = False
         logger.debug("NonBlockingConsoleInputHandler initialized successfully.")
-    
+
     def start(self):
         """
         Starts the input listener thread by invoking the parent `Thread` start method.
@@ -49,7 +50,7 @@ class NonBlockingConsoleInputHandler(threading.Thread):
 
     def run(self):
         """
-        Overrides the `run` method of `threading.Thread` to continuously listen for user input 
+        Overrides the `run` method of `threading.Thread` to continuously listen for user input
         and enqueue it.
         """
         logger.debug("Non-blocking console input listener thread running.")
@@ -64,10 +65,10 @@ class NonBlockingConsoleInputHandler(threading.Thread):
     def get_input(self, timeout: float = 0.1) -> Optional[str]:
         """
         Retrieves user input in a non-blocking manner by fetching it from the input queue.
-        
+
         Args:
             timeout (float): Time in seconds to wait for user input.
-        
+
         Returns:
             Optional[str]: The user input or None if no input is available.
         """

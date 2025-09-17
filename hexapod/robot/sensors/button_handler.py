@@ -15,8 +15,14 @@ import time
 if TYPE_CHECKING:
     from typing import Tuple, Optional
 
+
 class ButtonHandler:
-    def __init__(self, pin: int = 26, long_press_time: float = 3.0, external_control_paused_event: Optional[threading.Event] = None) -> None:
+    def __init__(
+        self,
+        pin: int = 26,
+        long_press_time: float = 3.0,
+        external_control_paused_event: Optional[threading.Event] = None,
+    ) -> None:
         self.pin: int = pin
         self.is_running: bool = True
         self.lock = threading.Lock()
@@ -24,20 +30,22 @@ class ButtonHandler:
         self.press_start_time: float = 0
         self.is_pressed: bool = False
         self.long_press_detected: bool = False
-        self.external_control_paused_event: Optional[threading.Event] = external_control_paused_event
-        
+        self.external_control_paused_event: Optional[threading.Event] = (
+            external_control_paused_event
+        )
+
         # Setup GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        
+
     def get_state(self) -> bool:
         return not GPIO.input(self.pin)  # Returns True when button is pressed
-        
+
     def toggle_state(self) -> bool:
         with self.lock:
             self.is_running = not self.is_running
             return self.is_running
-            
+
     def check_button(self) -> Tuple[Optional[str], bool]:
         """
         Check button state and return action and system state.
@@ -48,34 +56,43 @@ class ButtonHandler:
         """
         current_time = time.time()
         button_state = GPIO.input(self.pin)
-        
+
         # Button is pressed
         if button_state == GPIO.LOW:
             if not self.is_pressed:
                 self.is_pressed = True
                 self.press_start_time = current_time
                 self.long_press_detected = False
-            elif not self.long_press_detected and (current_time - self.press_start_time) >= self.long_press_time:
+            elif (
+                not self.long_press_detected
+                and (current_time - self.press_start_time) >= self.long_press_time
+            ):
                 self.long_press_detected = True
                 # Long press only works when external control is not paused
-                if not (self.external_control_paused_event and self.external_control_paused_event.is_set()):
-                    return 'long_press', self.is_running
-        
+                if not (
+                    self.external_control_paused_event
+                    and self.external_control_paused_event.is_set()
+                ):
+                    return "long_press", self.is_running
+
         # Button is released
         elif self.is_pressed:
             self.is_pressed = False
             # Only handle as toggle if it wasn't a long press
             if not self.long_press_detected:
                 # If external control is paused, treat short press as stop_task instead of toggle
-                if self.external_control_paused_event and self.external_control_paused_event.is_set():
-                    return 'stop_task', self.is_running
+                if (
+                    self.external_control_paused_event
+                    and self.external_control_paused_event.is_set()
+                ):
+                    return "stop_task", self.is_running
                 else:
                     self.is_running = not self.is_running
-                    return 'toggle', self.is_running
+                    return "toggle", self.is_running
             # Reset long press flag after handling the release
             self.long_press_detected = False
-        
+
         return None, self.is_running
-            
+
     def cleanup(self) -> None:
-        GPIO.cleanup(self.pin) 
+        GPIO.cleanup(self.pin)

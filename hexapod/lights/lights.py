@@ -5,6 +5,7 @@ from enum import Enum
 
 # Import gpiozero to configure the GPIO backend
 import gpiozero
+
 # Force GPIOZero to use RPi.GPIO backend instead of lgpio
 # This is necessary because lgpio requires GLIBC 2.33+ which isn't available on the hexapod's system
 # RPi.GPIO is more stable and compatible with older systems
@@ -20,12 +21,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("lights_logger")
 
+
 class ColorRGB(Enum):
     """
     Enumeration of RGB colors for the Lights system.
-    
+
     Each member represents a specific color with its corresponding RGB values.
     """
+
     BLACK = (0, 0, 0)
     BLUE = (0, 0, 255)
     TEAL = (0, 128, 128)
@@ -40,10 +43,11 @@ class ColorRGB(Enum):
     INDIGO = (75, 0, 130)
     GRAY = (139, 69, 19)
     WHITE = (255, 255, 255)
-    
+
     @property
     def rgb(self) -> Tuple[int, int, int]:
         return self.value
+
 
 class Lights:
     """
@@ -57,15 +61,15 @@ class Lights:
         brightness (int): The brightness of the LEDs (0-100).
     """
 
-    DEFAULT_NUM_LED: int = 12 # Default number of LEDs in the hardware
-    DEFAULT_POWER_PIN: int = 5 # Default GPIO pin number for LED power control
+    DEFAULT_NUM_LED: int = 12  # Default number of LEDs in the hardware
+    DEFAULT_POWER_PIN: int = 5  # Default GPIO pin number for LED power control
 
     def __init__(
         self,
         num_led: int = DEFAULT_NUM_LED,
         power_pin: int = DEFAULT_POWER_PIN,
         brightness: int = 50,
-        initial_color: ColorRGB = ColorRGB.INDIGO
+        initial_color: ColorRGB = ColorRGB.INDIGO,
     ) -> None:
         """
         Initialize the Lights object.
@@ -101,7 +105,12 @@ class Lights:
         self.driver.global_brightness = int(0b11111 * self.brightness / 100)
         logger.info(f"Brightness set to {brightness}%.")
 
-    def set_color(self, color: ColorRGB, num_led: Optional[int] = None, led_index: Optional[int] = None) -> None:
+    def set_color(
+        self,
+        color: ColorRGB,
+        num_led: Optional[int] = None,
+        led_index: Optional[int] = None,
+    ) -> None:
         """
         Set the color of the LEDs using the ColorRGB enum.
 
@@ -109,23 +118,34 @@ class Lights:
             color (ColorRGB): The color enum member to set.
             num_led (int, optional): The number of LEDs to set.
             led_index (int, optional): The index of the LED to set.
-        
+
         Raises:
             ValueError: If the LED index is out of range, RGB tuple is invalid, or color is not a ColorRGB member.
         """
         # Validate that 'color' is an instance of ColorRGB
         if not isinstance(color, ColorRGB):
-            logger.error(f"Invalid color: {color}. Available colors: {', '.join([c.name for c in ColorRGB])}")
-            raise ValueError(f"Invalid color: {color}. Available colors: {', '.join([c.name for c in ColorRGB])}")
+            logger.error(
+                f"Invalid color: {color}. Available colors: {', '.join([c.name for c in ColorRGB])}"
+            )
+            raise ValueError(
+                f"Invalid color: {color}. Available colors: {', '.join([c.name for c in ColorRGB])}"
+            )
 
         rgb = color.rgb
 
         # Validate rgb_tuple
-        if not (isinstance(rgb, tuple) and len(rgb) == 3 and
-                all(isinstance(val, int) and 0 <= val <= 255 for val in rgb)):
-            logger.error(f"Invalid RGB tuple: {rgb}. Must be a tuple of three integers between 0 and 255.")
-            raise ValueError(f"Invalid RGB tuple: {rgb}. Must be a tuple of three integers between 0 and 255.")
-        
+        if not (
+            isinstance(rgb, tuple)
+            and len(rgb) == 3
+            and all(isinstance(val, int) and 0 <= val <= 255 for val in rgb)
+        ):
+            logger.error(
+                f"Invalid RGB tuple: {rgb}. Must be a tuple of three integers between 0 and 255."
+            )
+            raise ValueError(
+                f"Invalid RGB tuple: {rgb}. Must be a tuple of three integers between 0 and 255."
+            )
+
         if led_index is not None:
             if 0 <= led_index < self.driver.num_led:
                 self.driver.set_pixel(led_index, rgb[0], rgb[1], rgb[2])
@@ -139,9 +159,16 @@ class Lights:
                 self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
 
         self.driver.show()
-        logger.debug(f"{'LED ' + str(led_index) if led_index is not None else 'All LEDs'} set to {color.name}.")
+        logger.debug(
+            f"{'LED ' + str(led_index) if led_index is not None else 'All LEDs'} set to {color.name}."
+        )
 
-    def set_color_rgb(self, rgb_tuple: Tuple[int, int, int], num_led: Optional[int] = None, led_index: Optional[int] = None) -> None:
+    def set_color_rgb(
+        self,
+        rgb_tuple: Tuple[int, int, int],
+        num_led: Optional[int] = None,
+        led_index: Optional[int] = None,
+    ) -> None:
         """
         Set the color of the LEDs using an RGB tuple.
 
@@ -149,20 +176,28 @@ class Lights:
             rgb_tuple (tuple): The RGB values.
             num_led (int, optional): The number of LEDs to set.
             led_index (int, optional): The index of the LED to set.
-        
+
         Raises:
             ValueError: If the LED index is out of range or RGB values are invalid.
         """
         # Validate rgb_tuple
-        if not (isinstance(rgb_tuple, tuple) and len(rgb_tuple) == 3 and
-                all(isinstance(val, int) and 0 <= val <= 255 for val in rgb_tuple)):
-            logger.error(f"Invalid RGB tuple: {rgb_tuple}. Must be a tuple of three integers between 0 and 255.")
-            raise ValueError(f"Invalid RGB tuple: {rgb_tuple}. Must be a tuple of three integers between 0 and 255.")
-        
+        if not (
+            isinstance(rgb_tuple, tuple)
+            and len(rgb_tuple) == 3
+            and all(isinstance(val, int) and 0 <= val <= 255 for val in rgb_tuple)
+        ):
+            logger.error(
+                f"Invalid RGB tuple: {rgb_tuple}. Must be a tuple of three integers between 0 and 255."
+            )
+            raise ValueError(
+                f"Invalid RGB tuple: {rgb_tuple}. Must be a tuple of three integers between 0 and 255."
+            )
+
         if led_index is not None:
             if 0 <= led_index < self.driver.num_led:
                 self.driver.set_pixel(
-                    led_index, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+                    led_index, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2]
+                )
             else:
                 logger.error(f"LED index {led_index} is out of range.")
                 raise ValueError(f"LED index {led_index} is out of range.")
@@ -170,10 +205,11 @@ class Lights:
             if num_led is None:
                 num_led = self.driver.num_led
             for i in range(num_led):
-                self.driver.set_pixel(
-                    i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+                self.driver.set_pixel(i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
         self.driver.show()
-        logger.debug(f"{'LED ' + str(led_index) if led_index is not None else 'All LEDs'} set to RGB {rgb_tuple}.")
+        logger.debug(
+            f"{'LED ' + str(led_index) if led_index is not None else 'All LEDs'} set to RGB {rgb_tuple}."
+        )
 
     def rotate(self, positions: int = 1) -> None:
         """
@@ -221,11 +257,13 @@ class Lights:
         logger.debug(f"Wheel color obtained: {color}.")
         return color
 
-    def clear(self, led_indices: Optional[List[int]] = None, count: Optional[int] = None) -> None:
+    def clear(
+        self, led_indices: Optional[List[int]] = None, count: Optional[int] = None
+    ) -> None:
         """
         Clear specified LEDs, turning them off. If no indices are provided, clear all LEDs.
         If count is provided, clear the specified number of LEDs from the start.
-        
+
         Args:
             led_indices (list, optional): List of LED indices to clear.
             count (int, optional): Number of LEDs to clear from the start.
@@ -239,4 +277,6 @@ class Lights:
         for i in leds_to_clear:
             self.driver.set_pixel(i, 0, 0, 0)
         self.driver.show()
-        logger.info(f"{'LEDs ' + str(led_indices) if led_indices is not None else 'All LEDs'} cleared.")
+        logger.info(
+            f"{'LEDs ' + str(led_indices) if led_indices is not None else 'All LEDs'} cleared."
+        )
