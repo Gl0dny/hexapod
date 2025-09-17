@@ -26,7 +26,7 @@ def convert_odas_to_wav(
     sample_rate: int = 44100,
     channels: int = 4,
     selected_channel: int = 0,
-):
+) -> None:
     """
     Convert ODAS raw audio file to WAV format compatible with Picovoice.
 
@@ -57,7 +57,7 @@ def convert_odas_to_wav(
     last_file_size = 0
     no_change_count = 0
 
-    def audio_callback(audio_data):
+    def audio_callback(audio_data: np.ndarray) -> None:
         # Store the converted audio data
         converted_audio.append(audio_data.tobytes())
 
@@ -106,7 +106,7 @@ def convert_odas_to_wav(
     print(f"Converted {len(converted_audio)} chunks of audio")
 
 
-def main():
+def main() -> None:
     # Add project paths for imports when run as script
     script_path = Path(__file__).resolve()
     project_root = script_path.parent.parent.parent

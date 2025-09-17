@@ -9,7 +9,7 @@ data reading, and provides methods for getting orientation and motion data.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from icm20948 import ICM20948
 
@@ -77,7 +77,7 @@ class Imu:
         Returns:
             tuple: A tuple containing magnetometer values (x, y, z).
         """
-        return self.imu.read_magnetometer_data()
+        return cast(Tuple[float, float, float], self.imu.read_magnetometer_data())
 
     def get_temperature(self) -> float:
         """Retrieve the temperature reading from the IMU sensor.
@@ -85,7 +85,7 @@ class Imu:
         Returns:
             float: The temperature value.
         """
-        return self.imu.read_temperature()
+        return cast(float, self.imu.read_temperature())
 
 
 if __name__ == "__main__":

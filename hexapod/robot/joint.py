@@ -157,7 +157,7 @@ class Joint:
             int: Servo target value in quarter-microseconds.
         """
         target = map_range(
-            angle, self.angle_min, self.angle_max, self.servo_min, self.servo_max
+            int(angle), int(self.angle_min), int(self.angle_max), self.servo_min, self.servo_max
         )
         logger.debug(f"Mapping angle {angle}° to servo target {int(target)}")
         return int(target)

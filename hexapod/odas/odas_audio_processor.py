@@ -116,7 +116,7 @@ class ODASAudioProcessor:
             self.thread.join()
         logger.info("Stopped ODAS voice input reading")
 
-    def _convert_audio(self, audio_data: bytes) -> np.ndarray:
+    def _convert_audio(self, audio_data: bytes) -> Optional[np.ndarray]:
         """
         Convert audio data from ODAS format to Picovoice format.
 
@@ -177,7 +177,7 @@ class ODASAudioProcessor:
         # Convert to 16-bit PCM
         resampled_audio = np.clip(resampled_audio, -32768, 32767).astype(np.int16)
 
-        return resampled_audio
+        return np.asarray(resampled_audio)
 
     def _read_audio(self) -> None:
         """

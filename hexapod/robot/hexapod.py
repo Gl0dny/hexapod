@@ -64,7 +64,7 @@ class Hexapod:
     )
 
     def __init__(
-        self, config_path: Path = None, calibration_data_path: Path = None
+        self, config_path: Optional[Path] = None, calibration_data_path: Optional[Path] = None
     ) -> None:
         """
         Initializes the Hexapod robot by loading configuration parameters, setting up servo controllers,
@@ -186,10 +186,10 @@ class Hexapod:
 
         # Create deep copies to avoid modifying the original predefined positions
         self.current_leg_angles: List[Tuple[float, float, float]] = [
-            tuple(pos) for pos in self.predefined_angle_positions["low_profile"]
+            (float(pos[0]), float(pos[1]), float(pos[2])) for pos in self.predefined_angle_positions["low_profile"]
         ]
         self.current_leg_positions: List[Tuple[float, float, float]] = [
-            tuple(pos) for pos in self.predefined_positions["low_profile"]
+            (float(pos[0]), float(pos[1]), float(pos[2])) for pos in self.predefined_positions["low_profile"]
         ]
 
         self.gait_generator: GaitGenerator = GaitGenerator(self)
@@ -271,9 +271,9 @@ class Hexapod:
 
         targets = []
         for leg in self.legs:
-            targets.append((leg.coxa_params["channel"], 0))
-            targets.append((leg.femur_params["channel"], 0))
-            targets.append((leg.tibia_params["channel"], 0))
+            targets.append((int(leg.coxa_params["channel"]), 0))
+            targets.append((int(leg.femur_params["channel"]), 0))
+            targets.append((int(leg.tibia_params["channel"]), 0))
 
         # Add unused channels with 0
         unused_channels = [
@@ -410,7 +410,7 @@ class Hexapod:
         self.controller.set_multiple_targets(targets)
 
         # Create a deep copy of positions to avoid modifying the original
-        self.current_leg_positions = [tuple(pos) for pos in positions]
+        self.current_leg_positions = [(float(pos[0]), float(pos[1]), float(pos[2])) for pos in positions]
         self._sync_angles_from_positions()
         logger.info("All legs moved to new positions")
 
@@ -756,7 +756,7 @@ class Hexapod:
         deltas = transformed - initial_positions
         deltas = np.round(deltas, 2)
         logger.debug(f"Computed body-frame IK deltas: {deltas}")
-        return deltas
+        return np.asarray(deltas)
 
     def _transform_body_to_leg_frames(
         self, body_frame_deltas: np.ndarray
@@ -797,3 +797,5 @@ class Hexapod:
             leg_frame_deltas[i] = rotation_matrix_leg_frame @ body_frame_deltas[i]
             deltas = np.round(leg_frame_deltas, 2)
             logger.debug(f"Computed local body:leg frame IK deltas: {deltas}")
+        
+        return leg_frame_deltas

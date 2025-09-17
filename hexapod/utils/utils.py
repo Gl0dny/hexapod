@@ -122,7 +122,7 @@ def euler_rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
         ]
     )
 
-    return R_z @ R_y @ R_x
+    return np.asarray(R_z @ R_y @ R_x)
 
 
 def homogeneous_transformation_matrix(

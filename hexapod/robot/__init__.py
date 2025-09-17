@@ -8,7 +8,7 @@ try:
     from .sensors import ButtonHandler
 except ImportError:
     # ButtonHandler is only available on Raspberry Pi
-    ButtonHandler = None
+    ButtonHandler = None  # type: ignore
 
 from .balance_compensator import BalanceCompensator
 

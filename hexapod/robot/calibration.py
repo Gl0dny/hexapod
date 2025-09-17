@@ -12,6 +12,7 @@ from hexapod.robot import Joint
 if TYPE_CHECKING:
     from typing import Optional
     from hexapod.robot import Hexapod
+    from hexapod.interface import NonBlockingConsoleInputHandler
 
 from hexapod.interface import get_custom_logger
 
@@ -29,7 +30,7 @@ class Calibration:
         """
         self.hexapod = hexapod
         self.calibration_data_path = calibration_data_path
-        self.input_handler = None
+        self.input_handler: Optional[NonBlockingConsoleInputHandler] = None
         self.status = {i: "not_calibrated" for i in range(len(self.hexapod.legs))}
 
         self.calibration_positions = {
@@ -417,6 +418,8 @@ class Calibration:
                             f"\nCalibration interrupted during zero angle confirmation of Leg {leg_index} {joint_name}."
                         )
                         return False
+                    if self.input_handler is None:
+                        return False
                     confirm_zero_str = self.input_handler.get_input()
                     if confirm_zero_str is not None:
                         confirm_zero = confirm_zero_str.strip().lower()
@@ -443,7 +446,7 @@ class Calibration:
         joint_name: str,
         servo_label: str,
         stop_event: Optional[threading.Event] = None,
-    ) -> int:
+    ) -> Optional[int]:
         """
         Prompt the user to enter a servo calibration value.
 
@@ -457,13 +460,15 @@ class Calibration:
             stop_event (Optional[threading.Event]): Event to signal stopping the calibration process.
 
         Returns:
-            int: The validated servo input value, or None if interrupted.
+            Optional[int]: The validated servo input value, or None if interrupted.
         """
         prompt = f"\nEnter {servo_label} for Leg {leg_index} {joint_name} ({Joint.SERVO_INPUT_MIN}-{Joint.SERVO_INPUT_MAX}): "
         print(prompt, end="", flush=True)
         servo_input = None
         while servo_input is None:
             if stop_event and stop_event.is_set():
+                return None
+            if self.input_handler is None:
                 return None
             servo_input_str = self.input_handler.get_input()
             if servo_input_str is not None:
@@ -503,6 +508,8 @@ class Calibration:
         confirm = None
         while confirm is None:
             if stop_event and stop_event.is_set():
+                return False
+            if self.input_handler is None:
                 return False
             confirm_str = self.input_handler.get_input()
             if confirm_str is not None:
