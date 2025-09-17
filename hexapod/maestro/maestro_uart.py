@@ -73,7 +73,9 @@ class MaestroUART(object):
         self.ser.xonxoff = False
         self.ser.timeout = 0  # makes the read non-blocking
         self.lock = threading.Lock()
-        logger.info(f"MaestroUART initialized successfully with device={device}, baudrate={baudrate}")
+        logger.info(
+            f"MaestroUART initialized successfully with device={device}, baudrate={baudrate}"
+        )
 
     def get_error(self) -> int:
         """Check if there was an error and print the corresponding error messages.
@@ -428,7 +430,7 @@ class MaestroUART(object):
 
             # Read a single byte response indicating the moving state
             response = self.ser.read(1)
-        if response == b'':
+        if response == b"":
             return None
         moving_state = ord(response)
         logger.info(f"Moving state: {moving_state}")
