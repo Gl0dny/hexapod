@@ -5,12 +5,13 @@ from functools import wraps
 
 from hexapod.lights import Lights, ColorRGB
 import hexapod.lights.animations as animations
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Callable, Any, Optional, Dict
     from hexapod.lights.animations import Animation
 
-logger = logging.getLogger("lights_logger")
+logger = get_custom_logger("lights_logger")
 
 
 class LightsInteractionHandler:

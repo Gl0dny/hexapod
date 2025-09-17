@@ -4,8 +4,9 @@ import abc
 
 from hexapod.lights import Lights
 from hexapod.utils import rename_thread
+from hexapod.interface import get_custom_logger
 
-logger = logging.getLogger("lights_logger")
+logger = get_custom_logger("lights_logger")
 
 
 class Animation(threading.Thread, abc.ABC):

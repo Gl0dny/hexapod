@@ -15,10 +15,12 @@ import numpy as np
 import resampy
 import time
 
+from hexapod.interface import get_custom_logger
+
 if TYPE_CHECKING:
     from typing import Optional, Callable
 
-logger = logging.getLogger("odas_logger")
+logger = get_custom_logger("odas_logger")
 
 
 class ODASAudioProcessor:

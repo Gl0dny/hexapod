@@ -14,6 +14,7 @@ import paramiko
 from pathlib import Path
 
 from hexapod.task_interface.tasks import Task
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from hexapod.lights import LightsInteractionHandler
     from hexapod.odas import ODASDoASSLProcessor
 
-logger = logging.getLogger("task_interface_logger")
+logger = get_custom_logger("task_interface_logger")
 
 
 class StreamODASAudioTask(Task):

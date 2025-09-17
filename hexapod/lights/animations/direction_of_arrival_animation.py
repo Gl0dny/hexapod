@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, override, Optional
-import logging
 import math
 
 from hexapod.lights.animations import Animation
@@ -9,8 +8,6 @@ from hexapod.lights import ColorRGB
 if TYPE_CHECKING:
     from typing import Dict
     from hexapod.lights import Lights
-
-logger = logging.getLogger("lights_logger")
 
 
 class DirectionOfArrivalAnimation(Animation):

@@ -32,11 +32,12 @@ import time
 import threading
 
 import serial
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Optional, List, Tuple
 
-logger = logging.getLogger("maestro_logger")
+logger = get_custom_logger("maestro_logger")
 
 
 class MaestroUART(object):

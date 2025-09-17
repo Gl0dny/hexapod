@@ -5,13 +5,14 @@ import time
 
 from hexapod.task_interface.tasks import Task
 from hexapod.robot import PredefinedPosition
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
     from hexapod.robot import Hexapod
     from hexapod.lights import LightsInteractionHandler
 
-logger = logging.getLogger("task_interface_logger")
+logger = get_custom_logger("task_interface_logger")
 
 
 class SitUpTask(Task):

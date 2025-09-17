@@ -11,12 +11,13 @@ from typing import TYPE_CHECKING
 import logging
 
 from hexapod.utils import map_range
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Optional
     from hexapod.maestro import MaestroUART
 
-logger = logging.getLogger("robot_logger")
+logger = get_custom_logger("robot_logger")
 
 
 class Joint:

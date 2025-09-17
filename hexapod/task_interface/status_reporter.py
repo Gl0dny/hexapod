@@ -10,11 +10,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging
 from datetime import datetime
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from hexapod.robot import Hexapod
 
-logger = logging.getLogger("task_interface_logger")
+logger = get_custom_logger("task_interface_logger")
 
 
 class StatusReporter:

@@ -18,7 +18,9 @@ import select
 if TYPE_CHECKING:
     from typing import Optional
 
-logger = logging.getLogger("interface_logger")
+from hexapod.interface.logging import get_custom_logger
+
+logger = get_custom_logger("interface_logger")
 
 
 class NonBlockingConsoleInputHandler(threading.Thread):

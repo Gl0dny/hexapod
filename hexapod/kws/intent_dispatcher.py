@@ -13,11 +13,12 @@ import logging
 from functools import wraps
 
 from hexapod.utils import parse_percentage
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Dict, Callable, Any, Optional
 
-logger = logging.getLogger("kws_logger")
+logger = get_custom_logger("kws_logger")
 
 
 def handler(func: Callable[..., Any]) -> Callable[..., Any]:

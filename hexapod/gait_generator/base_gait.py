@@ -15,11 +15,12 @@ from dataclasses import dataclass
 from enum import Enum, auto
 
 from hexapod.utils import Vector2D, Vector3D
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from robot import Hexapod, Dict, List, Tuple, Union
 
-logger = logging.getLogger("gait_generator_logger")
+logger = get_custom_logger("gait_generator_logger")
 
 
 class GaitPhase(Enum):

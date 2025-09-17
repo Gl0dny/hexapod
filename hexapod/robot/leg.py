@@ -12,12 +12,13 @@ import logging
 import math
 
 from hexapod.robot import Joint
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Tuple, Dict, Union
     from hexapod.maestro import MaestroUART
 
-logger = logging.getLogger("robot_logger")
+logger = get_custom_logger("robot_logger")
 
 
 class Leg:

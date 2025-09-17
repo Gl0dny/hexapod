@@ -20,13 +20,13 @@ import argparse
 import sys
 import math
 
-from hexapod.interface import setup_logging
+from hexapod.interface import setup_logging, get_custom_logger
 from hexapod.utils import rename_thread
 
 if TYPE_CHECKING:
     from typing import Optional, List, TextIO, Any, Dict
 
-logger = logging.getLogger("odas_logger")
+logger = get_custom_logger("odas_logger")
 
 
 class ODASDoASSLProcessor:

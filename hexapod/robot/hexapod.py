@@ -13,11 +13,12 @@ from hexapod.maestro import MaestroUART
 from hexapod.robot import Leg, Calibration, Imu
 from hexapod.gait_generator import GaitGenerator
 from hexapod.utils import map_range, homogeneous_transformation_matrix
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Optional, List, Tuple, Dict, Union, Callable, Any
 
-logger = logging.getLogger("robot_logger")
+logger = get_custom_logger("robot_logger")
 
 
 class PredefinedAnglePosition(Enum):

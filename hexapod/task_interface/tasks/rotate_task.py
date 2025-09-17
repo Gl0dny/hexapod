@@ -11,7 +11,9 @@ if TYPE_CHECKING:
     from hexapod.robot import Hexapod
     from hexapod.lights import LightsInteractionHandler
 
-logger = logging.getLogger("task_interface_logger")
+from hexapod.interface import get_custom_logger
+
+logger = get_custom_logger("task_interface_logger")
 
 
 class RotateTask(Task):

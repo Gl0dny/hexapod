@@ -13,11 +13,12 @@ import threading
 import abc
 
 from hexapod.utils import rename_thread
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Optional, Callable
 
-logger = logging.getLogger("task_interface_logger")
+logger = get_custom_logger("task_interface_logger")
 
 
 class Task(threading.Thread, abc.ABC):

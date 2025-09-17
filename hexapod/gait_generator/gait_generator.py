@@ -16,8 +16,9 @@ import math
 from hexapod.utils import rename_thread, Vector3D
 from hexapod.gait_generator import BaseGait, GaitPhase, GaitState
 from hexapod.gait_generator import TripodGait, WaveGait
+from hexapod.interface import get_custom_logger
 
-logger = logging.getLogger("gait_generator_logger")
+logger = get_custom_logger("gait_generator_logger")
 
 if TYPE_CHECKING:
     from typing import Dict, List, Optional, Union
