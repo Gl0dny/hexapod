@@ -3,7 +3,7 @@ Base input mapping implementation.
 
 This module provides the abstract base class for gamepad input interface mappings.
 """
-
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 

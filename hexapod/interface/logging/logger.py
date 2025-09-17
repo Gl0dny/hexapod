@@ -3,13 +3,13 @@ Logger module for the Hexapod project. Provides custom logging levels and format
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, override, cast
 import logging
 import datetime as dt
 import json
 
 if TYPE_CHECKING:
-    from typing import Optional, Dict, Any, Literal, cast
+    from typing import Optional, Dict, Any, Literal
 
 # Define built-in log record attributes for custom formatting
 LOG_RECORD_BUILTIN_ATTRS = {...}

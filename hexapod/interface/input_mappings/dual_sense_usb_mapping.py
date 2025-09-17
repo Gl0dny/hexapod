@@ -3,7 +3,7 @@ DualSense USB input mapping implementation.
 
 This module provides input mapping for PS5 DualSense Controller in USB mode.
 """
-
+from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from hexapod.interface.input_mappings import InputMapping
