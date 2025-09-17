@@ -19,7 +19,7 @@ from pathlib import Path
 from hexapod.lights import LightsInteractionHandler, ColorRGB
 from hexapod.robot import Hexapod, ButtonHandler, PredefinedPosition
 from hexapod.task_interface import tasks
-from hexapod.interface import NonBlockingConsoleInputHandler
+from hexapod.interface import NonBlockingConsoleInputHandler, get_custom_logger
 from hexapod.utils import rename_thread
 from .status_reporter import StatusReporter
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from typing import Callable, Any, Optional, MethodType
     from hexapod.task_interface.tasks import Task
 
-logger = logging.getLogger("task_interface_logger")
+logger = get_custom_logger("task_interface_logger")
 
 
 class TaskInterface:

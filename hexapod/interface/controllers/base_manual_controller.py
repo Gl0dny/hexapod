@@ -18,13 +18,14 @@ from hexapod.robot import PredefinedPosition
 from hexapod.gait_generator import BaseGait, TripodGait
 from hexapod.utils import rename_thread
 from hexapod.lights import ColorRGB
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Optional
     from hexapod.kws import VoiceControl
     from hexapod.task_interface import TaskInterface
 
-logger = logging.getLogger("gamepad_logger")
+logger = get_custom_logger("gamepad_logger")
 
 
 class ManualHexapodController(threading.Thread, ABC):

@@ -35,8 +35,9 @@ from hexapod.interface.controllers.gamepad_led_controllers import (
     DualSenseLEDController,
 )
 from hexapod.utils import rename_thread
+from hexapod.interface import get_custom_logger
 
-logger = logging.getLogger("interface_logger")
+logger = get_custom_logger("interface_logger")
 
 try:
     import pygame

@@ -13,7 +13,9 @@ if TYPE_CHECKING:
     from typing import Optional
     from hexapod.robot import Hexapod
 
-logger = logging.getLogger("robot_logger")
+from hexapod.interface import get_custom_logger
+
+logger = get_custom_logger("robot_logger")
 
 
 class Calibration:
