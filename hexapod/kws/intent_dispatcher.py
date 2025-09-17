@@ -15,17 +15,16 @@ from functools import wraps
 from hexapod.utils import parse_percentage
 
 if TYPE_CHECKING:
-    from typing import Dict, Callable, Any
+    from typing import Dict, Callable, Any, Optional
 
 logger = logging.getLogger("kws_logger")
 
 
 def handler(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(self, slots: Dict[str, Any]) -> None:
-        logger.debug(f"Handling intent with {func.__name__}")
+    def wrapper(self: Any, slots: Dict[str, Any]) -> None:
+        logger.info(f"Handling intent with {func.__name__}")
         func(self, slots)
-        logger.debug(f"Handled intent with {func.__name__}")
 
     return wrapper
 
@@ -73,7 +72,7 @@ class IntentDispatcher:
             "start_recording": self.handle_start_recording,
             "stop_recording": self.handle_stop_recording,
         }
-        logger.debug("IntentDispatcher initialized successfully.")
+        logger.info("IntentDispatcher initialized successfully.")
 
     def dispatch(self, intent: str, slots: Dict[str, Any]) -> None:
         """
@@ -86,27 +85,26 @@ class IntentDispatcher:
         Raises:
             NotImplementedError: If no handler exists for the given intent.
         """
-        logger.debug(f"Dispatching intent: {intent} with slots: {slots}")
+        logger.info(f"Dispatching intent: {intent} with slots: {slots}")
         handler = self.intent_handlers.get(intent)
         if handler:
             handler(slots)
-            logger.debug(f"Intent '{intent}' dispatched successfully.")
         else:
             raise NotImplementedError(f"No handler for intent: {intent}")
 
-    def _parse_duration_in_seconds(self, value, unit):
+    def _parse_duration_in_seconds(self, value: Any, unit: Any) -> Optional[float]:
         """Helper to convert value and time_unit to seconds."""
         if value is None or unit is None:
             return None
         try:
-            value = float(value)
-            unit = unit.lower()
-            if unit in ["second", "seconds"]:
-                return value
-            elif unit in ["minute", "minutes"]:
-                return value * 60
-            elif unit in ["hour", "hours"]:
-                return value * 3600
+            float_value = float(value)
+            unit_str = str(unit).lower()
+            if unit_str in ["second", "seconds"]:
+                return float_value
+            elif unit_str in ["minute", "minutes"]:
+                return float_value * 60.0
+            elif unit_str in ["hour", "hours"]:
+                return float_value * 3600.0
         except Exception:
             logger.exception(f"Invalid duration or time unit: {value}, {unit}")
         return None
@@ -367,7 +365,7 @@ class IntentDispatcher:
             slots (Dict[str, Any]): Additional data for the intent.
         """
 
-        def parse_angle(slot_value):
+        def parse_angle(slot_value: Any) -> float:
             allowed_words = {
                 "thirty": 30,
                 "sixty": 60,
@@ -565,7 +563,6 @@ class IntentDispatcher:
                 duration_seconds = self._parse_duration_in_seconds(
                     record_time, time_unit
                 )
-                logger.debug(f"Recording duration: {duration_seconds} seconds")
 
             self.task_interface.start_recording(duration=duration_seconds)
         except Exception as e:

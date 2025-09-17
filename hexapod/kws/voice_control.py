@@ -23,13 +23,14 @@ from hexapod.kws import IntentDispatcher, Recorder
 from hexapod.task_interface import TaskInterface
 from hexapod.lights import ColorRGB
 from hexapod.utils import rename_thread
+from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
     from typing import Optional, Callable, Any, List
-    from hexapod.task_interface import Task
+    from hexapod.task_interface.tasks import Task
 
 # Configure logger
-logger = logging.getLogger("kws_logger")
+logger = get_custom_logger("kws_logger")
 
 
 class VoiceControl(threading.Thread):
@@ -52,8 +53,8 @@ class VoiceControl(threading.Thread):
         access_key: str,
         task_interface: TaskInterface,
         device_index: int,
-        porcupine_sensitivity: float = None,
-        rhino_sensitivity: float = None,
+        porcupine_sensitivity: Optional[float] = None,
+        rhino_sensitivity: Optional[float] = None,
         print_context: bool = False,
         recordings_dir: Optional[Path] = None,
     ) -> None:
@@ -84,7 +85,7 @@ class VoiceControl(threading.Thread):
         self.pause_event = threading.Event()
         self.pause_event.clear()
 
-        logger.debug(f"Initializing VoiceControl with device_index={device_index}")
+        logger.info(f"Initializing VoiceControl with device_index={device_index}")
 
         # Store initialization parameters for reinitialization
         self.keyword_path = keyword_path
@@ -148,13 +149,13 @@ class VoiceControl(threading.Thread):
         self.audio_stop_event = threading.Event()
 
         if self.print_context:
-            self.print_context()
+            self.print_context_info()
 
         logger.debug("VoiceControl thread initialized successfully")
 
     @staticmethod
     @contextlib.contextmanager
-    def _suppress_alsa_warnings():
+    def _suppress_alsa_warnings() -> Any:
         """Context manager to suppress ALSA warnings at file descriptor level."""
         # Save original stderr file descriptor
         original_stderr_fd = os.dup(2)  # stderr is file descriptor 2
@@ -189,8 +190,8 @@ class VoiceControl(threading.Thread):
                 devices = []
                 for i in range(p.get_device_count()):
                     device_info = p.get_device_info_by_index(i)
-                    if device_info["maxInputChannels"] > 0:  # Only input devices
-                        devices.append(device_info["name"])
+                    if int(device_info["maxInputChannels"]) > 0:  # Only input devices
+                        devices.append(str(device_info["name"]))
                 p.terminate()
                 return devices
         except Exception as e:
@@ -223,7 +224,7 @@ class VoiceControl(threading.Thread):
             device_info = self.pyaudio_instance.get_device_info_by_index(
                 self.device_index
             )
-            logger.debug(f"Using audio device: {device_info['name']}")
+            logger.info(f"Using audio device: {device_info['name']}")
 
             frames_per_buffer = 512
 
@@ -329,7 +330,7 @@ class VoiceControl(threading.Thread):
         except Exception as e:
             logger.error(f"Error during audio cleanup: {e}")
 
-    def print_context(self) -> None:
+    def print_context_info(self) -> None:
         """
         Prints the context information for debugging purposes.
         """
@@ -342,10 +343,11 @@ class VoiceControl(threading.Thread):
         logger.user_info("[wake word]")
         self.task_interface.lights_handler.listen_intent()
 
-        if self.task_interface.task is not None:
+        current_task = getattr(self.task_interface, "task", None)
+        if current_task is not None:
             self.task_interface_interrupted = True
             logger.user_info(
-                f"Interrupting current task: {self.task_interface.task.__class__.__name__}"
+                f"Interrupting current task: {current_task.__class__.__name__}"
             )
             self.task_interface.stop()
 
