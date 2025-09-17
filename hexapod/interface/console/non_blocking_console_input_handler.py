@@ -32,28 +32,27 @@ class NonBlockingConsoleInputHandler(threading.Thread):
         stop_input_listener (bool): Flag to stop the input listener thread.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the NonBlockingConsoleInputHandler thread and sets up the input queue.
         """
         super().__init__(daemon=True)
-        self.input_queue = queue.Queue()
+        self.input_queue: queue.Queue[str] = queue.Queue()
         self.stop_input_listener = False
-        logger.debug("NonBlockingConsoleInputHandler initialized successfully.")
+        logger.info("NonBlockingConsoleInputHandler initialized successfully.")
 
-    def start(self):
+    def start(self) -> None:
         """
         Starts the input listener thread by invoking the parent `Thread` start method.
         """
         super().start()
         logger.debug("Non-blocking console input listener thread started.")
 
-    def run(self):
+    def run(self) -> None:
         """
         Overrides the `run` method of `threading.Thread` to continuously listen for user input
         and enqueue it.
         """
-        logger.debug("Non-blocking console input listener thread running.")
         while not self.stop_input_listener:
             dr, dw, de = select.select([sys.stdin], [], [], 0.1)
             if dr:
@@ -75,11 +74,11 @@ class NonBlockingConsoleInputHandler(threading.Thread):
         try:
             input_data = self.input_queue.get(timeout=timeout)
             logger.debug(f"Retrieved input: {input_data}")
-            return input_data
+            return str(input_data)
         except queue.Empty:
             return None
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """
         Gracefully shuts down the input listener thread by setting the stop flag and joining the thread.
         """

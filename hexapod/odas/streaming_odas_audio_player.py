@@ -51,7 +51,9 @@ DEFAULT_CHECK_INTERVAL = 0.5
 AudioFileType = str  # 'postfiltered' or 'separated'
 ProcessList = List[subprocess.Popen]
 
-logger = logging.getLogger("odas_logger")
+from hexapod.interface import get_custom_logger
+
+logger = get_custom_logger("odas_logger")
 
 
 class StreamingODASAudioPlayer:

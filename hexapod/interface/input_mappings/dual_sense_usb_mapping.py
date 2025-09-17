@@ -1,10 +1,15 @@
 """
-Gamepad input mappings for hexapod controllers.
+DualSense USB input mapping implementation.
 
-This module provides input mapping implementations for various gamepad controllers.
+This module provides input mapping for PS5 DualSense Controller in USB mode.
 """
 
+from typing import TYPE_CHECKING
+
 from hexapod.interface.input_mappings import InputMapping
+
+if TYPE_CHECKING:
+    from typing import Dict, List, Any
 
 
 class DualSenseUSBMapping(InputMapping):
@@ -39,7 +44,7 @@ class DualSenseUSBMapping(InputMapping):
     BUTTON_DPAD_LEFT = 13  # D-pad Left
     BUTTON_DPAD_RIGHT = 14  # D-pad Right
 
-    def get_axis_mappings(self):
+    def get_axis_mappings(self) -> Dict[str, int]:
         """Return a dictionary of axis mappings."""
         return {
             "left_x": self.AXIS_LEFT_X,
@@ -50,7 +55,7 @@ class DualSenseUSBMapping(InputMapping):
             "r2": self.AXIS_R2,
         }
 
-    def get_button_mappings(self):
+    def get_button_mappings(self) -> Dict[str, int]:
         """Return a dictionary of button mappings."""
         return {
             "square": self.BUTTON_SQUARE,
@@ -72,17 +77,17 @@ class DualSenseUSBMapping(InputMapping):
             "dpad_right": self.BUTTON_DPAD_RIGHT,
         }
 
-    def get_hat_mappings(self):
+    def get_hat_mappings(self) -> Dict[str, str]:
         """Return a dictionary of hat mappings."""
         return {
             "dpad": "buttons"  # USB uses buttons for D-pad, but still uses hat interface
         }
 
-    def get_interface_names(self):
+    def get_interface_names(self) -> List[str]:
         """Return a list of interface names this mapping supports."""
         return ["dualsense", "ps5", "playstation 5"]
 
-    def get_axis_name(self, axis_index):
+    def get_axis_name(self, axis_index: int) -> str:
         """Get the name of an axis by its index."""
         axis_names = {
             self.AXIS_LEFT_X: "Left X",
@@ -94,7 +99,7 @@ class DualSenseUSBMapping(InputMapping):
         }
         return axis_names.get(axis_index, f"Unknown Axis {axis_index}")
 
-    def get_button_name(self, button_index):
+    def get_button_name(self, button_index: int) -> str:
         """Get the name of a button by its index."""
         button_names = {
             self.BUTTON_SQUARE: "Square",
@@ -117,7 +122,7 @@ class DualSenseUSBMapping(InputMapping):
         }
         return button_names.get(button_index, f"Unknown Button {button_index}")
 
-    def print_mappings_info(self):
+    def print_mappings_info(self) -> None:
         """Print information about the controller mappings."""
         print("\nPS5 DualSense Controller Mappings (USB):")
         print("=" * 40)

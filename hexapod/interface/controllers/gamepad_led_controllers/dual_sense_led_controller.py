@@ -5,18 +5,23 @@ This module provides LED control functionality specifically for the PS5 DualSens
 """
 
 import logging
+from typing import TYPE_CHECKING
 
 from hexapod.interface.controllers.gamepad_led_controllers import (
     BaseGamepadLEDController,
 )
+from hexapod.interface import get_custom_logger
 
-logger = logging.getLogger("interface_logger")
+if TYPE_CHECKING:
+    from typing import Optional, Any
+
+logger = get_custom_logger("interface_logger")
 
 
 class DualSenseLEDController(BaseGamepadLEDController):
     """LED controller implementation for PS5 DualSense controller."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the DualSense LED controller."""
         super().__init__()
 
@@ -31,7 +36,7 @@ class DualSenseLEDController(BaseGamepadLEDController):
             self.DualSenseController = None
             return
 
-        self.dualsense_controller = None
+        self.dualsense_controller: Optional[Any] = None
         self._connect_controller()
 
     def _connect_controller(self) -> bool:
@@ -53,9 +58,10 @@ class DualSenseLEDController(BaseGamepadLEDController):
             )
 
             # Activate without the microphone not properly initialized workaround warning
-            self.dualsense_controller._core.init()
-            self.dualsense_controller._properties.microphone.set_muted()
-            self.dualsense_controller.wait_until_updated()
+            if self.dualsense_controller is not None:
+                self.dualsense_controller._core.init()
+                self.dualsense_controller._properties.microphone.set_muted()
+                self.dualsense_controller.wait_until_updated()
 
             self.is_connected = True
             logger.info("Connected to DualSense controller for LED control")
@@ -71,6 +77,8 @@ class DualSenseLEDController(BaseGamepadLEDController):
 
     def _set_color_internal(self, r: int, g: int, b: int) -> bool:
         """Set the LED color on the DualSense controller."""
+        if self.dualsense_controller is None:
+            return False
         try:
             self.dualsense_controller.lightbar.set_color(r, g, b)
             return True
@@ -78,7 +86,7 @@ class DualSenseLEDController(BaseGamepadLEDController):
             logger.exception(f"Failed to set DualSense LED color: {e}")
             return False
 
-    def _cleanup_internal(self):
+    def _cleanup_internal(self) -> None:
         """Clean up DualSense controller resources."""
         if self.dualsense_controller:
             try:

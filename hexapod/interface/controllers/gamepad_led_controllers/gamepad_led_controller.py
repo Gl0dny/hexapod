@@ -19,7 +19,9 @@ from hexapod.utils import rename_thread
 if TYPE_CHECKING:
     from typing import Optional, Tuple, Dict, Any
 
-logger = logging.getLogger("interface_logger")
+from hexapod.interface import get_custom_logger
+
+logger = get_custom_logger("interface_logger")
 
 
 class GamepadLEDColor(Enum):
@@ -49,13 +51,13 @@ class GamepadLEDColor(Enum):
 class BaseGamepadLEDController(ABC):
     """Abstract base class for gamepad LED controllers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the base LED controller."""
-        self.is_connected = False
-        self.current_color = GamepadLEDColor.BLUE
-        self.brightness = 1.0  # 0.0 to 1.0
+        self.is_connected: bool = False
+        self.current_color: GamepadLEDColor = GamepadLEDColor.BLUE
+        self.brightness: float = 1.0  # 0.0 to 1.0
         self.animation_thread: Optional[threading.Thread] = None
-        self.animation_running = False
+        self.animation_running: bool = False
 
     @abstractmethod
     def _connect_controller(self) -> bool:
@@ -68,7 +70,7 @@ class BaseGamepadLEDController(ABC):
         pass
 
     @abstractmethod
-    def _cleanup_internal(self):
+    def _cleanup_internal(self) -> None:
         """Clean up controller-specific resources. Must be implemented by subclasses."""
         pass
 
@@ -191,7 +193,9 @@ class BaseGamepadLEDController(ABC):
         self.animation_thread.start()
         return True
 
-    def _pulse_animation(self, color: GamepadLEDColor, duration: float, cycles: int):
+    def _pulse_animation(
+        self, color: GamepadLEDColor, duration: float, cycles: int
+    ) -> None:
         """Internal method for pulse animation."""
         rename_thread(threading.current_thread(), "GamepadLEDPulseAnimation")
         cycle_count = 0
@@ -253,7 +257,7 @@ class BaseGamepadLEDController(ABC):
         color2: GamepadLEDColor,
         duration: float,
         cycles: int,
-    ):
+    ) -> None:
         """Internal method for two-color pulse animation."""
         rename_thread(threading.current_thread(), "GamepadLEDTwoColorPulseAnimation")
         cycle_count = 0
@@ -319,7 +323,7 @@ class BaseGamepadLEDController(ABC):
 
     def _breathing_animation(
         self, color: GamepadLEDColor, duration: float, cycles: int
-    ):
+    ) -> None:
         """Internal method for breathing animation."""
         cycle_count = 0
 
@@ -340,7 +344,7 @@ class BaseGamepadLEDController(ABC):
 
             cycle_count += 1
 
-    def stop_animation(self):
+    def stop_animation(self) -> None:
         """Stop any running animation."""
         self.animation_running = False
         if self.animation_thread and self.animation_thread.is_alive():
@@ -373,7 +377,7 @@ class BaseGamepadLEDController(ABC):
         """
         return self.__class__.__name__
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up resources."""
         self.stop_animation()
         if self.is_connected:

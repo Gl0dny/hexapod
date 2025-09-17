@@ -1,10 +1,15 @@
 """
-Gamepad input mappings for hexapod controllers.
+DualSense Bluetooth input mapping implementation.
 
-This module provides input mapping implementations for various gamepad controllers.
+This module provides input mapping for PS5 DualSense Controller in Bluetooth mode.
 """
 
+from typing import TYPE_CHECKING
+
 from hexapod.interface.input_mappings import InputMapping
+
+if TYPE_CHECKING:
+    from typing import Dict, List, Any
 
 
 class DualSenseBluetoothMapping(InputMapping):
@@ -34,7 +39,7 @@ class DualSenseBluetoothMapping(InputMapping):
     BUTTON_PS5 = 12  # PS5 (avoid in robot control)
     BUTTON_TOUCHPAD = 13  # Touchpad
 
-    def get_axis_mappings(self):
+    def get_axis_mappings(self) -> Dict[str, int]:
         """Return a dictionary of axis mappings."""
         return {
             "left_x": self.AXIS_LEFT_X,
@@ -45,7 +50,7 @@ class DualSenseBluetoothMapping(InputMapping):
             "right_y": self.AXIS_RIGHT_Y,
         }
 
-    def get_button_mappings(self):
+    def get_button_mappings(self) -> Dict[str, int]:
         """Return a dictionary of button mappings."""
         return {
             "square": self.BUTTON_SQUARE,
@@ -62,15 +67,15 @@ class DualSenseBluetoothMapping(InputMapping):
             "touchpad": self.BUTTON_TOUCHPAD,
         }
 
-    def get_hat_mappings(self):
+    def get_hat_mappings(self) -> Dict[str, str]:
         """Return a dictionary of hat mappings."""
         return {"dpad": "hat"}  # Bluetooth uses actual hat for D-pad
 
-    def get_interface_names(self):
+    def get_interface_names(self) -> List[str]:
         """Return a list of interface names this mapping supports."""
         return ["dualsense wireless controller", "wireless controller", "bluetooth"]
 
-    def get_axis_name(self, axis_index):
+    def get_axis_name(self, axis_index: int) -> str:
         """Get the name of an axis by its index."""
         axis_names = {
             self.AXIS_LEFT_X: "Left X",
@@ -82,8 +87,8 @@ class DualSenseBluetoothMapping(InputMapping):
         }
         return axis_names.get(axis_index, f"Unknown Axis {axis_index}")
 
-    def get_button_name(self, button_index):
-        """Get the name of a button by its index."""
+    def get_button_name(self, button_index: int) -> str:
+        """Get the human-readable name of a button by its index."""
         button_names = {
             self.BUTTON_SQUARE: "Square",
             self.BUTTON_X: "X",
@@ -100,7 +105,7 @@ class DualSenseBluetoothMapping(InputMapping):
         }
         return button_names.get(button_index, f"Unknown Button {button_index}")
 
-    def print_mappings_info(self):
+    def print_mappings_info(self) -> None:
         """Print information about the controller mappings."""
         print("\nPS5 DualSense Controller Mappings (Bluetooth):")
         print("=" * 40)
