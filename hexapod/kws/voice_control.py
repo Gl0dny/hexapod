@@ -85,8 +85,6 @@ class VoiceControl(threading.Thread):
         self.pause_event = threading.Event()
         self.pause_event.clear()
 
-        logger.info(f"Initializing VoiceControl with device_index={device_index}")
-
         # Store initialization parameters for reinitialization
         self.keyword_path = keyword_path
         self.context_path = context_path

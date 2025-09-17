@@ -13,24 +13,24 @@ from hexapod.config import Config, create_config_parser
 from hexapod.kws import VoiceControl
 from hexapod.task_interface import TaskInterface
 from hexapod.robot import PredefinedPosition
-from hexapod.interface import setup_logging, clean_logs
+from hexapod.interface import setup_logging, clean_logs, get_custom_logger
 from hexapod.interface import GamepadHexapodController
 
 if TYPE_CHECKING:
     from typing import Optional
 
-logger = logging.getLogger("main_logger")
+logger = get_custom_logger("main_logger")
 
 # Global shutdown event
 shutdown_event = threading.Event()
 
 
-def shutdown_callback():
+def shutdown_callback() -> None:
     """Callback function to trigger program shutdown."""
     shutdown_event.set()
 
 
-def handle_button_interactions(task_interface):
+def handle_button_interactions(task_interface: TaskInterface) -> None:
     """Handle button interactions for voice control mode."""
     action, is_running = task_interface.button_handler.check_button()
 
@@ -58,7 +58,11 @@ def handle_button_interactions(task_interface):
         task_interface.request_unpause_voice_control()
 
 
-def shutdown_cleanup(voice_control, manual_controller, task_interface):
+def shutdown_cleanup(
+    voice_control: Optional[VoiceControl],
+    manual_controller: Optional[GamepadHexapodController],
+    task_interface: TaskInterface,
+) -> None:
     """Perform cleanup when shutting down the program."""
     logger.critical("Stopping all tasks and deactivating hexapod...")
 
@@ -75,7 +79,7 @@ def shutdown_cleanup(voice_control, manual_controller, task_interface):
     logger.user_info("Exiting...")
 
     for thread in threading.enumerate():
-        logger.user_info(f"{thread.name}, {thread.is_alive()}")
+        logger.debug(f"{thread.name}, {thread.is_alive()}")
     print("---")
 
 
@@ -147,7 +151,7 @@ Example usage:
 
 
 def create_application_components(
-    config: Config, args
+    config: Config, args: argparse.Namespace
 ) -> tuple[TaskInterface, VoiceControl]:
     """
     Factory function to create all application components with proper dependencies.
@@ -194,14 +198,17 @@ def create_application_components(
 
     if args.print_context:
         logger.debug("Print context flag detected, printing context")
-        voice_control.print_context()
+        voice_control.print_context_info()
 
     logger.info("Application components created successfully with proper dependencies")
     return task_interface, voice_control
 
 
 def initialize_manual_controller(
-    task_interface, voice_control, config: Config, args
+    task_interface: TaskInterface,
+    voice_control: VoiceControl,
+    config: Config,
+    args: argparse.Namespace,
 ) -> Optional[GamepadHexapodController]:
     """Initialize manual controller and return it, or None if failed."""
 
@@ -223,7 +230,11 @@ def initialize_manual_controller(
         return None
 
 
-def run_main_loop(voice_control, manual_controller, task_interface) -> None:
+def run_main_loop(
+    voice_control: Optional[VoiceControl],
+    manual_controller: Optional[GamepadHexapodController],
+    task_interface: TaskInterface,
+) -> None:
     """Run the main application loop."""
     cleanup_done = False
 
