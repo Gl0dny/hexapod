@@ -9,23 +9,30 @@ import datetime as dt
 import json
 
 if TYPE_CHECKING:
-    from typing import Optional, Dict, Any
+    from typing import Optional, Dict, Any, Literal, cast
 
 # Define built-in log record attributes for custom formatting
 LOG_RECORD_BUILTIN_ATTRS = {...}
 
 
-def add_user_info_level() -> None:
-    """
-    Initialize and add a custom logging level 'USER_INFO' to the logging module.
+# Custom logging levels
+USER_INFO_LEVEL = 25
+ODAS_USER_INFO_LEVEL = 26
+GAMEPAD_MODE_INFO_LEVEL = 27
 
-    This function sets up a new logging level with a numeric value of 25 and
-    associates it with the name "USER_INFO". It also adds the `user_info` method
-    to the `logging.Logger` class for ease of logging at this level.
+# Add custom levels to logging module
+logging.addLevelName(USER_INFO_LEVEL, "USER_INFO")
+logging.addLevelName(ODAS_USER_INFO_LEVEL, "ODAS_USER_INFO")
+logging.addLevelName(GAMEPAD_MODE_INFO_LEVEL, "GAMEPAD_MODE_INFO")
+setattr(logging, "USER_INFO", USER_INFO_LEVEL)
+setattr(logging, "ODAS_USER_INFO", ODAS_USER_INFO_LEVEL)
+setattr(logging, "GAMEPAD_MODE_INFO", GAMEPAD_MODE_INFO_LEVEL)
+
+
+class CustomLogger(logging.Logger):
     """
-    USER_INFO_LEVEL = 25
-    logging.addLevelName(USER_INFO_LEVEL, "USER_INFO")
-    logging.USER_INFO = USER_INFO_LEVEL
+    Custom logger class that extends the standard logging.Logger with additional methods.
+    """
 
     def user_info(self, message: str, *args: Any, **kwargs: Any) -> None:
         """
@@ -42,21 +49,6 @@ def add_user_info_level() -> None:
         if self.isEnabledFor(USER_INFO_LEVEL):
             self._log(USER_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
 
-    logging.Logger.user_info = user_info
-
-
-def add_odas_user_info() -> None:
-    """
-    Initialize and add a custom logging level 'ODAS_USER_INFO' to the logging module.
-
-    This function sets up a new logging level with a numeric value of 24 and
-    associates it with the name "ODAS_USER_INFO". It also adds the `odas_user_info` method
-    to the `logging.Logger` class for ease of logging at this level.
-    """
-    ODAS_USER_INFO_LEVEL = 26
-    logging.addLevelName(ODAS_USER_INFO_LEVEL, "ODAS_USER_INFO")
-    logging.ODAS_USER_INFO = ODAS_USER_INFO_LEVEL
-
     def odas_user_info(self, message: str, *args: Any, **kwargs: Any) -> None:
         """
         Log an ODAS user info message.
@@ -72,33 +64,37 @@ def add_odas_user_info() -> None:
         if self.isEnabledFor(ODAS_USER_INFO_LEVEL):
             self._log(ODAS_USER_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
 
-    logging.Logger.odas_user_info = odas_user_info
-
-
-def add_gamepad_mode_info_level() -> None:
-    """
-    Initialize and add a custom logging level 'GAMEPAD_MODE_INFO' to the logging module.
-    This function sets up a new logging level with a numeric value of 27 and
-    associates it with the name "GAMEPAD_MODE_INFO". It also adds the `gamepad_mode_info` method
-    to the `logging.Logger` class for ease of logging at this level.
-    """
-    GAMEPAD_MODE_INFO_LEVEL = 27
-    logging.addLevelName(GAMEPAD_MODE_INFO_LEVEL, "GAMEPAD_MODE_INFO")
-    logging.GAMEPAD_MODE_INFO = GAMEPAD_MODE_INFO_LEVEL
-
     def gamepad_mode_info(self, message: str, *args: Any, **kwargs: Any) -> None:
         """
         Log a gamepad mode info message.
+
+        Args:
+            message (str): The message to be logged.
+            *args (Any): Variable length argument list.
+            **kwargs (Any): Arbitrary keyword arguments.
+
+        Returns:
+            None
         """
         if self.isEnabledFor(GAMEPAD_MODE_INFO_LEVEL):
             self._log(GAMEPAD_MODE_INFO_LEVEL, message, args, **kwargs, stacklevel=2)
 
-    logging.Logger.gamepad_mode_info = gamepad_mode_info
 
+def get_custom_logger(name: str) -> CustomLogger:
+    """
+    Get a custom logger instance with additional methods.
 
-add_user_info_level()
-add_odas_user_info()
-add_gamepad_mode_info_level()
+    Args:
+        name (str): Logger name.
+
+    Returns:
+        CustomLogger: Logger instance with custom methods.
+    """
+    # Set the custom logger class as the default for new loggers
+    logging.setLoggerClass(CustomLogger)
+    logger = logging.getLogger(name)
+    # Cast to CustomLogger since we set the logger class
+    return cast(CustomLogger, logger)
 
 
 class MyJSONFormatter(logging.Formatter):
@@ -175,7 +171,7 @@ class VerboseFormatter(logging.Formatter):
         self,
         fmt: Optional[str] = None,
         datefmt: Optional[str] = None,
-        style: str = "%",
+        style: Literal["%", "{", "$"] = "%",
         validate: bool = True,
     ) -> None:
         """Initialize the verbose formatter with optional format and date format.
@@ -238,9 +234,9 @@ class ColoredTerminalFormatter(logging.Formatter):
     FORMATS = {
         logging.DEBUG: FMT,
         logging.INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
-        logging.USER_INFO: f"{ANSI_COLORS['CYAN']}{FMT}{RESET_COLOR}",
-        logging.ODAS_USER_INFO: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
-        logging.GAMEPAD_MODE_INFO: f"{ANSI_COLORS['PURPLE']}{FMT}{RESET_COLOR}",
+        USER_INFO_LEVEL: f"{ANSI_COLORS['CYAN']}{FMT}{RESET_COLOR}",
+        ODAS_USER_INFO_LEVEL: f"{ANSI_COLORS['GREEN']}{FMT}{RESET_COLOR}",
+        GAMEPAD_MODE_INFO_LEVEL: f"{ANSI_COLORS['PURPLE']}{FMT}{RESET_COLOR}",
         logging.WARNING: f"{ANSI_COLORS['YELLOW']}{FMT}{RESET_COLOR}",
         logging.ERROR: f"{ANSI_COLORS['RED']}{FMT}{RESET_COLOR}",
         logging.CRITICAL: f"{ANSI_COLORS['BOLD_RED']}{FMT}{RESET_COLOR}",

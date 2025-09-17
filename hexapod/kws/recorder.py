@@ -13,10 +13,12 @@ import wave
 from pathlib import Path
 import logging
 
+from hexapod.interface import get_custom_logger
+
 if TYPE_CHECKING:
     from typing import Optional, List
 
-logger = logging.getLogger("kws_logger")
+logger = get_custom_logger("kws_logger")
 
 
 class Recorder:
@@ -54,7 +56,7 @@ class Recorder:
         self.recording_timer: Optional[threading.Timer] = None
 
     def start_recording(
-        self, filename: str = None, duration: Optional[float] = None
+        self, filename: Optional[str] = None, duration: Optional[float] = None
     ) -> str:
         """
         Start recording audio to a file.
@@ -117,7 +119,10 @@ class Recorder:
         self.recording_frames.append(audio_data)
 
         # Check if we need to save an audio record (for continuous recordings)
-        if self.is_continuous_recording:
+        if (
+            self.is_continuous_recording
+            and self.recording_audio_record_start_time is not None
+        ):
             current_time = time.time()
             audio_record_duration = (
                 current_time - self.recording_audio_record_start_time
@@ -151,7 +156,12 @@ class Recorder:
                 wf.setframerate(self.SAMPLE_RATE)
                 wf.writeframes(b"".join(self.recording_frames))
 
-            audio_record_duration = time.time() - self.recording_audio_record_start_time
+            if self.recording_audio_record_start_time is not None:
+                audio_record_duration = (
+                    time.time() - self.recording_audio_record_start_time
+                )
+            else:
+                audio_record_duration = 0.0
             file_size = recording_path.stat().st_size
             file_size_mb = file_size / (1024 * 1024)
             if file_size_mb >= 1024:
@@ -190,7 +200,10 @@ class Recorder:
             self.recording_timer = None
 
         self.is_recording = False
-        total_duration = time.time() - self.recording_start_time
+        if self.recording_start_time is not None:
+            total_duration = time.time() - self.recording_start_time
+        else:
+            total_duration = 0.0
 
         # Save final audio record if there are frames
         last_saved_file = ""
