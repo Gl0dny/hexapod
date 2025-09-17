@@ -120,7 +120,8 @@ class BaseGait(ABC):
                 f"Getting current target waypoint at index {self.current_waypoint_index}"
             )
             if self.waypoints:
-                return self.waypoints[self.current_waypoint_index]
+                waypoint: Vector3D = self.waypoints[self.current_waypoint_index]
+                return waypoint
             logger.warning("No waypoints in LegPath, returning zero vector")
             return Vector3D(0, 0, 0)
 
