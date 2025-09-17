@@ -88,7 +88,7 @@ class Lights:
         self.brightness: int = brightness  # Percentage (0-100)
 
         self.set_brightness(self.brightness)
-        logger.debug(f"Lights initialized successfully with {num_led} LEDs.")
+        logger.info(f"Lights initialized successfully with {num_led} LEDs.")
 
     def set_brightness(self, brightness: int) -> None:
         """
@@ -103,7 +103,6 @@ class Lights:
             brightness = 0
         self.brightness = brightness
         self.driver.global_brightness = int(0b11111 * self.brightness / 100)
-        logger.info(f"Brightness set to {brightness}%.")
 
     def set_color(
         self,
@@ -159,9 +158,6 @@ class Lights:
                 self.driver.set_pixel(i, rgb[0], rgb[1], rgb[2])
 
         self.driver.show()
-        logger.debug(
-            f"{'LED ' + str(led_index) if led_index is not None else 'All LEDs'} set to {color.name}."
-        )
 
     def set_color_rgb(
         self,
@@ -207,9 +203,6 @@ class Lights:
             for i in range(num_led):
                 self.driver.set_pixel(i, rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
         self.driver.show()
-        logger.debug(
-            f"{'LED ' + str(led_index) if led_index is not None else 'All LEDs'} set to RGB {rgb_tuple}."
-        )
 
     def rotate(self, positions: int = 1) -> None:
         """
@@ -225,7 +218,6 @@ class Lights:
         """
         self.driver.rotate(positions)
         self.driver.show()
-        logger.debug(f"Rotated LEDs by {positions} positions.")
 
     def get_wheel_color(self, wheel_pos: int) -> Tuple[int, int, int]:
         """
@@ -254,7 +246,6 @@ class Lights:
             # Blue to Green transition
             wheel_pos -= 170
             color = (0, wheel_pos * 3, 255 - wheel_pos * 3)
-        logger.debug(f"Wheel color obtained: {color}.")
         return color
 
     def clear(
@@ -277,6 +268,3 @@ class Lights:
         for i in leds_to_clear:
             self.driver.set_pixel(i, 0, 0, 0)
         self.driver.show()
-        logger.info(
-            f"{'LEDs ' + str(led_indices) if led_indices is not None else 'All LEDs'} cleared."
-        )

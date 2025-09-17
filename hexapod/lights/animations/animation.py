@@ -36,7 +36,6 @@ class Animation(threading.Thread, abc.ABC):
         Start the animation in a separate thread.
         Clears the stop event and initiates the thread's run method.
         """
-        logger.debug(f"Starting animation: {self.__class__.__name__}")
         self.stop_event.clear()
         super().start()
 
@@ -44,7 +43,6 @@ class Animation(threading.Thread, abc.ABC):
         """
         Execute the animation.
         """
-        logger.debug(f"Running animation: {self.__class__.__name__}")
         self.execute_animation()
 
     @abc.abstractmethod
@@ -66,5 +64,5 @@ class Animation(threading.Thread, abc.ABC):
         logger.debug(f"Stopping animation: {self.__class__.__name__}")
         self.stop_event.set()
         if self.is_alive():
-            logger.info(f"Animation {self.__class__.__name__} forcefully stopping.")
+            logger.debug(f"Animation {self.__class__.__name__} forcefully stopping.")
             self.join()

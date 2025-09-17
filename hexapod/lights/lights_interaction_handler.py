@@ -30,24 +30,21 @@ class LightsInteractionHandler:
         Args:
             leg_to_led (dict): Mapping from leg indices to LED indices.
         """
-        logger.debug(
-            f"Initializing LightsInteractionHandler with leg_to_led: {leg_to_led}"
-        )
         self.lights: Lights = Lights()
         self.animation: Animation = None
         self.leg_to_led = leg_to_led
-        logger.debug("LightsInteractionHandler initialized successfully.")
+        logger.info("LightsInteractionHandler initialized successfully.")
 
     def stop_animation(self) -> None:
         """
         Stop any running animation and reset the animation attribute.
         """
         if hasattr(self, "animation") and self.animation:
-            logger.debug(f"Stopping currently running animation {self.animation}")
+            logger.info(f"Stopping currently running animation {self.animation}")
             self.animation.stop_animation()
             self.animation = None
         else:
-            logger.debug("No active animation to stop.")
+            logger.info("No active animation to stop.")
 
     def animation(method: Callable[..., Any]) -> Callable[..., Any]:
         """
@@ -67,7 +64,7 @@ class LightsInteractionHandler:
 
         @wraps(method)
         def wrapper(self, *args, **kwargs):
-            logger.debug(f"Starting animation {method.__name__}.")
+            logger.info(f"Starting animation {method.__name__}.")
             try:
                 result = method(self, *args, **kwargs)
 
@@ -86,7 +83,7 @@ class LightsInteractionHandler:
 
                 return result
             except Exception as e:
-                logger.error(f"Error in {method.__name__}: {str(e)}")
+                logger.exception(f"Error in {method.__name__}: {str(e)}")
                 raise
 
         return wrapper
@@ -125,7 +122,7 @@ class LightsInteractionHandler:
             brightness (int): The brightness level (0-100).
         """
         self.lights.set_brightness(brightness)
-        logger.debug(f"Brightness set to {brightness}%.")
+        logger.info(f"Brightness set to {brightness}%.")
 
     @animation
     def rainbow(
