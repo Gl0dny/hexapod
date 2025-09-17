@@ -23,7 +23,7 @@ from pathlib import Path
 
 def play_raw_audio(
     audio_file: Path, sample_rate: int = 44100, channels: int = 4, bit_depth: int = 16
-):
+) -> None:
     """
     Play a raw audio file.
 

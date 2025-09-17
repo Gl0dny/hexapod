@@ -67,8 +67,8 @@ class StreamODASAudioTask(Task):
         self.remote_script_path = (
             "/Users/gl0dny/workspace/hexapod/src/odas/streaming_odas_audio_player.py"
         )
-        self.ssh_client = None
-        self.streaming_process = None
+        self.ssh_client: Optional[paramiko.SSHClient] = None
+        self.streaming_process: Optional[tuple] = None
 
     def _initialize_odas_processor(self) -> None:
         """

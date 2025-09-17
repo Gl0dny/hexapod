@@ -26,7 +26,7 @@ stream = p.open(
 print("* recording")
 
 # Initialize frames list for each channel
-frames = [[] for _ in range(RESPEAKER_CHANNELS)]
+frames: list[list[bytes]] = [[] for _ in range(RESPEAKER_CHANNELS)]
 
 for i in range(0, int(RESPEAKER_RATE / CHUNK * RECORD_SECONDS)):
     data = stream.read(CHUNK)

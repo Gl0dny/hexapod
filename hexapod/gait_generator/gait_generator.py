@@ -140,7 +140,7 @@ class GaitGenerator:
         if self.current_gait is None:
             logger.error("No current gait set, cannot calculate paths")
             return
-        
+
         for leg_idx in state.swing_legs:
             logger.debug(f"\nCalculating swing path for leg {leg_idx}")
             swing_target = self.current_gait.calculate_leg_target(
@@ -329,7 +329,7 @@ class GaitGenerator:
         if self.current_gait is None:
             logger.error("No current gait set, cannot execute cycle")
             return
-            
+
         if isinstance(self.current_gait, TripodGait):
             self.current_state = self.current_gait.get_state(GaitPhase.TRIPOD_A)
         elif isinstance(self.current_gait, WaveGait):
@@ -339,7 +339,7 @@ class GaitGenerator:
         if self.current_state is None:
             logger.error("Failed to get current state, cannot execute cycle")
             return
-            
+
         current_phase = self.current_state.phase
         cycle_start_phase = current_phase
 
@@ -371,7 +371,7 @@ class GaitGenerator:
                 if self.current_state is None:
                     logger.error("Current state is None, cannot execute phase")
                     break
-                    
+
                 logger.info(
                     f"Executing phase {phases_executed + 1}/{phases_per_cycle}: {self.current_state.phase}"
                 )
@@ -390,7 +390,7 @@ class GaitGenerator:
                 if self.current_state is None:
                     logger.error("Current state is None, cannot wait for dwell time")
                     break
-                    
+
                 logger.debug(
                     f"Waiting for dwell time: {self.current_state.dwell_time}s"
                 )
@@ -422,7 +422,7 @@ class GaitGenerator:
                 if self.current_gait is None or self.current_state is None:
                     logger.error("Current gait or state is None, cannot transition")
                     break
-                    
+
                 next_phases = self.current_gait.gait_graph[self.current_state.phase]
                 logger.info(f"Transitioning to next phase: {next_phases[0]}")
                 self.current_state = self.current_gait.get_state(next_phases[0])
@@ -547,9 +547,11 @@ class GaitGenerator:
                     or self.pending_rotation is not None
                 ):
                     if self.current_gait is None:
-                        logger.error("Current gait is None, cannot handle direction changes")
+                        logger.error(
+                            "Current gait is None, cannot handle direction changes"
+                        )
                         break
-                        
+
                     new_direction = (
                         self.pending_direction
                         if self.pending_direction is not None

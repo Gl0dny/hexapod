@@ -70,7 +70,8 @@ class MoveTask(Task):
             return
 
         self.hexapod.gait_generator.create_gait("tripod", **gait_params)
-        self.hexapod.gait_generator.current_gait.set_direction(self.direction)
+        if self.hexapod.gait_generator.current_gait is not None:
+            self.hexapod.gait_generator.current_gait.set_direction(self.direction)
 
         if self.cycles is not None:
             # Execute specific number of cycles

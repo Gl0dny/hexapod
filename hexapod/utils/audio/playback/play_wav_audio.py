@@ -77,7 +77,7 @@ def convert_raw_to_wav(
     print(f"Conversion complete. WAV file saved to: {output_file}")
 
 
-def play_wav_file(wav_file: Path):
+def play_wav_file(wav_file: Path) -> None:
     """
     Play a WAV file.
 

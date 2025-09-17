@@ -28,8 +28,8 @@ frames = []
 for i in range(0, int(RESPEAKER_RATE / CHUNK * RECORD_SECONDS)):
     data = stream.read(CHUNK)
     # extract channel 0 data from 8 channels, if you want to extract channel 1, please change to [1::8]
-    a = np.fromstring(data, dtype=np.int16)[0::8]
-    frames.append(a.tostring())
+    a = np.frombuffer(data, dtype=np.int16)[0::8]
+    frames.append(a.tobytes())
 
 print("* done recording")
 

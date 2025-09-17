@@ -122,7 +122,7 @@ class FollowTask(Task):
             # self.lights_handler.off()
 
             # Start ODAS processor in a background thread
-            def _odas_bg():
+            def _odas_bg() -> None:
                 self.odas_processor.start()
 
             self._odas_thread = threading.Thread(

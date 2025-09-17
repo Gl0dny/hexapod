@@ -90,9 +90,11 @@ class ManualHexapodController(threading.Thread, ABC):
         self.current_mode = self.DEFAULT_MODE
 
         # Gait steering support - separate instances for translation and rotation
-        self.translation_gait = None
-        self.rotation_gait = None
-        self.current_gait = None  # Points to either translation_gait or rotation_gait
+        self.translation_gait: Optional[BaseGait] = None
+        self.rotation_gait: Optional[BaseGait] = None
+        self.current_gait: Optional[BaseGait] = (
+            None  # Points to either translation_gait or rotation_gait
+        )
 
         # Gait type for both translation and rotation (must be the same)
         self.gait_type: type[BaseGait] = TripodGait

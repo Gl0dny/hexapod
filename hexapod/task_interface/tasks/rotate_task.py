@@ -80,9 +80,10 @@ class RotateTask(Task):
                 rotation_direction = -1.0
 
         self.hexapod.gait_generator.create_gait("tripod", **gait_params)
-        self.hexapod.gait_generator.current_gait.set_direction(
-            "neutral", rotation=rotation_direction
-        )
+        if self.hexapod.gait_generator.current_gait is not None:
+            self.hexapod.gait_generator.current_gait.set_direction(
+                "neutral", rotation=rotation_direction
+            )
 
         if self.angle is not None:
             # Use the gait generator's angle-based rotation method

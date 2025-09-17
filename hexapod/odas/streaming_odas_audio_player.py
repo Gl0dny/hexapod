@@ -35,7 +35,7 @@ import queue
 from hexapod.interface import setup_logging, clean_logs
 
 if TYPE_CHECKING:
-    from typing import Optional, List
+    from typing import Optional, List, Any
 
 DEFAULT_HOST = "hexapod"
 DEFAULT_HOSTNAME = "192.168.0.122"
@@ -113,7 +113,7 @@ class StreamingODASAudioPlayer:
         logger.user_info(f"Monitoring ODAS audio streams on {self.remote_host}")
         logger.user_info(f"Saving WAV files locally to: {self.local_dir}")
 
-        self.audio_queue = queue.Queue()
+        self.audio_queue: queue.Queue[bytes] = queue.Queue()
         self.stream = None
         self.stream_thread = None
         self.is_playing = False
@@ -181,19 +181,21 @@ class StreamingODASAudioPlayer:
         except Exception as e:
             logger.warning(f"Unexpected error converting {input_file}: {str(e)}")
 
-    def audio_callback(self, outdata, frames, time, status):
+    def audio_callback(self, outdata: Any, frames: int, time: Any, status: Any) -> None:
         """Callback for sounddevice streaming."""
         if status:
             logger.warning(f"Audio callback status: {status}")
         try:
             data = self.audio_queue.get_nowait()
-            outdata[:] = data.reshape(-1, 1)
+            # Convert bytes to numpy array and reshape
+            audio_array = np.frombuffer(data, dtype=np.float32)
+            outdata[:] = audio_array.reshape(-1, 1)
         except queue.Empty:
             outdata.fill(0)
             if not self.is_playing:
                 raise sd.CallbackStop()
 
-    def start_audio_stream(self):
+    def start_audio_stream(self) -> None:
         """Start the audio streaming thread."""
         self.stream = sd.OutputStream(
             samplerate=self.sample_rate,
@@ -201,10 +203,11 @@ class StreamingODASAudioPlayer:
             callback=self.audio_callback,
             blocksize=1024,
         )
-        self.stream.start()
+        if self.stream is not None:
+            self.stream.start()
         self.is_playing = True
 
-    def stop_audio_stream(self):
+    def stop_audio_stream(self) -> None:
         """Stop the audio streaming thread."""
         self.is_playing = False
         if self.stream:
@@ -237,7 +240,7 @@ class StreamingODASAudioPlayer:
                 audio_array = audio_array.reshape(-1, n_channels)
 
                 # Mix down all channels (average them)
-                audio_mono = np.mean(audio_array, axis=1)
+                audio_mono = np.mean(audio_array.astype(np.float64), axis=1)
 
                 # Normalize audio for playback
                 max_value = float(2 ** (sample_width * 8 - 1) - 1)
@@ -272,6 +275,7 @@ class StreamingODASAudioPlayer:
                 sftp = self.ssh.open_sftp()
 
                 # Get initial file size
+                file_size: Optional[int] = None
                 try:
                     file_size = sftp.stat(remote_file).st_size
                 except FileNotFoundError:
@@ -288,11 +292,12 @@ class StreamingODASAudioPlayer:
                         # Get current file size
                         current_size = sftp.stat(remote_file).st_size
 
-                        if current_size > file_size:
+                        if file_size is not None and current_size > file_size:  # type: ignore[operator]
                             # New audio data available
+                            current_file_size = file_size  # Type narrowing for mypy
                             with sftp.open(remote_file, "rb") as remote:
-                                remote.seek(file_size)
-                                new_data = remote.read(current_size - file_size)
+                                remote.seek(current_file_size)
+                                new_data = remote.read(current_size - current_file_size)  # type: ignore[operator]
 
                                 # Write new data to temporary file
                                 with open(temp_file, "wb") as local:
@@ -384,10 +389,11 @@ class StreamingODASAudioPlayer:
                 self._last_file_size = current_size
                 return None
 
-            if current_size > self._last_file_size:
+            if self._last_file_size is not None and current_size > self._last_file_size:  # type: ignore[operator]
+                last_size = self._last_file_size  # Type narrowing for mypy
                 with sftp.open(remote_file, "rb") as remote:
-                    remote.seek(self._last_file_size)
-                    new_data = remote.read(current_size - self._last_file_size)
+                    remote.seek(last_size)
+                    new_data = remote.read(current_size - last_size)  # type: ignore[operator]
                     self._last_file_size = current_size
                     return new_data
 

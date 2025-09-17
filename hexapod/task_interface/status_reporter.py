@@ -27,7 +27,7 @@ class StatusReporter:
     and leg positions.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the StatusReporter."""
         pass
 

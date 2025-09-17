@@ -68,7 +68,9 @@ class GamepadHexapodController(ManualHexapodController):
     BUTTON_DEBOUNCE_INTERVAL = 0.3  # seconds
 
     @staticmethod
-    def find_gamepad(input_mapping: InputMapping, check_only: bool = False) -> Optional[pygame.joystick.Joystick]:
+    def find_gamepad(
+        input_mapping: InputMapping, check_only: bool = False
+    ) -> Optional[pygame.joystick.Joystick]:
         """
         Find and initialize a gamepad that matches the mapping, or just check for availability.
         Args:
@@ -265,8 +267,14 @@ class GamepadHexapodController(ManualHexapodController):
 
         # For buffered stance height adjustment
         self._stance_height_buffer: float = 0.0
-        self._stance_height_hold_start: Dict[str, Optional[float]] = {"l2": None, "r2": None}
-        self._stance_height_last_increment: Dict[str, Optional[float]] = {"l2": None, "r2": None}
+        self._stance_height_hold_start: Dict[str, Optional[float]] = {
+            "l2": None,
+            "r2": None,
+        }
+        self._stance_height_last_increment: Dict[str, Optional[float]] = {
+            "l2": None,
+            "r2": None,
+        }
 
     def _start_initial_animation(self) -> None:
         """
@@ -304,7 +312,7 @@ class GamepadHexapodController(ManualHexapodController):
         """Get analog stick inputs with deadzone applied."""
         if not self.gamepad or not self.input_mapping:
             return {}
-            
+
         # Process events to update gamepad state
         for event in pygame.event.get():
             pass
@@ -331,7 +339,7 @@ class GamepadHexapodController(ManualHexapodController):
         """Get current button states."""
         if not self.gamepad or not self.input_mapping:
             return {}
-            
+
         # Process events to clear pygame event queue, update gamepad state - prevents button stuck issue
         for event in pygame.event.get():
             pass
@@ -373,7 +381,7 @@ class GamepadHexapodController(ManualHexapodController):
         """Get D-pad button states based on mapping type."""
         if not self.gamepad or not self.input_mapping:
             return {}
-            
+
         hat_mappings = self.input_mapping.get_hat_mappings()
         if hat_mappings and "dpad" in hat_mappings:
             dpad_mapping = hat_mappings["dpad"]
