@@ -28,9 +28,10 @@ Note that 0x04 is the command 0x84 with its most significant bit cleared.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import logging
-import serial
 import time
 import threading
+
+import serial
 
 if TYPE_CHECKING:
     from typing import Optional, List, Tuple
@@ -72,9 +73,7 @@ class MaestroUART(object):
         self.ser.xonxoff = False
         self.ser.timeout = 0  # makes the read non-blocking
         self.lock = threading.Lock()
-        logger.debug(
-            f"MaestroUART initialized successfully with device={device}, baudrate={baudrate}"
-        )
+        logger.info(f"MaestroUART initialized successfully with device={device}, baudrate={baudrate}")
 
     def get_error(self) -> int:
         """Check if there was an error and print the corresponding error messages.
@@ -113,7 +112,6 @@ class MaestroUART(object):
             >0: error, see the Maestro manual for the error values
             0: no error, or error getting the position, check the connections, could also be low power
         """
-        logger.debug("Checking for errors.")
         self.ser.reset_input_buffer()
         command = bytes(
             [self.COMMAND_START, self.DEFAULT_DEVICE_NUMBER, self.COMMAND_GET_ERROR]
@@ -207,7 +205,6 @@ class MaestroUART(object):
             int.from_bytes(data[1], byteorder="big") << 8
         )
         logger.info(f"Position for channel {channel} is {position}.")
-        logger.debug(f"Position for channel {channel} is {position}.")
         return position
 
     def set_speed(self, channel: int, speed: int) -> None:
@@ -247,7 +244,7 @@ class MaestroUART(object):
         )
         with self.lock:
             self.ser.write(command)
-        logger.debug(f"Speed for channel {channel} set to {speed}.")
+        logger.info(f"Speed for channel {channel} set to {speed}.")
 
     def set_acceleration(self, channel: int, accel: int) -> None:
         """Sets the acceleration of a Maestro channel. Note that once you set
@@ -299,7 +296,7 @@ class MaestroUART(object):
         )
         with self.lock:
             self.ser.write(command)
-        logger.debug(f"Acceleration for channel {channel} set to {accel}.")
+        logger.info(f"Acceleration for channel {channel} set to {accel}.")
 
     def set_target(self, channel: int, target: int) -> None:
         """Sets the target of a Maestro channel.
@@ -329,8 +326,7 @@ class MaestroUART(object):
         )
         with self.lock:
             self.ser.write(command)
-        logger.debug(f"Target for channel {channel} set to {target}.")
-        logger.debug(f"Target for channel {channel} set to {target}.")
+        logger.info(f"Target for channel {channel} set to {target}.")
 
     def set_multiple_targets(self, targets: List[Tuple[int, int]]) -> None:
         """
@@ -376,8 +372,7 @@ class MaestroUART(object):
             command += bytes([target & 0x7F, (target >> 7) & 0x7F])
         with self.lock:
             self.ser.write(command)
-        logger.debug(f"Multiple targets set: {targets}")
-        logger.debug(f"Multiple targets set: {targets}")
+        logger.info(f"Multiple targets set: {targets}")
 
     def go_home(self) -> None:
         """
@@ -400,8 +395,7 @@ class MaestroUART(object):
         )
         with self.lock:
             self.ser.write(command)
-        logger.debug("Go Home command sent.")
-        logger.debug("Go Home command sent.")
+        logger.info("Go Home command sent.")
 
     def get_moving_state(self) -> Optional[int]:
         """
@@ -434,13 +428,10 @@ class MaestroUART(object):
 
             # Read a single byte response indicating the moving state
             response = self.ser.read(1)
-        if response == b"":
-            logger.debug("Failed to get moving state.")
-            logger.debug("Failed to get moving state.")
+        if response == b'':
             return None
         moving_state = ord(response)
         logger.info(f"Moving state: {moving_state}")
-        logger.debug(f"Moving state: {moving_state}")
         return moving_state
 
     def close(self) -> None:
