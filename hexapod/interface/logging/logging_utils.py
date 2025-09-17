@@ -85,7 +85,7 @@ def setup_logging(
         config_file: Path to the logging configuration file
         log_level: Logging level to override all loggers (DEBUG, INFO, WARNING, ERROR)
     """
-    if config_file is None:
+    if log_dir is None:
         log_dir = Path("logs")
 
     if not log_dir.exists():

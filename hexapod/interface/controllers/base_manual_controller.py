@@ -21,7 +21,7 @@ from hexapod.lights import ColorRGB
 from hexapod.interface import get_custom_logger
 
 if TYPE_CHECKING:
-    from typing import Optional
+    from typing import Callable, Optional, Dict, Any
     from hexapod.kws import VoiceControl
     from hexapod.task_interface import TaskInterface
 
@@ -62,7 +62,7 @@ class ManualHexapodController(threading.Thread, ABC):
         self,
         task_interface: TaskInterface,
         voice_control: Optional[VoiceControl] = None,
-        shutdown_callback: Optional[callable] = None,
+        shutdown_callback: Optional[Callable[[], None]] = None,
     ):
         """Initialize the hexapod controller."""
         super().__init__(daemon=True)
@@ -95,7 +95,7 @@ class ManualHexapodController(threading.Thread, ABC):
         self.current_gait = None  # Points to either translation_gait or rotation_gait
 
         # Gait type for both translation and rotation (must be the same)
-        self.gait_type = TripodGait
+        self.gait_type: type[BaseGait] = TripodGait
 
         # Sensitivity for gait control
         self.translation_sensitivity = self.DEFAULT_TRANSLATION_SENSITIVITY
@@ -106,7 +106,7 @@ class ManualHexapodController(threading.Thread, ABC):
         self.pause_event = threading.Event()
         self.pause_event.clear()  # Start unpaused (event is set when paused)
         self._previous_manual_mode = self.DEFAULT_MODE
-        self.voice_control: Optional["VoiceControl"] = voice_control
+        self.voice_control: Optional[VoiceControl] = voice_control
         self.marching_enabled = (
             False  # Marching (neutral gait) is off by default; set by subclass
         )
@@ -123,16 +123,16 @@ class ManualHexapodController(threading.Thread, ABC):
             self.gait_stance_height = 0.0
 
     @abstractmethod
-    def get_inputs(self):
+    def get_inputs(self) -> Dict[str, Any]:
         """Get current input values from the interface."""
         pass
 
     @abstractmethod
-    def print_help(self):
+    def print_help(self) -> None:
         """Print help information for the interface."""
         pass
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up common resources (gait generation, servos)."""
         try:
             # Stop light animations
@@ -155,11 +155,11 @@ class ManualHexapodController(threading.Thread, ABC):
         self.cleanup_controller()
 
     @abstractmethod
-    def cleanup_controller(self):
+    def cleanup_controller(self) -> None:
         """Clean up resources specific to this controller type."""
         pass
 
-    def set_mode(self, mode_name: str):
+    def set_mode(self, mode_name: str) -> None:
         """Set the current control mode (e.g., 'body_control', 'gait_control')."""
         if mode_name not in (
             self.BODY_CONTROL_MODE,
@@ -170,10 +170,10 @@ class ManualHexapodController(threading.Thread, ABC):
         self.current_mode = mode_name
         logger.user_info(f"Switched to mode: {self.current_mode}")
 
-    def reset_position(self):
+    def reset_position(self) -> None:
         """Reset hexapod to reset position. Also resets stance height and gait instance in gait mode."""
 
-        def _get_reset_position():
+        def _get_reset_position() -> PredefinedPosition:
             """Return the PredefinedPosition to use for reset_position. Can be mode-dependent."""
             if self.current_mode == self.GAIT_CONTROL_MODE:
                 return PredefinedPosition.ZERO
@@ -224,8 +224,11 @@ class ManualHexapodController(threading.Thread, ABC):
             logger.exception(f"Reset failed: {e}")
 
     def start_gait_control(
-        self, gait_type=None, translation_params=None, rotation_params=None
-    ):
+        self,
+        gait_type: Optional[type[BaseGait]] = None,
+        translation_params: Optional[Dict[str, Any]] = None,
+        rotation_params: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """
         Start gait control with separate parameters for translation and rotation.
 
@@ -273,17 +276,17 @@ class ManualHexapodController(threading.Thread, ABC):
             )
             logger.gamepad_mode_info(msg)
 
-    def stop_gait_control(self):
+    def stop_gait_control(self) -> None:
         """Stop gait control if running."""
         if self.is_gait_control_active():
             self.task_interface.hexapod.gait_generator.stop()
             logger.gamepad_mode_info("Gait generation stopped")
 
-    def is_gait_control_active(self):
+    def is_gait_control_active(self) -> bool:
         """Return True if gait generator is running."""
-        return self.task_interface.hexapod.gait_generator.is_gait_running()
+        return bool(self.task_interface.hexapod.gait_generator.is_gait_running())
 
-    def _process_stance_height_delta(self, inputs):
+    def _process_stance_height_delta(self, inputs: Dict[str, Any]) -> None:
         """Process gait stance height delta: only affect gait control mode."""
         stance_height_delta = inputs.get("stance_height_delta", 0.0)
         if (
@@ -320,7 +323,7 @@ class ManualHexapodController(threading.Thread, ABC):
                     rotation_params=rotation_params,
                 )
 
-    def process_movement_inputs(self, inputs):
+    def process_movement_inputs(self, inputs: Dict[str, Any]) -> None:
         """
         Process movement inputs and apply them based on current mode.
 
@@ -343,7 +346,7 @@ class ManualHexapodController(threading.Thread, ABC):
         else:
             logger.warning(f"Unknown mode '{self.current_mode}'")
 
-    def _process_body_control(self, inputs):
+    def _process_body_control(self, inputs: Dict[str, Any]) -> None:
         """Process inputs for body control mode (direct IK movement)."""
         # Extract movement values and apply sensitivity
         tx = (
@@ -376,10 +379,12 @@ class ManualHexapodController(threading.Thread, ABC):
             except Exception as e:
                 logger.exception(f"Movement failed: {e}")
 
-    def _process_gait_control(self, inputs):
+    def _process_gait_control(self, inputs: Dict[str, Any]) -> None:
         """Process inputs for gait control mode (walking movement)."""
 
-        def _update_gait_direction(direction, rotation=0.0):
+        def _update_gait_direction(
+            direction: tuple[float, float], rotation: float = 0.0
+        ) -> None:
             """Update the gait direction and rotation input."""
             if self.current_gait:
                 self.task_interface.hexapod.gait_generator.queue_direction(
@@ -456,7 +461,7 @@ class ManualHexapodController(threading.Thread, ABC):
             # Update gait direction and rotation (no normalization - magnitude affects step size)
             _update_gait_direction((direction_x, direction_y), rotation=rotation)
 
-    def _process_sensitivity_deltas(self, inputs):
+    def _process_sensitivity_deltas(self, inputs: Dict[str, Any]) -> None:
         """Process sensitivity adjustments using the inputs dictionary."""
         sensitivity_deltas = inputs.get("sensitivity_deltas", {})
 
@@ -514,7 +519,7 @@ class ManualHexapodController(threading.Thread, ABC):
                     f"Gait rotation sensitivity: {self.gait_rotation_sensitivity:.2f}"
                 )
 
-    def show_gait_status(self):
+    def show_gait_status(self) -> None:
         """
         Display current gait generator status in gait control mode.
 
@@ -528,7 +533,7 @@ class ManualHexapodController(threading.Thread, ABC):
         This method is called by show_current_position() when in gait control mode.
         """
 
-        def _get_direction_name(direction_tuple):
+        def _get_direction_name(direction_tuple: tuple[float, float]) -> str:
             """Get the closest direction name from BaseGait.DIRECTION_MAP."""
             # Check if direction magnitude is very small (near center)
             magnitude = (direction_tuple[0] ** 2 + direction_tuple[1] ** 2) ** 0.5
@@ -550,9 +555,9 @@ class ManualHexapodController(threading.Thread, ABC):
                 if dist < min_dist:
                     min_dist = dist
                     closest_name = name
-            return closest_name
+            return closest_name or "neutral"
 
-        def _get_rotation_name(rotation):
+        def _get_rotation_name(rotation: float) -> str:
             """Get a human-readable name for the rotation value."""
             # Use small threshold to determine if rotation is effectively zero
             if abs(rotation) < 0.05:
@@ -630,7 +635,7 @@ class ManualHexapodController(threading.Thread, ABC):
             lines.append(f"    Leg {i}: {tuple(round(x, 2) for x in pos)}")
         logger.gamepad_mode_info("\n".join(lines))
 
-    def print_current_position_details(self):
+    def print_current_position_details(self) -> None:
         """
         Print the current body position and orientation in a formatted way.
 
@@ -646,7 +651,7 @@ class ManualHexapodController(threading.Thread, ABC):
         )
         logger.gamepad_mode_info(msg)
 
-    def print_current_sensitivity_levels(self):
+    def print_current_sensitivity_levels(self) -> None:
         """Print the current sensitivity levels for the controller."""
         msg = (
             "\nCurrent Sensitivity Levels:\n"
@@ -657,7 +662,7 @@ class ManualHexapodController(threading.Thread, ABC):
         )
         logger.gamepad_mode_info(msg)
 
-    def show_current_position(self):
+    def show_current_position(self) -> None:
         """
         Display current movement state or gait status depending on mode.
 
@@ -677,7 +682,7 @@ class ManualHexapodController(threading.Thread, ABC):
         # Always show current sensitivity levels
         self.print_current_sensitivity_levels()
 
-    def run(self):
+    def run(self) -> None:
         """Run the hexapod controller thread."""
         self.print_help()
         self.reset_position()
@@ -706,7 +711,7 @@ class ManualHexapodController(threading.Thread, ABC):
                 logger.exception(f"Error during controller loop: {e}")
                 break
 
-    def toggle_mode(self):
+    def toggle_mode(self) -> None:
         """
         Toggle between body control and gait control modes.
         Handles all printouts, state changes, and gait start/stop.
@@ -752,7 +757,7 @@ class ManualHexapodController(threading.Thread, ABC):
             self.reset_position()
         self._on_mode_toggled(self.current_mode)
 
-    def _on_mode_toggled(self, new_mode: str):
+    def _on_mode_toggled(self, new_mode: str) -> None:
         """
         Hook for subclasses to perform additional actions (e.g., LED feedback) when mode is toggled.
         By default, starts appropriate light animations based on the mode.
@@ -767,7 +772,7 @@ class ManualHexapodController(threading.Thread, ABC):
         elif new_mode == self.VOICE_CONTROL_MODE:
             self.stop_gait_control()
 
-    def _start_initial_animation(self):
+    def _start_initial_animation(self) -> None:
         """
         Start the initial light animation based on the current mode.
         """
@@ -780,15 +785,15 @@ class ManualHexapodController(threading.Thread, ABC):
         elif self.current_mode == self.VOICE_CONTROL_MODE:
             pass
 
-    def pause(self):
+    def pause(self) -> None:
         """Pause the manual controller (stop processing inputs)."""
         self.pause_event.set()
 
-    def unpause(self):
+    def unpause(self) -> None:
         """Unpause the manual controller (resume processing inputs)."""
         self.pause_event.clear()
 
-    def toggle_voice_control_mode(self):
+    def toggle_voice_control_mode(self) -> None:
         """
         Toggle between manual (body/gait) and voice control mode.
         Pauses/unpauses the appropriate controller. If voice_control is None, do nothing and print a warning.
@@ -823,7 +828,7 @@ class ManualHexapodController(threading.Thread, ABC):
             # or when marching is enabled. No need to start it here.
         self._on_mode_toggled(self.current_mode)
 
-    def trigger_shutdown(self):
+    def trigger_shutdown(self) -> None:
         """Trigger program shutdown via callback if provided."""
         if self.shutdown_callback:
             self.shutdown_callback()
@@ -831,7 +836,7 @@ class ManualHexapodController(threading.Thread, ABC):
             # Fallback: just stop this controller
             self.stop()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the manual controller."""
         self.stop_event.set()
         self.cleanup()

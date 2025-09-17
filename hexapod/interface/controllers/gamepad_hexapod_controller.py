@@ -48,7 +48,8 @@ except ImportError:
     logger.exception("pygame not available. Install with: pip install pygame")
 
 if TYPE_CHECKING:
-    from typing import Optional
+    from typing import Optional, Callable, Dict, Any
+    import pygame.joystick
     from hexapod.kws import VoiceControl
     from hexapod.task_interface import TaskInterface
 
@@ -67,7 +68,7 @@ class GamepadHexapodController(ManualHexapodController):
     BUTTON_DEBOUNCE_INTERVAL = 0.3  # seconds
 
     @staticmethod
-    def find_gamepad(input_mapping, check_only: bool = False):
+    def find_gamepad(input_mapping: InputMapping, check_only: bool = False) -> Optional[pygame.joystick.Joystick]:
         """
         Find and initialize a gamepad that matches the mapping, or just check for availability.
         Args:
@@ -104,7 +105,7 @@ class GamepadHexapodController(ManualHexapodController):
         return None
 
     @staticmethod
-    def get_gamepad_connection_type(gamepad):
+    def get_gamepad_connection_type(gamepad: pygame.joystick.Joystick) -> Optional[str]:
         """Return 'bluetooth' if the gamepad name contains 'wireless' or 'bluetooth', else 'usb'. Accepts a gamepad object."""
         if not gamepad:
             return None
@@ -116,10 +117,10 @@ class GamepadHexapodController(ManualHexapodController):
     def __init__(
         self,
         task_interface: TaskInterface,
-        voice_control: Optional["VoiceControl"] = None,
-        input_mapping_type: "GamepadHexapodController.InputMappingType" = None,
-        led_controller_type: "GamepadHexapodController.LEDControllerType" = None,
-        shutdown_callback: Optional[callable] = None,
+        voice_control: Optional[VoiceControl] = None,
+        input_mapping_type: Optional[InputMappingType] = None,
+        led_controller_type: Optional[LEDControllerType] = None,
+        shutdown_callback: Optional[Callable[[], None]] = None,
     ):
         """
         Initialize the gamepad hexapod controller.
@@ -148,7 +149,7 @@ class GamepadHexapodController(ManualHexapodController):
             led_controller_type = self.LEDControllerType.DUALSENSE
 
         # Try Bluetooth mapping first (default), fallback to USB if needed
-        self.input_mapping = None
+        self.input_mapping: Optional[InputMapping] = None
         if input_mapping_type == self.InputMappingType.DUALSENSE_BLUETOOTH:
             from hexapod.interface import DualSenseBluetoothMapping
 
@@ -164,12 +165,12 @@ class GamepadHexapodController(ManualHexapodController):
             )
 
         # Initialize gamepad state
-        self.gamepad = None
-        self.analog_inputs = {}
-        self.button_states = {}
-        self.last_button_states = {}
-        self._button_last_press_time = {}
-        self.current_led_state = None
+        self.gamepad: Optional[pygame.joystick.Joystick] = None
+        self.analog_inputs: Dict[str, float] = {}
+        self.button_states: Dict[str, bool] = {}
+        self.last_button_states: Dict[str, bool] = {}
+        self._button_last_press_time: Dict[str, float] = {}
+        self.current_led_state: Optional[str] = None
         self.marching_enabled = False  # Marching (neutral gait) is off by default
 
         # Set display environment for headless systems
@@ -212,7 +213,7 @@ class GamepadHexapodController(ManualHexapodController):
         # Now it's safe to get connection_type
         connection_type = self.get_gamepad_connection_type(self.gamepad)
 
-        self.led_controller = None
+        self.led_controller: Optional[BaseGamepadLEDController] = None
         if connection_type != "bluetooth" and led_controller_type is not None:
             if led_controller_type == self.LEDControllerType.DUALSENSE:
                 try:
@@ -263,11 +264,11 @@ class GamepadHexapodController(ManualHexapodController):
             logger.warning("Gamepad LED control disabled")
 
         # For buffered stance height adjustment
-        self._stance_height_buffer = 0.0
-        self._stance_height_hold_start = {"l2": None, "r2": None}
-        self._stance_height_last_increment = {"l2": None, "r2": None}
+        self._stance_height_buffer: float = 0.0
+        self._stance_height_hold_start: Dict[str, Optional[float]] = {"l2": None, "r2": None}
+        self._stance_height_last_increment: Dict[str, Optional[float]] = {"l2": None, "r2": None}
 
-    def _start_initial_animation(self):
+    def _start_initial_animation(self) -> None:
         """
         Start the initial light animation based on the current mode.
         """
@@ -290,7 +291,7 @@ class GamepadHexapodController(ManualHexapodController):
             )
             self.current_led_state = "voice_mode"
 
-    def _apply_deadzone(self, value):
+    def _apply_deadzone(self, value: float) -> float:
         """Apply deadzone to analog stick values."""
         if abs(value) < self.deadzone:
             return 0.0
@@ -299,8 +300,11 @@ class GamepadHexapodController(ManualHexapodController):
         normalized = (abs(value) - self.deadzone) / (1.0 - self.deadzone)
         return sign * normalized
 
-    def _get_analog_inputs(self):
+    def _get_analog_inputs(self) -> Dict[str, float]:
         """Get analog stick inputs with deadzone applied."""
+        if not self.gamepad or not self.input_mapping:
+            return {}
+            
         # Process events to update gamepad state
         for event in pygame.event.get():
             pass
@@ -323,8 +327,11 @@ class GamepadHexapodController(ManualHexapodController):
             "r2": r2,
         }
 
-    def _get_button_states(self):
+    def _get_button_states(self) -> Dict[str, bool]:
         """Get current button states."""
+        if not self.gamepad or not self.input_mapping:
+            return {}
+            
         # Process events to clear pygame event queue, update gamepad state - prevents button stuck issue
         for event in pygame.event.get():
             pass
@@ -362,8 +369,11 @@ class GamepadHexapodController(ManualHexapodController):
         buttons["r2"] = r2_axis > 0.5
         return buttons
 
-    def _get_dpad_states(self, button_mappings):
+    def _get_dpad_states(self, button_mappings: Dict[str, Any]) -> Dict[str, float]:
         """Get D-pad button states based on mapping type."""
+        if not self.gamepad or not self.input_mapping:
+            return {}
+            
         hat_mappings = self.input_mapping.get_hat_mappings()
         if hat_mappings and "dpad" in hat_mappings:
             dpad_mapping = hat_mappings["dpad"]
@@ -395,7 +405,7 @@ class GamepadHexapodController(ManualHexapodController):
             "dpad_right": self.gamepad.get_button(button_mappings.get("dpad_right", 0)),
         }
 
-    def _check_button_press(self, button_name):
+    def _check_button_press(self, button_name: str) -> bool:
         """Check if a button was just pressed (not held), with debounce."""
         current = self.button_states.get(button_name, False)
         last = self.last_button_states.get(button_name, False)
@@ -407,7 +417,7 @@ class GamepadHexapodController(ManualHexapodController):
                 return True
         return False
 
-    def _on_mode_toggled(self, new_mode: str):
+    def _on_mode_toggled(self, new_mode: str) -> None:
         """
         Handle LED feedback when mode is toggled.
         """
@@ -429,7 +439,7 @@ class GamepadHexapodController(ManualHexapodController):
             )
             self.current_led_state = "voice_mode"
 
-    def get_inputs(self):
+    def get_inputs(self) -> Dict[str, Any]:
         """Get current input values from the gamepad."""
         # Get gamepad inputs
         self.analog_inputs = self._get_analog_inputs()
@@ -455,7 +465,7 @@ class GamepadHexapodController(ManualHexapodController):
         else:
             return {}  # No manual input in voice control mode
 
-    def _process_stance_height_l2_r2(self):
+    def _process_stance_height_l2_r2(self) -> float:
         """Handle L2/R2 stance height adjustment with buffering, timing, and preview printing. Returns stance_height_delta."""
         now = time.time()
         debounce = self.BUTTON_DEBOUNCE_INTERVAL
@@ -512,7 +522,7 @@ class GamepadHexapodController(ManualHexapodController):
             self._stance_height_buffer = 0.0
         return stance_height_delta
 
-    def _get_body_control_inputs(self):
+    def _get_body_control_inputs(self) -> Dict[str, Any]:
         """Process inputs for body control mode."""
         # Process analog inputs for movement (raw values, sensitivity applied in base class)
         tx = self.analog_inputs["left_x"]
@@ -568,7 +578,7 @@ class GamepadHexapodController(ManualHexapodController):
             "stance_height_delta": stance_height_delta,
         }
 
-    def _get_gait_control_inputs(self):
+    def _get_gait_control_inputs(self) -> Dict[str, Any]:
         """Process inputs for gait control mode - returns raw input values."""
 
         # Process analog inputs for gait control (raw values, sensitivity applied in base class)
@@ -633,7 +643,7 @@ class GamepadHexapodController(ManualHexapodController):
             "stance_height_delta": stance_height_delta,
         }
 
-    def print_help(self):
+    def print_help(self) -> None:
         """Print the help menu using a single gamepad_mode_info log message."""
         controller_type = (
             type(self.input_mapping).__name__.replace("Mappings", "").replace("_", " ")
@@ -681,7 +691,7 @@ class GamepadHexapodController(ManualHexapodController):
         )
         logger.gamepad_mode_info(help_message)
 
-    def cleanup_controller(self):
+    def cleanup_controller(self) -> None:
         """Clean up gamepad-specific resources."""
         # Cleanup LED controller
         if hasattr(self, "led_controller") and self.led_controller:
