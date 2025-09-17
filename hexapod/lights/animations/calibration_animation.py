@@ -56,6 +56,8 @@ class CalibrationAnimation(Animation):
             }
             for leg_index, led_index in self.leg_to_led.items():
                 status = self.calibration_status.get(leg_index)
+                if status is None:
+                    continue  # Skip if no status available
                 color = status_color_map.get(status)
                 if color is None:
                     raise ValueError(f"Invalid calibration status: {status}")

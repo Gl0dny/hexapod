@@ -31,7 +31,7 @@ class LightsInteractionHandler:
             leg_to_led (dict): Mapping from leg indices to LED indices.
         """
         self.lights: Lights = Lights()
-        self.animation: Animation = None
+        self.animation: Optional[Animation] = None
         self.leg_to_led = leg_to_led
         logger.info("LightsInteractionHandler initialized successfully.")
 
@@ -46,7 +46,8 @@ class LightsInteractionHandler:
         else:
             logger.info("No active animation to stop.")
 
-    def animation(method: Callable[..., Any]) -> Callable[..., Any]:
+    @staticmethod
+    def anim(method: Callable[..., Any]) -> Callable[..., Any]:
         """
         Decorator to manage animations within methods.
 
@@ -63,7 +64,7 @@ class LightsInteractionHandler:
         """
 
         @wraps(method)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
             logger.info(f"Starting animation {method.__name__}.")
             try:
                 result = method(self, *args, **kwargs)
@@ -124,7 +125,7 @@ class LightsInteractionHandler:
         self.lights.set_brightness(brightness)
         logger.info(f"Brightness set to {brightness}%.")
 
-    @animation
+    @anim
     def rainbow(
         self,
         use_rainbow: bool = True,
@@ -147,7 +148,7 @@ class LightsInteractionHandler:
             interval=interval,
         )
 
-    @animation
+    @anim
     def listen_wakeword(
         self,
         base_color: ColorRGB = ColorRGB.BLUE,
@@ -170,7 +171,7 @@ class LightsInteractionHandler:
             pulse_speed=pulse_speed,
         )
 
-    @animation
+    @anim
     def listen_intent(
         self,
         color_even: ColorRGB = ColorRGB.WHITE,
@@ -190,7 +191,7 @@ class LightsInteractionHandler:
             lights=self.lights, color_even=color_even, color_odd=color_odd, delay=delay
         )
 
-    @animation
+    @anim
     def think(self, color: ColorRGB = ColorRGB.LIME, interval: float = 0.1) -> None:
         """
         Start the think animation.
@@ -206,7 +207,7 @@ class LightsInteractionHandler:
             color=color,
         )
 
-    @animation
+    @anim
     def police(self, pulse_speed: float = 0.25) -> None:
         """
         Start the police pulsing animation.
@@ -222,7 +223,7 @@ class LightsInteractionHandler:
             pulse_speed=pulse_speed,
         )
 
-    @animation
+    @anim
     def shutdown(self, interval: float = 1.2) -> None:
         """
         Start the shutdown animation using WheelFillAnimation with red color.
@@ -235,7 +236,7 @@ class LightsInteractionHandler:
             lights=self.lights, use_rainbow=False, color=ColorRGB.RED, interval=interval
         )
 
-    @animation
+    @anim
     def update_calibration_leds_status(
         self, calibration_status: Dict[int, str]
     ) -> None:
@@ -252,7 +253,7 @@ class LightsInteractionHandler:
             leg_to_led=self.leg_to_led,
         )
 
-    @animation
+    @anim
     def speak(self) -> None:
         """
         Start the speak animation.
@@ -261,7 +262,7 @@ class LightsInteractionHandler:
         self.animation = None  # Ensure animation is set to avoid AttributeError
         raise NotImplementedError("The 'speak' method is not implemented yet.")
 
-    @animation
+    @anim
     def direction_of_arrival(
         self,
         refresh_delay: float = 0.1,
@@ -285,7 +286,7 @@ class LightsInteractionHandler:
             lights=self.lights, refresh_delay=refresh_delay, source_colors=source_colors
         )
 
-    @animation
+    @anim
     def odas_loading(self, interval: float = 1.5 / 12) -> None:
         """
         Start the ODAS loading animation using WheelFillAnimation with teal color.
@@ -303,7 +304,7 @@ class LightsInteractionHandler:
             interval=interval,
         )
 
-    @animation
+    @anim
     def pulse_smoothly(
         self,
         base_color: ColorRGB = ColorRGB.BLUE,
@@ -326,7 +327,7 @@ class LightsInteractionHandler:
             pulse_speed=pulse_speed,
         )
 
-    @animation
+    @anim
     def wheel(
         self,
         use_rainbow: bool = True,

@@ -262,9 +262,9 @@ class Lights:
         if led_indices is not None:
             leds_to_clear = led_indices
         elif count is not None:
-            leds_to_clear = range(count)
+            leds_to_clear = list(range(count))
         else:
-            leds_to_clear = range(self.num_led)
+            leds_to_clear = list(range(self.num_led))
         for i in leds_to_clear:
             self.driver.set_pixel(i, 0, 0, 0)
         self.driver.show()

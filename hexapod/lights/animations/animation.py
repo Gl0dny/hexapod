@@ -39,7 +39,7 @@ class Animation(threading.Thread, abc.ABC):
         self.stop_event.clear()
         super().start()
 
-    def run(self):
+    def run(self) -> None:
         """
         Execute the animation.
         """
