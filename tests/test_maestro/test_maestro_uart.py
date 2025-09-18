@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import Mock, patch
 import sys
 from typing import List, Tuple
+# Dependencies are now mocked automatically via conftest.py
 
 class TestMaestroUART:
     """Unit tests for the real MaestroUART class from hexapod.maestro.maestro_uart."""
@@ -39,41 +40,14 @@ class TestMaestroUART:
     @pytest.fixture
     def maestro_class(self):
         """Import the real MaestroUART class with mocked dependencies."""
-        # Mock all external dependencies
-        with patch.dict('sys.modules', {
-            'serial': Mock(),
-            'yaml': Mock(),
-            'hexapod.interface': Mock(),
-            'hexapod.interface.logging': Mock(),
-            'hexapod.interface.logging.logging_utils': Mock(),
-            'hexapod.interface.logging.logger': Mock(),
-            'hexapod.interface.console': Mock(),
-            'hexapod.interface.console.non_blocking_console_input_handler': Mock(),
-            'hexapod.interface.controllers': Mock(),
-            'hexapod.interface.input_mappings': Mock(),
-            'hexapod.kws': Mock(),
-            'hexapod.kws.recorder': Mock(),
-            'hexapod.kws.voice_control': Mock(),
-            'hexapod.kws.intent_dispatcher': Mock(),
-            'hexapod.main': Mock(),
-            'hexapod.odas': Mock(),
-            'hexapod.robot': Mock(),
-            'hexapod.task_interface': Mock(),
-            'hexapod.utils': Mock(),
-            'hexapod.lights': Mock(),
-            'hexapod.gait_generator': Mock(),
-            'hexapod.config': Mock(),
-            'hexapod.maestro': Mock()
-        }):
-            # Import the real module
-            import importlib.util
-            spec = importlib.util.spec_from_file_location(
-                "maestro_module", 
-                "/Users/gl0dny/workspace/hexapod/hexapod/maestro/maestro_uart.py"
-            )
-            maestro_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(maestro_module)
-            return maestro_module.MaestroUART
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "maestro_module",
+            "/Users/gl0dny/workspace/hexapod/hexapod/maestro/maestro_uart.py"
+        )
+        maestro_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(maestro_module)
+        return maestro_module.MaestroUART
 
     def test_initialization(self, maestro_class, mock_serial):
         """Test MaestroUART initialization with proper serial configuration."""
