@@ -1,4 +1,4 @@
-import pytest
+cdimport pytest
 from unittest.mock import Mock, patch
 import sys
 
