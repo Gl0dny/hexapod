@@ -24,6 +24,14 @@ def mock_external_dependencies():
         'gpiozero.pins': Mock(),
         'gpiozero.pins.rpigpio': Mock(),
         'spidev': Mock(),
+        'pyaudio': Mock(),
+        'pvrecorder': Mock(),
+        'rhino': Mock(),
+        'porcupine': Mock(),
+        'picovoice': Mock(),
+        'numpy': Mock(),
+        'RPi': Mock(),
+        'RPi.GPIO': Mock(),
         
         # Configuration and utilities
         'yaml': Mock(),
