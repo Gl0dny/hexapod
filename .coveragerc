@@ -1,12 +1,21 @@
 [run]
-omit =
-    tests/*
-    */test_*.py
-    */__init__.py
+source = hexapod
+omit = 
+    */tests/*
+    */test_*
+    */__pycache__/*
+    */venv/*
+    */env/*
 
 [report]
-show_missing = True
-fail_under = 50
 exclude_lines =
     pragma: no cover
-    if TYPE_CHECKING:
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod

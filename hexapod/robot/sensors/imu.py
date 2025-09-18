@@ -9,12 +9,9 @@ data reading, and provides methods for getting orientation and motion data.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, cast
+from typing import cast, Tuple
 
 from icm20948 import ICM20948
-
-if TYPE_CHECKING:
-    from typing import Tuple
 
 
 class Imu:
