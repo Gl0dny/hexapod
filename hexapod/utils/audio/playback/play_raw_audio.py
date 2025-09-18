@@ -39,20 +39,21 @@ def play_raw_audio(
         audio_data = f.read()
 
     # Convert to numpy array based on bit depth
+    audio_dtype: type
     if bit_depth == 16:
-        dtype = np.int16
+        audio_dtype = np.int16
     elif bit_depth == 32:
-        dtype = np.int32
+        audio_dtype = np.int32
     else:
         raise ValueError(f"Unsupported bit depth: {bit_depth}. Must be 16 or 32.")
 
-    audio_array = np.frombuffer(audio_data, dtype=dtype)
+    audio_array = np.frombuffer(audio_data, dtype=audio_dtype)
 
     # Reshape to channels
     audio_array = audio_array.reshape(-1, channels)
 
     # Mix down all channels (average them)
-    audio_mono = np.mean(audio_array, axis=1)
+    audio_mono = np.mean(audio_array.astype(np.float64), axis=1)
 
     # Normalize audio for playback
     max_value = float(2 ** (bit_depth - 1) - 1)
@@ -65,7 +66,7 @@ def play_raw_audio(
     print("Done playing audio")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Play raw audio file from ODAS")
     parser.add_argument("audio_file", help="Path to raw audio file")
     parser.add_argument(

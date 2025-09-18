@@ -73,9 +73,9 @@ class Leg:
         self.coxa_z_offset = self.coxa_params.pop("z_offset", 0.0)
         self.tibia_x_offset = self.tibia_params.pop("x_offset", 0.0)
 
-        self.coxa = Joint(controller, **self.coxa_params)
-        self.femur = Joint(controller, **self.femur_params)
-        self.tibia = Joint(controller, **self.tibia_params)
+        self.coxa = Joint(controller, **self.coxa_params)  # type: ignore
+        self.femur = Joint(controller, **self.femur_params)  # type: ignore
+        self.tibia = Joint(controller, **self.tibia_params)  # type: ignore
         self.end_effector_offset = end_effector_offset
 
     def _validate_triangle_inequality(self, a: float, b: float, c: float) -> None:

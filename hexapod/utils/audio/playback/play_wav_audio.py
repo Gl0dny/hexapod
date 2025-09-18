@@ -49,20 +49,21 @@ def convert_raw_to_wav(
         audio_data = f.read()
 
     # Convert to numpy array based on bit depth
+    audio_dtype: type
     if bit_depth == 16:
-        dtype = np.int16
+        audio_dtype = np.int16
     elif bit_depth == 32:
-        dtype = np.int32
+        audio_dtype = np.int32
     else:
         raise ValueError(f"Unsupported bit depth: {bit_depth}. Must be 16 or 32.")
 
-    audio_array = np.frombuffer(audio_data, dtype=dtype)
+    audio_array = np.frombuffer(audio_data, dtype=audio_dtype)
 
     # Reshape to channels
     audio_array = audio_array.reshape(-1, channels)
 
     # Mix down all channels (average them)
-    audio_mono = np.mean(audio_array, axis=1)
+    audio_mono = np.mean(audio_array.astype(np.float64), axis=1)
 
     # Convert to 16-bit PCM for WAV
     audio_mono = np.clip(audio_mono, -32768, 32767).astype(np.int16)
@@ -107,7 +108,7 @@ def play_wav_file(wav_file: Path) -> None:
         audio_array = audio_array.reshape(-1, n_channels)
 
         # Mix down all channels (average them)
-        audio_mono = np.mean(audio_array, axis=1)
+        audio_mono = np.mean(audio_array.astype(np.float64), axis=1)
 
         # Normalize audio for playback
         max_value = float(2 ** (sample_width * 8 - 1) - 1)
@@ -120,7 +121,7 @@ def play_wav_file(wav_file: Path) -> None:
         print("Done playing audio")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Play WAV files and optionally convert raw ODAS audio to WAV"
     )

@@ -25,6 +25,7 @@ from hexapod.utils import rename_thread
 
 if TYPE_CHECKING:
     from typing import Optional, List, TextIO, Any, Dict
+    from hexapod.lights import LightsInteractionHandler
 
 logger = get_custom_logger("odas_logger")
 
@@ -111,7 +112,7 @@ class ODASDoASSLProcessor:
                     def close(self, *args: Any, **kwargs: Any) -> None:
                         pass
 
-                return DummyFile()
+                return DummyFile()  # type: ignore
 
         def log(
             self,
@@ -370,7 +371,9 @@ class ODASDoASSLProcessor:
             with self.sources_lock:
                 tracked_sources_copy = dict(self.tracked_sources)
 
-            if hasattr(self.lights_handler.animation, "update_sources"):
+            if self.lights_handler.animation is not None and hasattr(
+                self.lights_handler.animation, "update_sources"
+            ):
                 azimuths = self.get_tracked_sources_azimuths()
                 self.lights_handler.animation.update_sources(azimuths)
 
@@ -394,7 +397,7 @@ class ODASDoASSLProcessor:
             client_socket: The socket connected to the ODAS process
             client_type: Either "tracked" or "potential" to identify the data type
         """
-        log_file: TextIO = (
+        log_file: Optional[TextIO] = (
             self.data_manager.tracked_log
             if client_type == "tracked"
             else self.data_manager.potential_log
@@ -423,7 +426,8 @@ class ODASDoASSLProcessor:
                     self.gui_manager.forward_data(size_bytes + data, client_type)
 
                 # Process the received data
-                self._process_json_data(data, client_type, log_file)
+                if log_file is not None:
+                    self._process_json_data(data, client_type, log_file)
 
             except socket.timeout:
                 continue
