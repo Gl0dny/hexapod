@@ -66,7 +66,7 @@ def play_raw_audio(
     print("Done playing audio")
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(description="Play raw audio file from ODAS")
     parser.add_argument("audio_file", help="Path to raw audio file")
     parser.add_argument(

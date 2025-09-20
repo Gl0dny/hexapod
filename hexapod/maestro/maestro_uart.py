@@ -452,7 +452,7 @@ class MaestroUART(object):
         logger.info("Serial port closed.")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # min_pos and max_pos are the minimum and maxium positions for the servos
     # in quarter-microseconds. The defaults are 992*4 and 2000*4. See the Maestro
     # manual for how to change these values.

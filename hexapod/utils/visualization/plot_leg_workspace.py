@@ -16,7 +16,7 @@ import numpy as np
 from hexapod.robot import Hexapod
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--clean",

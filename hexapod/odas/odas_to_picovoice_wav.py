@@ -106,7 +106,7 @@ def convert_odas_to_wav(
     print(f"Converted {len(converted_audio)} chunks of audio")
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     # Add project paths for imports when run as script
     script_path = Path(__file__).resolve()
     project_root = script_path.parent.parent.parent

@@ -769,7 +769,7 @@ class ODASDoASSLProcessor:
         logger.odas_user_info("ODAS DoA/SSL processor closed successfully")
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Main entry point for the ODAS DoA/SSL processor."""
 
     # Add project paths for imports when run as script

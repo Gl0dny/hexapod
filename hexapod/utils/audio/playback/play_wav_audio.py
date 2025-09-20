@@ -121,7 +121,7 @@ def play_wav_file(wav_file: Path) -> None:
         print("Done playing audio")
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(
         description="Play WAV files and optionally convert raw ODAS audio to WAV"
     )

@@ -409,7 +409,7 @@ class StreamingODASAudioPlayer:
                 pass
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Main entry point for the remote ODAS audio player."""
 
     # Add project paths for imports when run as script

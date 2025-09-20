@@ -275,7 +275,7 @@ def run_main_loop(
             shutdown_cleanup(voice_control, manual_controller, task_interface)
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Main entry point."""
     parser = create_main_parser()
     args = parser.parse_args()
