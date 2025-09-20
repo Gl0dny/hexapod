@@ -6,6 +6,7 @@ omit =
     */__pycache__/*
     */venv/*
     */env/*
+    */__init__.py
 
 [report]
 exclude_lines =
