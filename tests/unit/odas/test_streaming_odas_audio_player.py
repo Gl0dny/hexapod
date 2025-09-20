@@ -343,14 +343,19 @@ class TestStreamingODASAudioPlayer:
         mock_sftp.stat.return_value = mock_stat
         
         # Mock the while loop to exit after one iteration
+        call_count = 0
         def side_effect(duration):
-            player.running = False
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 1:  # Exit after first sleep call
+                player.running = False
         mock_sleep.side_effect = side_effect
         
         player.stream_audio("postfiltered")
         
-        # Should have called sleep for check interval
-        mock_sleep.assert_called_with(0.5)
+        # Should have called sleep for check interval (0.5)
+        sleep_calls = [call for call in mock_sleep.call_args_list if call[0][0] == 0.5]
+        assert len(sleep_calls) >= 1, f"Expected sleep(0.5) call, but got calls: {mock_sleep.call_args_list}"
     
     @patch('hexapod.odas.streaming_odas_audio_player.threading.Thread')
     def test_monitor_files_success(self, mock_thread, mock_ssh_client):

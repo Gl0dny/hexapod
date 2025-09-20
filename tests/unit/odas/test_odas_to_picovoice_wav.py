@@ -45,7 +45,6 @@ class TestConvertODASToWAV:
         """Test successful conversion of ODAS to WAV."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3, 0.4, 0.5]), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file - wave.open returns the file object directly, not a context manager
@@ -56,6 +55,12 @@ class TestConvertODASToWAV:
             with patch('pathlib.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 1000
                 
+                # Create a time counter that increments slowly
+                time_counter = [0]
+                def mock_time():
+                    time_counter[0] += 0.1
+                    return time_counter[0]
+                
                 # Simulate the processor running for a few iterations then stopping
                 call_count = 0
                 def stop_processor(*args, **kwargs):
@@ -64,7 +69,8 @@ class TestConvertODASToWAV:
                     if call_count >= 3:  # Allow a few iterations
                         mock_odas_processor.running = False
                 
-                with patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
+                with patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=mock_time), \
+                     patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
                     convert_odas_to_wav(temp_input_file, temp_output_file)
             
             # Verify ODASAudioProcessor was created with correct parameters
@@ -92,7 +98,6 @@ class TestConvertODASToWAV:
         """Test conversion with custom parameters."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3]), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file
@@ -103,11 +108,18 @@ class TestConvertODASToWAV:
             with patch('pathlib.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 1000
                 
+                # Create a time counter that starts at 0 and increments
+                time_counter = [0]
+                def mock_time():
+                    time_counter[0] += 0.1
+                    return time_counter[0]
+                
                 # Simulate the processor stopping after a few iterations
                 def stop_processor(*args, **kwargs):
                     mock_odas_processor.running = False
                 
-                with patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
+                with patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=mock_time), \
+                     patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
                     convert_odas_to_wav(
                         temp_input_file, 
                         temp_output_file,
@@ -127,7 +139,6 @@ class TestConvertODASToWAV:
         """Test conversion timeout handling."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 15, 30, 45]), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file
@@ -138,7 +149,14 @@ class TestConvertODASToWAV:
             with patch('pathlib.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 1000
                 
-                convert_odas_to_wav(temp_input_file, temp_output_file)
+                # Create a time counter that simulates timeout
+                time_counter = [0]
+                def mock_time():
+                    time_counter[0] += 15  # Increment by 15 seconds each call
+                    return time_counter[0]
+                
+                with patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=mock_time):
+                    convert_odas_to_wav(temp_input_file, temp_output_file)
             
             # Verify processor was stopped due to timeout
             mock_odas_processor.stop.assert_called_once()
@@ -147,7 +165,6 @@ class TestConvertODASToWAV:
         """Test conversion stops when no file size change is detected."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3, 0.4, 0.5]), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file
@@ -158,7 +175,14 @@ class TestConvertODASToWAV:
             with patch('pathlib.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 1000
                 
-                convert_odas_to_wav(temp_input_file, temp_output_file)
+                # Create a time counter that increments slowly
+                time_counter = [0]
+                def mock_time():
+                    time_counter[0] += 0.1
+                    return time_counter[0]
+                
+                with patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=mock_time):
+                    convert_odas_to_wav(temp_input_file, temp_output_file)
             
             # Verify processor was stopped due to no change
             mock_odas_processor.stop.assert_called_once()
@@ -167,7 +191,6 @@ class TestConvertODASToWAV:
         """Test audio callback functionality."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3, 0.4, 0.5]), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file - wave.open returns the file object directly, not a context manager
@@ -177,6 +200,12 @@ class TestConvertODASToWAV:
             # Mock file size changes to simulate new data
             with patch('pathlib.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 1000
+                
+                # Create a time counter that increments slowly
+                time_counter = [0]
+                def mock_time():
+                    time_counter[0] += 0.1
+                    return time_counter[0]
                 
                 # Capture the callback and simulate it being called during conversion
                 captured_callback = None
@@ -199,7 +228,8 @@ class TestConvertODASToWAV:
                             captured_callback(sample_audio)
                         mock_odas_processor.running = False
                 
-                with patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
+                with patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=mock_time), \
+                     patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
                     convert_odas_to_wav(temp_input_file, temp_output_file)
             
             # Verify callback was set
@@ -212,7 +242,6 @@ class TestConvertODASToWAV:
         """Test WAV file configuration parameters."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3, 0.4, 0.5]), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file - wave.open returns the file object directly, not a context manager
@@ -223,6 +252,12 @@ class TestConvertODASToWAV:
             with patch('pathlib.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 1000
                 
+                # Create a time counter that increments slowly
+                time_counter = [0]
+                def mock_time():
+                    time_counter[0] += 0.1
+                    return time_counter[0]
+                
                 # Simulate the processor running for a few iterations then stopping
                 call_count = 0
                 def stop_processor(*args, **kwargs):
@@ -231,7 +266,8 @@ class TestConvertODASToWAV:
                     if call_count >= 3:  # Allow a few iterations
                         mock_odas_processor.running = False
                 
-                with patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
+                with patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=mock_time), \
+                     patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
                     convert_odas_to_wav(temp_input_file, temp_output_file)
             
             # Verify WAV file configuration
@@ -243,7 +279,6 @@ class TestConvertODASToWAV:
         """Test that temporary directory is properly cleaned up."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3]), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file
@@ -254,11 +289,18 @@ class TestConvertODASToWAV:
             with patch('pathlib.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 1000
                 
+                # Create a time counter that increments slowly
+                time_counter = [0]
+                def mock_time():
+                    time_counter[0] += 0.1
+                    return time_counter[0]
+                
                 # Simulate the processor stopping after a few iterations
                 def stop_processor(*args, **kwargs):
                     mock_odas_processor.running = False
                 
-                with patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
+                with patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=mock_time), \
+                     patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
                     convert_odas_to_wav(temp_input_file, temp_output_file)
             
             # Verify ODASAudioProcessor was created with a temporary directory
@@ -271,7 +313,6 @@ class TestConvertODASToWAV:
         """Test error handling during conversion."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3]), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file
@@ -282,11 +323,18 @@ class TestConvertODASToWAV:
             with patch('pathlib.Path.stat') as mock_stat:
                 mock_stat.return_value.st_size = 1000
                 
+                # Create a time counter that increments slowly
+                time_counter = [0]
+                def mock_time():
+                    time_counter[0] += 0.1
+                    return time_counter[0]
+                
                 # Simulate the processor stopping after a few iterations
                 def stop_processor(*args, **kwargs):
                     mock_odas_processor.running = False
                 
-                with patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
+                with patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=mock_time), \
+                     patch('hexapod.odas.odas_to_picovoice_wav.time.sleep', side_effect=stop_processor):
                     convert_odas_to_wav(temp_input_file, temp_output_file)
             
             # Verify processor was properly stopped even if errors occur
@@ -298,7 +346,7 @@ class TestConvertODASToWAV:
         
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3]), \
+             patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file
@@ -469,7 +517,7 @@ class TestEdgeCases:
         
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3]), \
+             patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file
@@ -500,7 +548,7 @@ class TestEdgeCases:
         
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3]), \
+             patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock the WAV file
@@ -534,7 +582,7 @@ class TestEdgeCases:
         """Test conversion when ODASAudioProcessor raises an error."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor') as mock_odas_class, \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3]), \
+             patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock ODASAudioProcessor to raise an error
@@ -556,7 +604,7 @@ class TestEdgeCases:
         """Test conversion when WAV file operations fail."""
         with patch('hexapod.odas.odas_to_picovoice_wav.ODASAudioProcessor', return_value=mock_odas_processor), \
              patch('hexapod.odas.odas_to_picovoice_wav.wave.open') as mock_wave_open, \
-             patch('hexapod.odas.odas_to_picovoice_wav.time.time', side_effect=[0, 0.1, 0.2, 0.3]), \
+             patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'), \
              patch('hexapod.odas.odas_to_picovoice_wav.time.sleep'):
             
             # Mock WAV file to raise an error

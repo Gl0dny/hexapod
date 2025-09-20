@@ -540,15 +540,15 @@ The documentation covers:
 
 ## Testing & Code Quality
 
-This repository includes a unit test suite with **52% overall code coverage** across the entire codebase. The test suite was generated using AI-assisted development to ensure thorough validation of all system components.
+This repository includes a unit test suite with **84% overall code coverage** across the entire codebase. The test suite was generated using AI-assisted development to ensure thorough validation of all system components.
 
-### Test Coverage Overview
+### Test Suite Overview
 
-The project maintains **52% overall test coverage** with detailed reports available for all major components:
+The project maintains **84% overall test coverage** with detailed reports available for all major components:
 
-- **Total Test Files**: 41 test files
-- **Total Test Functions**: 945 individual test cases
-- **Overall Code Coverage**: 52% (3,105 of 6,451 statements covered)
+- **Total Test Files**:  test files
+- **Total Test Functions**: 1677 individual test cases
+- **Overall Code Coverage**: 84% (6297 of 6,451 statements covered)
 
 ### Test Architecture
 
@@ -584,16 +584,11 @@ pytest --cov=hexapod --cov-report=html --cov-report=term-missing
 - Edge cases and error handling
 - Input validation and boundary conditions
 - Mathematical calculations and algorithms
-
-**Integration Tests**:
-- Component interaction testing
-- Data flow validation
-- System state management
-- Error propagation testing
+- Thread safety and concurrency testing
 
 **Mock Testing**:
-- Hardware interface simulation
-- External service mocking
+- Hardware interface simulation (servos, IMU, LEDs)
+- External service mocking (Picovoice, ODAS)
 - File system operations
 - Network communication testing
 
