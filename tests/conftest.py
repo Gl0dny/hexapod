@@ -29,6 +29,7 @@ sys.modules['picovoice'] = mock.MagicMock()
 sys.modules['paramiko'] = mock.MagicMock()
 sys.modules['resampy'] = mock.MagicMock()
 sys.modules['sounddevice'] = mock.MagicMock()
+sys.modules['dualsense_controller'] = mock.MagicMock()
 
 # Now import pytest and other modules
 import pytest
