@@ -14,7 +14,7 @@ The script continuously monitors these streams, transfers new audio data, and pl
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 import sys
 import time
 import tempfile
@@ -35,7 +35,7 @@ import queue
 from hexapod.interface import setup_logging, clean_logs
 
 if TYPE_CHECKING:
-    from typing import Optional, List, Any
+    from typing import Optional, Any
 
 DEFAULT_HOST = "hexapod"
 DEFAULT_HOSTNAME = "192.168.0.122"
