@@ -9,8 +9,11 @@ omit =
     */__init__.py
 
 [report]
+show_missing = True
+fail_under = 80
 exclude_lines =
     pragma: no cover
+    if TYPE_CHECKING:
     def __repr__
     if self.debug:
     if settings.DEBUG
