@@ -1,1 +1,0 @@
-# Animations module tests

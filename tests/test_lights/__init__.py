@@ -1,1 +1,0 @@
-# Lights module tests
