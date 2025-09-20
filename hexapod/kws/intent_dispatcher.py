@@ -309,7 +309,7 @@ class IntentDispatcher:
                 logger.exception("No direction provided for move command.")
                 return
 
-            from gait_generator.base_gait import BaseGait
+            from hexapod.gait_generator.base_gait import BaseGait
 
             if direction not in BaseGait.DIRECTION_MAP:
                 logger.exception(f"Invalid direction '{direction}' for move command.")
