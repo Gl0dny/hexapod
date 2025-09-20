@@ -540,15 +540,13 @@ The documentation covers:
 
 ## Testing & Code Quality
 
-This repository includes a unit test suite with **84% overall code coverage** across the entire codebase. The test suite was generated using AI-assisted development to ensure thorough validation of all system components.
+This repository includes a unit test suite with **90% overall code coverage** across the entire codebase. The test suite was generated using AI-assisted development to ensure thorough validation of all system components.
 
 ### Test Suite Overview
 
-The project maintains **84% overall test coverage** with detailed reports available for all major components:
-
-- **Total Test Files**:  test files
-- **Total Test Functions**: 1677 individual test cases
-- **Overall Code Coverage**: 84% (6297 of 6,451 statements covered)
+- **Total Test Files**: 60 test files
+- **Total Test Functions**: 1746 individual test cases
+- **Overall Code Coverage**: 90% (6,297 of 6,297 statements covered)
 
 ### Test Architecture
 
@@ -557,14 +555,24 @@ The test suite is organized to mirror the source code structure:
 ```
 tests/
 ├── unit/
-│   ├── robot/           # Robot movement and control tests
-│   ├── gait_generator/  # Gait pattern and locomotion tests
-│   ├── odas/           # Audio processing and ODAS tests
-│   ├── kws/            # Voice control and keyword spotting tests
-│   ├── lights/         # LED control and animation tests
-│   └── utils/          # Utility function tests
-├── conftest.py         # Shared test fixtures and configuration
-└── reports/            # Coverage reports (HTML, XML, JSON)
+│   ├── gait_generator/     # Gait pattern and locomotion tests
+│   ├── interface/          # User interface and controller tests
+│   │   ├── console/        # Console input handler tests
+│   │   ├── controllers/    # Manual controller tests
+│   │   ├── input_mappings/ # Input mapping tests
+│   │   └── logging/        # Logging system tests
+│   ├── kws/                # Voice control and keyword spotting tests
+│   ├── lights/             # LED control and animation tests
+│   │   └── animations/     # LED animation tests
+│   ├── maestro/            # Maestro servo controller tests
+│   ├── odas/               # Audio processing and ODAS tests
+│   ├── robot/              # Robot movement and control tests
+│   │   └── sensors/        # Sensor (IMU, button) tests
+│   ├── task_interface/     # Task management and execution tests
+│   │   └── tasks/          # Individual task implementation tests
+│   └── utils/              # Utility function tests
+├── conftest.py             # Shared test fixtures and configuration
+└── reports/                # Coverage reports (HTML, XML, JSON)
 ```
 
 ### Running Tests
@@ -576,21 +584,6 @@ pytest --cov=hexapod --cov-report=html --cov-report=term-missing
 ```
 
 **Note**: The test suite is configured to fail if overall code coverage drops below 80%. This ensures code quality standards are maintained.
-
-### Test Categories
-
-**Unit Tests**:
-- Individual component functionality
-- Edge cases and error handling
-- Input validation and boundary conditions
-- Mathematical calculations and algorithms
-- Thread safety and concurrency testing
-
-**Mock Testing**:
-- Hardware interface simulation (servos, IMU, LEDs)
-- External service mocking (Picovoice, ODAS)
-- File system operations
-- Network communication testing
 
 ### Coverage Reports
 
