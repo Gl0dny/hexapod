@@ -3,7 +3,7 @@ Unit tests for streaming ODAS audio player.
 """
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from hexapod.odas.streaming_odas_audio_player import StreamingODASAudioPlayer
+# from hexapod.odas.streaming_odas_audio_player import StreamingODASAudioPlayer
 
 
 class TestStreamingODASAudioPlayer:
