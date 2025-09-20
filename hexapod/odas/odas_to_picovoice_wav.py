@@ -17,7 +17,7 @@ from pathlib import Path
 import tempfile
 import sys
 
-from odas import ODASAudioProcessor
+from hexapod.odas.odas_audio_processor import ODASAudioProcessor
 
 
 def convert_odas_to_wav(
