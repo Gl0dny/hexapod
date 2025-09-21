@@ -10,7 +10,7 @@ from pathlib import Path
 
 from hexapod.interface.controllers.gamepad_led_controllers.gamepad_led_controller import (
     BaseGamepadLEDController,
-    GamepadLEDColor
+    GamepadLEDColor,
 )
 
 
@@ -43,14 +43,14 @@ class TestGamepadLEDColor:
 
 class ConcreteLEDController(BaseGamepadLEDController):
     """Concrete implementation of BaseGamepadLEDController for testing."""
-    
+
     def _connect_controller(self) -> bool:
         self.is_connected = True
         return True
-    
+
     def _set_color_internal(self, r: int, g: int, b: int) -> bool:
         return True
-    
+
     def _cleanup_internal(self) -> None:
         pass
 
@@ -74,38 +74,38 @@ class TestBaseGamepadLEDController:
     def test_set_color_success(self, controller):
         """Test setting color successfully."""
         controller.is_connected = True
-        
+
         result = controller.set_color(GamepadLEDColor.RED)
-        
+
         assert result is True
         assert controller.current_color == GamepadLEDColor.RED
 
     def test_set_color_not_connected(self, controller):
         """Test setting color when not connected."""
         controller.is_connected = False
-        
+
         result = controller.set_color(GamepadLEDColor.RED)
-        
+
         assert result is False
         assert controller.current_color == GamepadLEDColor.BLUE  # Unchanged
 
     def test_set_color_with_brightness(self, controller):
         """Test setting color with custom brightness."""
         controller.is_connected = True
-        
+
         result = controller.set_color(GamepadLEDColor.RED, brightness=0.5)
-        
+
         assert result is True
         assert controller.brightness == 0.5
 
     def test_set_color_brightness_clamping(self, controller):
         """Test brightness clamping."""
         controller.is_connected = True
-        
+
         # Test minimum brightness
         controller.set_color(GamepadLEDColor.RED, brightness=-0.5)
         assert controller.brightness == 0.0
-        
+
         # Test maximum brightness
         controller.set_color(GamepadLEDColor.RED, brightness=1.5)
         assert controller.brightness == 1.0
@@ -113,25 +113,25 @@ class TestBaseGamepadLEDController:
     def test_set_color_rgb_success(self, controller):
         """Test setting color with RGB values."""
         controller.is_connected = True
-        
+
         result = controller.set_color_rgb((100, 150, 200))
-        
+
         assert result is True
 
     def test_set_color_rgb_not_connected(self, controller):
         """Test setting RGB color when not connected."""
         controller.is_connected = False
-        
+
         result = controller.set_color_rgb((100, 150, 200))
-        
+
         assert result is False
 
     def test_set_color_rgb_with_brightness(self, controller):
         """Test setting RGB color with brightness."""
         controller.is_connected = True
-        
+
         result = controller.set_color_rgb((100, 150, 200), brightness=0.5)
-        
+
         assert result is True
         assert controller.brightness == 0.5
 
@@ -139,20 +139,20 @@ class TestBaseGamepadLEDController:
         """Test setting brightness."""
         controller.is_connected = True
         controller.set_color = Mock(return_value=True)
-        
+
         result = controller.set_brightness(0.7)
-        
+
         assert controller.brightness == 0.7
         controller.set_color.assert_called_once_with(controller.current_color)
 
     def test_set_brightness_clamping(self, controller):
         """Test brightness clamping in set_brightness."""
         controller.is_connected = True
-        
+
         # Test minimum
         controller.set_brightness(-0.5)
         assert controller.brightness == 0.0
-        
+
         # Test maximum
         controller.set_brightness(1.5)
         assert controller.brightness == 1.0
@@ -162,9 +162,9 @@ class TestBaseGamepadLEDController:
         controller.is_connected = True
         controller.stop_animation = Mock()
         controller.set_color = Mock(return_value=True)
-        
+
         result = controller.turn_off()
-        
+
         assert result is True
         controller.stop_animation.assert_called_once()
         controller.set_color.assert_called_once_with(GamepadLEDColor.BLACK)
@@ -173,9 +173,9 @@ class TestBaseGamepadLEDController:
         """Test starting pulse animation successfully."""
         controller.is_connected = True
         controller.stop_animation = Mock()
-        
+
         result = controller.pulse(GamepadLEDColor.RED, duration=1.0, cycles=2)
-        
+
         assert result is True
         assert controller.animation_running is True
         assert controller.animation_thread is not None
@@ -184,9 +184,9 @@ class TestBaseGamepadLEDController:
     def test_pulse_not_connected(self, controller):
         """Test pulse animation when not connected."""
         controller.is_connected = False
-        
+
         result = controller.pulse(GamepadLEDColor.RED)
-        
+
         assert result is False
 
     def test_pulse_stop_existing_animation(self, controller):
@@ -194,23 +194,23 @@ class TestBaseGamepadLEDController:
         controller.is_connected = True
         controller.animation_running = True
         controller.stop_animation = Mock()
-        
+
         controller.pulse(GamepadLEDColor.RED)
-        
+
         controller.stop_animation.assert_called_once()
 
     def test_pulse_animation_thread(self, controller):
         """Test pulse animation thread execution."""
         controller.is_connected = True
         controller.set_color = Mock()
-        
+
         # Start pulse animation
         controller.pulse(GamepadLEDColor.RED, duration=0.1, cycles=1)
-        
+
         # Wait for animation to complete
         if controller.animation_thread:
             controller.animation_thread.join(timeout=1.0)
-        
+
         # Should have called set_color multiple times
         assert controller.set_color.call_count > 0
 
@@ -218,11 +218,11 @@ class TestBaseGamepadLEDController:
         """Test starting two-color pulse animation."""
         controller.is_connected = True
         controller.stop_animation = Mock()
-        
+
         result = controller.pulse_two_colors(
             GamepadLEDColor.RED, GamepadLEDColor.BLUE, duration=1.0, cycles=2
         )
-        
+
         assert result is True
         assert controller.animation_running is True
         assert controller.animation_thread is not None
@@ -230,18 +230,20 @@ class TestBaseGamepadLEDController:
     def test_pulse_two_colors_not_connected(self, controller):
         """Test two-color pulse when not connected."""
         controller.is_connected = False
-        
+
         result = controller.pulse_two_colors(GamepadLEDColor.RED, GamepadLEDColor.BLUE)
-        
+
         assert result is False
 
     def test_breathing_animation_success(self, controller):
         """Test starting breathing animation."""
         controller.is_connected = True
         controller.stop_animation = Mock()
-        
-        result = controller.breathing_animation(GamepadLEDColor.RED, duration=1.0, cycles=2)
-        
+
+        result = controller.breathing_animation(
+            GamepadLEDColor.RED, duration=1.0, cycles=2
+        )
+
         assert result is True
         assert controller.animation_running is True
         assert controller.animation_thread is not None
@@ -249,9 +251,9 @@ class TestBaseGamepadLEDController:
     def test_breathing_animation_not_connected(self, controller):
         """Test breathing animation when not connected."""
         controller.is_connected = False
-        
+
         result = controller.breathing_animation(GamepadLEDColor.RED)
-        
+
         assert result is False
 
     def test_stop_animation(self, controller):
@@ -260,9 +262,9 @@ class TestBaseGamepadLEDController:
         controller.animation_thread = Mock()
         controller.animation_thread.is_alive.return_value = True
         controller.animation_thread.join = Mock()
-        
+
         controller.stop_animation()
-        
+
         assert controller.animation_running is False
         controller.animation_thread.join.assert_called_once_with(timeout=1.0)
 
@@ -270,16 +272,16 @@ class TestBaseGamepadLEDController:
         """Test stopping animation when no thread exists."""
         controller.animation_running = True
         controller.animation_thread = None
-        
+
         # Should not raise exception
         controller.stop_animation()
-        
+
         assert controller.animation_running is False
 
     def test_get_available_colors(self, controller):
         """Test getting available colors."""
         colors = controller.get_available_colors()
-        
+
         assert isinstance(colors, dict)
         assert "RED" in colors
         assert "GREEN" in colors
@@ -291,7 +293,7 @@ class TestBaseGamepadLEDController:
         """Test checking availability."""
         controller.is_connected = True
         assert controller.is_available() is True
-        
+
         controller.is_connected = False
         assert controller.is_available() is False
 
@@ -306,9 +308,9 @@ class TestBaseGamepadLEDController:
         controller.stop_animation = Mock()
         controller.turn_off = Mock()
         controller._cleanup_internal = Mock()
-        
+
         controller.cleanup()
-        
+
         controller.stop_animation.assert_called_once()
         controller.turn_off.assert_called_once()
         controller._cleanup_internal.assert_called_once()
@@ -319,10 +321,12 @@ class TestBaseGamepadLEDController:
         controller.is_connected = True
         controller.stop_animation = Mock()
         controller.turn_off = Mock()  # Don't raise exception here
-        controller._cleanup_internal = Mock(side_effect=Exception("Test error"))  # Raise exception here
-        
+        controller._cleanup_internal = Mock(
+            side_effect=Exception("Test error")
+        )  # Raise exception here
+
         controller.cleanup()
-        
+
         assert "Error during LED controller cleanup: Test error" in caplog.text
         controller._cleanup_internal.assert_called_once()
         assert controller.is_connected is False
@@ -333,9 +337,9 @@ class TestBaseGamepadLEDController:
         controller.stop_animation = Mock()
         controller.turn_off = Mock()
         controller._cleanup_internal = Mock()
-        
+
         controller.cleanup()
-        
+
         controller.stop_animation.assert_called_once()
         controller.turn_off.assert_not_called()
         controller._cleanup_internal.assert_not_called()
@@ -349,11 +353,11 @@ class TestBaseGamepadLEDController:
         """Test that brightness is properly applied to colors."""
         controller.is_connected = True
         controller.brightness = 0.5
-        
+
         # Mock the internal method to capture the actual RGB values
-        with patch.object(controller, '_set_color_internal') as mock_internal:
+        with patch.object(controller, "_set_color_internal") as mock_internal:
             controller.set_color(GamepadLEDColor.RED)
-            
+
             # RED = (255, 0, 0), with 0.5 brightness = (127, 0, 0)
             mock_internal.assert_called_once_with(127, 0, 0)
 
@@ -361,10 +365,10 @@ class TestBaseGamepadLEDController:
         """Test that brightness is properly applied to RGB values."""
         controller.is_connected = True
         controller.brightness = 0.5
-        
-        with patch.object(controller, '_set_color_internal') as mock_internal:
+
+        with patch.object(controller, "_set_color_internal") as mock_internal:
             controller.set_color_rgb((200, 100, 50))
-            
+
             # With 0.5 brightness = (100, 50, 25)
             mock_internal.assert_called_once_with(100, 50, 25)
 
@@ -372,44 +376,50 @@ class TestBaseGamepadLEDController:
         """Test that RGB values are properly clamped."""
         controller.is_connected = True
         controller.brightness = 1.0
-        
-        with patch.object(controller, '_set_color_internal') as mock_internal:
+
+        with patch.object(controller, "_set_color_internal") as mock_internal:
             # Test values that would exceed 255 after brightness application
             controller.set_color(GamepadLEDColor.WHITE, brightness=2.0)
-            
+
             # Should be clamped to 255
             mock_internal.assert_called_once_with(255, 255, 255)
 
     def test_animation_thread_naming(self, controller):
         """Test that animation threads are properly named."""
         controller.is_connected = True
-        
+
         # Test pulse animation thread naming
         controller.pulse(GamepadLEDColor.RED, duration=0.01, cycles=1)
         if controller.animation_thread:
             controller.animation_thread.join(timeout=1.0)
-            assert controller.animation_thread.name.startswith("GamepadLEDPulseAnimation")
-        
+            assert controller.animation_thread.name.startswith(
+                "GamepadLEDPulseAnimation"
+            )
+
         # Test two-color pulse animation thread naming
-        controller.pulse_two_colors(GamepadLEDColor.RED, GamepadLEDColor.BLUE, duration=0.01, cycles=1)
+        controller.pulse_two_colors(
+            GamepadLEDColor.RED, GamepadLEDColor.BLUE, duration=0.01, cycles=1
+        )
         if controller.animation_thread:
             controller.animation_thread.join(timeout=1.0)
-            assert controller.animation_thread.name.startswith("GamepadLEDTwoColorPulseAnimation")
+            assert controller.animation_thread.name.startswith(
+                "GamepadLEDTwoColorPulseAnimation"
+            )
 
     def test_animation_stop_condition(self, controller):
         """Test that animations stop when animation_running is False."""
         controller.is_connected = True
         controller.set_color = Mock()
-        
+
         # Start a short animation
         controller.pulse(GamepadLEDColor.RED, duration=1.0, cycles=0)  # Infinite cycles
-        
+
         # Stop it immediately
         controller.stop_animation()
-        
+
         # Wait a bit to ensure it stopped
         time.sleep(0.1)
-        
+
         # The animation should have stopped
         assert not controller.animation_running
 
@@ -417,40 +427,43 @@ class TestBaseGamepadLEDController:
         """Test that animations respect cycle limits."""
         controller.is_connected = True
         controller.set_color = Mock()
-        
+
         # Start animation with limited cycles
         controller.pulse(GamepadLEDColor.RED, duration=0.01, cycles=2)
-        
+
         # Wait for completion
         if controller.animation_thread:
             controller.animation_thread.join(timeout=2.0)  # Give more time
-        
+
         # Wait a bit more to ensure animation_running is updated
         import time
+
         time.sleep(0.2)  # Give more time for the animation to complete
-        
+
         # Should have stopped after 2 cycles
         # If still running, force stop it
         if controller.animation_running:
             controller.stop_animation()
-        
+
         assert not controller.animation_running
 
     def test_pulse_two_colors_interpolation(self, controller):
         """Test that two-color pulse properly interpolates between colors."""
         controller.is_connected = True
         controller.set_color_rgb = Mock()
-        
+
         # Start two-color animation
-        controller.pulse_two_colors(GamepadLEDColor.RED, GamepadLEDColor.BLUE, duration=0.01, cycles=1)
-        
+        controller.pulse_two_colors(
+            GamepadLEDColor.RED, GamepadLEDColor.BLUE, duration=0.01, cycles=1
+        )
+
         # Wait for completion
         if controller.animation_thread:
             controller.animation_thread.join(timeout=1.0)
-        
+
         # Should have called set_color_rgb multiple times with interpolated values
         assert controller.set_color_rgb.call_count > 0
-        
+
         # Check that interpolation happened (values between RED and BLUE)
         calls = controller.set_color_rgb.call_args_list
         for call_args in calls:

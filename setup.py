@@ -18,7 +18,9 @@ long_description = (this_directory / "README.md").read_text()
 # Read requirements
 requirements = []
 with open("requirements.txt", "r") as f:
-    requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    requirements = [
+        line.strip() for line in f if line.strip() and not line.startswith("#")
+    ]
 
 setup(
     name="hexapod-voice-control",
@@ -49,10 +51,21 @@ setup(
         "Topic :: Multimedia :: Sound/Audio :: Speech",
     ],
     keywords=[
-        "raspberry-pi", "machine-learning", "robotics", "embedded-systems",
-        "hexapod", "voice-control", "keyword-spotting", "beamforming",
-        "microphone-array", "doa", "odas", "acoustic-scene-classification",
-        "sound-source-localization", "human-machine-interaction", "computer-aud"
+        "raspberry-pi",
+        "machine-learning",
+        "robotics",
+        "embedded-systems",
+        "hexapod",
+        "voice-control",
+        "keyword-spotting",
+        "beamforming",
+        "microphone-array",
+        "doa",
+        "odas",
+        "acoustic-scene-classification",
+        "sound-source-localization",
+        "human-machine-interaction",
+        "computer-aud",
     ],
     python_requires=">=3.12",
     install_requires=requirements,
@@ -88,7 +101,10 @@ setup(
         ],
     },
     data_files=[
-        ("share/hexapod", ["README.md", "requirements.txt", "INSTALL.md", "DEPLOYMENT.md"]),
+        (
+            "share/hexapod",
+            ["README.md", "requirements.txt", "INSTALL.md", "DEPLOYMENT.md"],
+        ),
         ("share/hexapod/docs", ["docs/README.md"]),
     ],
     zip_safe=False,

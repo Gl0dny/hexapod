@@ -526,7 +526,6 @@ class IntentDispatcher:
         """
         self.task_interface.helix()
 
-
     @handler
     def handle_hello(self, slots: Dict[str, Any]) -> None:
         """
