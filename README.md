@@ -167,9 +167,11 @@ The hexapod operates through a sophisticated voice control system that processes
 
 #### System Status
 *"Hexapod, what's your status?/show status" - System health and status reporting*
+![System Status](assets/system_status_example.png)
 
 #### Help
-*"Hexapod, show commands/help" - Display list of available commands*
+*"Hexapod, show commands/help" - Display list of available commands. All voice commands are defined in [intent.yml](hexapod/kws/rhino/intent.yml)*  
+
 
 #### Wake Up
 ![Wake Up](assets/gifs/wake_up.gif)
@@ -201,7 +203,7 @@ The hexapod operates through a sophisticated voice control system that processes
 - Custom wake word detection ("Hexapod")
 - Natural language command processing
 - Multi-intent handling for complex command processing
-   - Context-aware command interpretation
+- Context-aware command interpretation
 - Support for movement, gait control, and system commands
 
 ### Spatial Audio Processing
@@ -228,6 +230,13 @@ The hexapod operates through a sophisticated voice control system that processes
 - Real-time sound source localization visualization through LED patterns
 - Color-coded system status and error indication
 - Brightness control and color customization (RGB based)
+
+## Logging System & Terminal Feedback
+
+The hexapod system provides comprehensive real-time feedback through a structured logging system that displays system status, voice command processing, and operational information directly in the terminal.
+
+Example:
+![Terminal Logging Example](assets/terminal_logging_example.png)
 
 ## Performance Characteristics
 
