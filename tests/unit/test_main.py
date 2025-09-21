@@ -19,6 +19,16 @@ from hexapod.robot import PredefinedPosition
 class TestShutdownCallback:
     """Test cases for shutdown_callback function."""
     
+    def setup_method(self):
+        """Setup method to ensure clean state before each test."""
+        from hexapod.main import shutdown_event
+        shutdown_event.clear()
+    
+    def teardown_method(self):
+        """Teardown method to ensure clean state after each test."""
+        from hexapod.main import shutdown_event
+        shutdown_event.clear()
+    
     def test_shutdown_callback_sets_event(self):
         """Test that shutdown_callback sets the shutdown event."""
         # Reset the event before test
@@ -364,13 +374,24 @@ class TestInitializeManualController:
 class TestRunMainLoop:
     """Test cases for run_main_loop function."""
     
+    def setup_method(self):
+        """Setup method to ensure clean state before each test."""
+        from hexapod.main import shutdown_event
+        shutdown_event.clear()
+    
+    def teardown_method(self):
+        """Teardown method to ensure clean state after each test."""
+        from hexapod.main import shutdown_event
+        shutdown_event.clear()
+    
     def test_run_main_loop_with_shutdown_event(self):
         """Test main loop with shutdown event triggered."""
         mock_voice_control = Mock()
         mock_manual_controller = Mock()
         mock_task_interface = Mock()
         
-        # Set shutdown event
+        # Set the global shutdown event
+        from hexapod.main import shutdown_event
         shutdown_event.set()
         
         with patch('hexapod.main.shutdown_cleanup') as mock_cleanup, \
@@ -388,14 +409,19 @@ class TestRunMainLoop:
         mock_manual_controller.current_mode = mock_manual_controller.VOICE_CONTROL_MODE
         mock_task_interface = Mock()
         
-        # Clear shutdown event
+        # Clear the global shutdown event
+        from hexapod.main import shutdown_event
         shutdown_event.clear()
         
         with patch('hexapod.main.handle_button_interactions') as mock_handle_buttons, \
-             patch('hexapod.main.time.sleep') as mock_sleep, \
-             patch('hexapod.main.shutdown_event') as mock_shutdown_event:
+             patch('hexapod.main.time.sleep') as mock_sleep:
             
-            mock_shutdown_event.is_set.side_effect = [False, True]  # Exit after one iteration
+            # Use side_effect to control the loop and exit after one iteration
+            def side_effect(*args, **kwargs):
+                shutdown_event.set()  # Set the event to exit the loop
+                return None
+            
+            mock_sleep.side_effect = side_effect
             
             run_main_loop(mock_voice_control, mock_manual_controller, mock_task_interface)
             
@@ -409,13 +435,19 @@ class TestRunMainLoop:
         mock_manual_controller.current_mode = "other_mode"
         mock_task_interface = Mock()
         
+        # Clear the global shutdown event
+        from hexapod.main import shutdown_event
         shutdown_event.clear()
         
         with patch('hexapod.main.handle_button_interactions') as mock_handle_buttons, \
-             patch('hexapod.main.time.sleep') as mock_sleep, \
-             patch('hexapod.main.shutdown_event') as mock_shutdown_event:
+             patch('hexapod.main.time.sleep') as mock_sleep:
             
-            mock_shutdown_event.is_set.side_effect = [False, True]  # Exit after one iteration
+            # Use side_effect to control the loop and exit after one iteration
+            def side_effect(*args, **kwargs):
+                shutdown_event.set()  # Set the event to exit the loop
+                return None
+            
+            mock_sleep.side_effect = side_effect
             
             run_main_loop(mock_voice_control, mock_manual_controller, mock_task_interface)
             
@@ -427,13 +459,19 @@ class TestRunMainLoop:
         mock_voice_control = Mock()
         mock_task_interface = Mock()
         
+        # Clear the global shutdown event
+        from hexapod.main import shutdown_event
         shutdown_event.clear()
         
         with patch('hexapod.main.handle_button_interactions') as mock_handle_buttons, \
-             patch('hexapod.main.time.sleep') as mock_sleep, \
-             patch('hexapod.main.shutdown_event') as mock_shutdown_event:
+             patch('hexapod.main.time.sleep') as mock_sleep:
             
-            mock_shutdown_event.is_set.side_effect = [False, True]  # Exit after one iteration
+            # Use side_effect to control the loop and exit after one iteration
+            def side_effect(*args, **kwargs):
+                shutdown_event.set()  # Set the event to exit the loop
+                return None
+            
+            mock_sleep.side_effect = side_effect
             
             run_main_loop(mock_voice_control, None, mock_task_interface)
             
@@ -448,6 +486,8 @@ class TestRunMainLoop:
         mock_manual_controller = Mock()
         mock_task_interface = Mock()
         
+        # Clear the global shutdown event
+        from hexapod.main import shutdown_event
         shutdown_event.clear()
         
         with patch('hexapod.main.shutdown_cleanup') as mock_cleanup, \
@@ -469,14 +509,14 @@ class TestRunMainLoop:
         mock_manual_controller = Mock()
         mock_task_interface = Mock()
         
+        # Clear the global shutdown event
+        from hexapod.main import shutdown_event
         shutdown_event.clear()
         
         with patch('hexapod.main.shutdown_cleanup') as mock_cleanup, \
-             patch('hexapod.main.time.sleep') as mock_sleep, \
-             patch('hexapod.main.shutdown_event') as mock_shutdown_event:
+             patch('hexapod.main.time.sleep') as mock_sleep:
             
             # Simulate an exception that doesn't trigger cleanup
-            mock_shutdown_event.is_set.return_value = False
             mock_sleep.side_effect = Exception("Test exception")
             
             # The exception should be caught and cleanup should still happen

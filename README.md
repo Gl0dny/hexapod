@@ -540,13 +540,14 @@ The documentation covers:
 
 ## Testing & Code Quality
 
-This repository includes a unit test suite with **90% overall code coverage** across the entire codebase. The test suite was generated using AI-assisted development to ensure thorough validation of all system components.
+This repository includes a comprehensive unit test suite with **93% overall code coverage** across the entire codebase. The test suite was generated using AI-assisted development to ensure thorough validation of all system components.
 
 ### Test Suite Overview
 
-- **Total Test Files**: 60 test files
-- **Total Test Functions**: 1746 individual test cases
-- **Overall Code Coverage**: 90% (6,297 of 6,297 statements covered)
+- **Total Test Files**: 78 test files
+- **Total Test Functions**: 1,786 individual test cases
+- **Overall Code Coverage**: 93% (5,819 of 6,227 statements covered)
+- **Test Status**: 1,786 passed
 
 ### Test Architecture
 
@@ -592,6 +593,17 @@ Detailed coverage reports are automatically generated and available in multiple 
 - **HTML Report**: `tests/reports/html/index.html` - Interactive web-based coverage report
 - **XML Report**: `tests/reports/coverage.xml` - Machine-readable format for CI/CD
 - **JSON Report**: `tests/reports/coverage.json` - Structured data format
+
+### Type Checking with MyPy
+
+The project uses **MyPy** for static type checking to ensure code quality and catch type-related errors early in development.
+
+#### Current Project State
+
+```bash
+$ mypy hexapod/
+Success: no issues found in 83 source files
+```
 
 ## License
 
