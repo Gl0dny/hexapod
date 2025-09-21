@@ -4,6 +4,8 @@ colorzero==2.0
 cryptography==45.0.5
 gpiozero==2.0.1
 icm20948==1.0.0
+llvmlite
+numba
 numpy==2.3.1
 paramiko==3.5.1
 picovoice==3.0.4
@@ -17,6 +19,7 @@ PyNaCl==1.5.0
 pyserial==3.5
 PyYAML==6.0.2
 python-dotenv==1.0.0
+resampy
 RPi.GPIO==0.7.1
 setuptools==80.9.0
 smbus2==0.5.0

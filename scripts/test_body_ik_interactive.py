@@ -12,13 +12,13 @@ Usage:
 import sys
 from pathlib import Path
 
-# Add the src directory to the path so we can import our modules
+# Add the project root to the path so we can import hexapod modules
 SCRIPT_DIR = Path(__file__).resolve().parent
-SRC_DIR = (SCRIPT_DIR.parent.parent / "src").resolve()
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
+PROJECT_ROOT = SCRIPT_DIR.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from robot import Hexapod, PredefinedPosition
+from hexapod.robot import Hexapod, PredefinedPosition
 
 
 class InteractiveHexapodController:

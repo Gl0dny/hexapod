@@ -95,107 +95,107 @@ The hexapod operates through a sophisticated voice control system that processes
 
 #### Walk
 ![Walk](assets/gifs/walk.gif)
-*"Hexapod, walk/move [direction] [for X seconds/minutes/cycles]" - Omnidirectional movement in 8 directions: forward, backward, left, right, forward left, forward right, backward left, backward right. Supports time-based (seconds/minutes) or cycle-based movement*
+*"Hexapod, walk/move [direction] [for X seconds/minutes/cycles]"* - Omnidirectional movement in 8 directions: forward, backward, left, right, forward left, forward right, backward left, backward right. Supports time-based (seconds/minutes) or cycle-based movement
 
 #### Rotate
 ![Rotate](assets/gifs/rotate.gif)
-*"Hexapod, rotate/turn [clockwise/counterclockwise] [for X seconds/minutes/cycles]" - Smooth rotation in both directions using inverse kinematics. Supports time-based (seconds/minutes) or cycle-based rotation*
+*"Hexapod, rotate/turn [clockwise/counterclockwise] [for X seconds/minutes/cycles]"* - Smooth rotation in both directions using inverse kinematics. Supports time-based (seconds/minutes) or cycle-based rotation
 
 #### March in Place
 ![March in Place](assets/gifs/march_in_place.gif)
-*"Hexapod, march in place/step in place [for X seconds/minutes]" - In-place marching demonstration with optional duration control*
+*"Hexapod, march in place/step in place [for X seconds/minutes]"* - In-place marching demonstration with optional duration control
 
 #### Idle Stance
-*"Hexapod, go to idle stance/neutral position" - Return to neutral default position*
+*"Hexapod, go to idle stance/neutral position"* - Return to neutral default position
 
 ### Entertainment Commands
 
 #### Sit Up
 ![Sit Up](assets/gifs/sit_up.gif)
-*"Hexapod, make some sit ups/do sit ups" - Dynamic sit-up exercise routine*
+*"Hexapod, make some sit ups/do sit ups"* - Dynamic sit-up exercise routine
 
 #### Say Hello
 ![Say Hello](assets/gifs/say_hello.gif)
-*"Hexapod, say hello/wave" - Friendly greeting gesture with leg movement*
+*"Hexapod, say hello/wave"* - Friendly greeting gesture with leg movement
 
 #### Helix
 ![Helix](assets/gifs/helix.gif)
-*"Hexapod, helix/spiral" - Helical movement pattern*
-
-### Light Commands
-
-#### Police Lights
-![Police Lights](assets/gifs/police_lights.gif)
-*"Hexapod, activate police mode/police lights" - Police-style flashing lights*
-
-#### Rainbow Lights
-![Rainbow Lights](assets/gifs/rainbow_lights.gif)
-*"Hexapod, activate rainbow/rainbow mode" - Rainbow color sequence*
-
-#### Change Color
-![Change Color](assets/gifs/change_color.gif)
-*"Hexapod, change color/set color to [blue/red/green/etc.]" - Change LED color to specified color from 13 available colors*
-
-#### Turn Lights On/Off
-*"Hexapod, turn lights/turn on lights [on/off]" - Control LED power state*
-
-#### Set Brightness
-*"Hexapod, set brightness/adjust brightness to X%" - Adjust LED brightness from 0-100%*
+*"Hexapod, helix/spiral"* - Helical movement pattern
 
 ### Audio Commands
 
 #### Sound Source Localization
 ![Sound Source Localization](assets/gifs/odas.gif)
-*"Hexapod, run sound source localization/analyze sounds" - Analyze environment for sound sources*
+*"Hexapod, run sound source localization/analyze sounds"* - Analyze environment for sound sources
 
 ![ODAS Studio](assets/gifs/odas_studio.gif)
 
 #### Sound Source Following
-*"Hexapod, follow me/track me" - Audio-based target following using ODAS*
+*"Hexapod, follow me/track me"* - Audio-based target following using ODAS
 
 #### Stream ODAS Audio
-*"Hexapod, stream ODAS audio" - Stream processed audio from ODAS system to remote host*
+*"Hexapod, stream ODAS audio"* - Stream processed audio from ODAS system to remote host
 
 #### Start/Stop Recording
-*"Hexapod, start recording/begin recording [for X seconds/minutes]" / "Hexapod, stop recording/end recording" - Begin/end audio recording with optional duration control*
+*"Hexapod, start recording/begin recording [for X seconds/minutes]"* / *"Hexapod, stop recording/end recording"* - Begin/end audio recording with optional duration control
+
+### Light Commands
+
+#### Police Lights
+![Police Lights](assets/gifs/police_lights.gif)
+*"Hexapod, activate police mode/police lights"* - Police-style flashing lights
+
+#### Rainbow Lights
+![Rainbow Lights](assets/gifs/rainbow_lights.gif)
+*"Hexapod, activate rainbow/rainbow mode"* - Rainbow color sequence
+
+#### Change Color
+![Change Color](assets/gifs/change_color.gif)
+*"Hexapod, change color/set color to [blue/red/green/etc.]"* - Change LED color to specified color from 13 available colors
+
+#### Turn Lights On/Off
+*"Hexapod, turn lights/turn on lights [on/off]"* - Control LED power state
+
+#### Set Brightness
+*"Hexapod, set brightness/adjust brightness to X%"* - Adjust LED brightness from 0-100%
 
 ### System Commands
 
 #### Calibrate
 ![Calibrate](assets/gifs/calibrate.gif)
-*"Hexapod, calibrate servos/calibrate" - Servo calibration and position setup*
+*"Hexapod, calibrate servos/calibrate"* - Servo calibration and position setup
 
 #### System Status
-*"Hexapod, what's your status?/show status" - System health and status reporting*
+*"Hexapod, what's your status?/show status"* - System health and status reporting
 ![System Status](assets/system_status_example.png)
 
 #### Help
-*"Hexapod, show commands/help" - Display list of available commands. All voice commands are defined in [intent.yml](hexapod/kws/rhino/intent.yml)*  
+*"Hexapod, show commands/help"* - Display list of available commands. All voice commands are defined in [intent.yml](hexapod/kws/rhino/intent.yml)  
 
 
 #### Wake Up
 ![Wake Up](assets/gifs/wake_up.gif)
-*"Hexapod, wake up/activate" - Activate the system from sleep mode*
+*"Hexapod, wake up/activate"* - Activate the system from sleep mode
 
 #### Sleep
 ![Sleep](assets/gifs/sleep.gif)
-*"Hexapod, go to sleep/sleep" - Put system into sleep mode*
+*"Hexapod, go to sleep/sleep"* - Put system into sleep mode
 
 #### Stop
-*"Hexapod, stop/halt" - Immediately stop current task or movement*
+*"Hexapod, stop/halt"* - Immediately stop current task or movement
 
 #### Repeat Last Command
-*"Hexapod, repeat last command/do it again" - Execute the previous command again*
+*"Hexapod, repeat last command/do it again"* - Execute the previous command again
 
 #### Set Speed
-*"Hexapod, set speed/adjust speed to X%" - Adjust movement speed from 0-100%*
+*"Hexapod, set speed/adjust speed to X%"* - Adjust movement speed from 0-100%
 
 #### Set Acceleration
-*"Hexapod, set acceleration/adjust acceleration to X%" - Adjust movement acceleration from 0-100%*
+*"Hexapod, set acceleration/adjust acceleration to X%"* - Adjust movement acceleration from 0-100%
 
 #### Shut Down
 ![Shut Down](assets/gifs/shut_down.gif)
-*"Hexapod, shut down/power off" - Safely power down the entire system with countdown timer and LED indication*
+*"Hexapod, shut down/power off"* - Safely power down the entire system with countdown timer and LED indication
 
 ## Key Features
 
@@ -217,7 +217,7 @@ The hexapod operates through a sophisticated voice control system that processes
 - Automatic audio source separation and tracking
 
 ### Intelligent Movement
-   - 18-degree-of-freedom movement (3 DOF per leg)
+- 18-degree-of-freedom movement (3 DOF per leg)
 - Multiple gait patterns (tripod, wave, custom)
 - IMU-based stability control
 - Circle-based targeting for direction-independent movement

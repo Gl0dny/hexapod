@@ -8,7 +8,6 @@ This directory contains interactive scripts and demos for testing and demonstrat
 - `test_body_ik_interactive.py` - Interactive body inverse kinematics testing
 - `test_gait_generator.py` - Gait generation demonstration
 - `test_gait.py` - Gait pattern testing
-- `test_joint.py` - Joint movement testing
 - `test_leg_workspace.py` - Leg workspace analysis
 
 ### Voice Control Testing

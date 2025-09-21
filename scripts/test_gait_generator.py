@@ -8,13 +8,14 @@ import sys
 import time
 from pathlib import Path
 
-# Add the src directory to the Python path
-# Add the src directory to the Python path
-src_path = str(Path(__file__).parent.parent.parent / "src")
-sys.path.append(src_path)
+# Add the project root to the path so we can import hexapod modules
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from robot import Hexapod, PredefinedPosition
-from gait_generator import TripodGait
+from hexapod.robot import Hexapod, PredefinedPosition
+from hexapod.gait_generator import TripodGait
 
 
 def main():
