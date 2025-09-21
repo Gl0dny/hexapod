@@ -144,13 +144,14 @@ The hexapod operates through a sophisticated voice control system that processes
 
 ### Audio Commands
 
-#### Sound Source Following
-![Sound Following](assets/gifs/sound_following.gif)
-*"Hexapod, follow me/track me" - Audio-based target following using ODAS*
-
 #### Sound Source Localization
 ![Sound Source Localization](assets/gifs/odas.gif)
 *"Hexapod, run sound source localization/analyze sounds" - Analyze environment for sound sources*
+
+![ODAS Studio](assets/gifs/odas_studio.gif)
+
+#### Sound Source Following
+*"Hexapod, follow me/track me" - Audio-based target following using ODAS*
 
 #### Stream ODAS Audio
 *"Hexapod, stream ODAS audio" - Stream processed audio from ODAS system to remote host*
