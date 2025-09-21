@@ -27,8 +27,8 @@ def main():
     )
 
     # Initialize hexapod
-    config_path = Path("src/robot/config/hexapod_config.yaml")
-    calibration_path = Path("src/robot/config/calibration.json")
+    config_path = PROJECT_ROOT / "hexapod" / "robot" / "config" / "hexapod_config.yaml"
+    calibration_path = PROJECT_ROOT / "hexapod" / "robot" / "config" / "calibration.json"
 
     print("\nInitializing hexapod...")
     hexapod = Hexapod(config_path=config_path, calibration_data_path=calibration_path)
@@ -87,7 +87,7 @@ def main():
 
         # Example: Start gait movement
         print("Starting gait movement...")
-        hexapod.gait_generator.start(gait)
+        hexapod.gait_generator.start()
         time.sleep(30.0)  # Run for 3 seconds
         hexapod.gait_generator.stop()
         print("✓ Stopped gait movement")
