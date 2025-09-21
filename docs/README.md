@@ -71,6 +71,7 @@ hexapod/
 │       ├── utils.py                          # Core utilities
 │       ├── audio/                            # Audio utilities
 │       └── visualization/                    # Visualization tools
+├── scripts/                                  # Interactive testing and demonstration scripts
 ├── tests/                                    # Test suite
 ├── main.py                                   # Main application entry point
 ├── pytest.ini                                # Test configuration
@@ -92,6 +93,7 @@ hexapod/
 - **`hexapod/robot/`** - Core movement control, kinematics, and servo management
 - **`hexapod/task_interface/`** - Central task coordination and voice control management
 - **`hexapod/utils/`** - Shared utilities and helper functions
+- **`scripts/`** - Interactive testing and demonstration scripts
 - **`tests/`** - Comprehensive test suite for all components
 
 ## Complete Documentation Index

@@ -3,6 +3,7 @@ source = hexapod
 omit = 
     */tests/*
     */test_*
+    */scripts/*
     */__pycache__/*
     */venv/*
     */env/*
