@@ -17,7 +17,7 @@
 
 ## Overview
 
-The Robot Movement System is the core locomotion engine for the hexapod robot. It manages all aspects of movement from basic servo control to complex gait patterns, inverse kinematics calculations, and balance compensation. The system provides a comprehensive framework for controlling 18 servo motors across 6 legs to achieve smooth, stable, and intelligent movement.
+The Robot Movement System is the core locomotion engine for the hexapod robot. It manages all aspects of movement from basic servo control to complex gait patterns and inverse kinematics calculations. The system provides a comprehensive framework for controlling 18 servo motors across 6 legs to achieve smooth, stable, and intelligent movement.
 
 ## System Architecture
 
@@ -43,7 +43,6 @@ graph TB
         
         subgraph "Hardware Integration"
             MU[Maestro UART<br/>• Servo Communication<br/>• Real-time Control<br/>• Safety Management]
-            BC[Balance Compensator<br/>• IMU Integration<br/>• Stability Control<br/>• Fall Prevention]
         end
     end
     
@@ -207,7 +206,6 @@ flowchart LR
 ### **Sensor Integration**
 
 - **ICM-20948 IMU**: 9-axis inertial measurement unit
-- **Balance Compensation**: IMU-based stability control
 - **Position Feedback**: Real-time position and angle tracking
 - **Safety Monitoring**: Continuous stability assessment
 

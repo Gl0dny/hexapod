@@ -38,7 +38,6 @@ The hexapod robot is designed to be an intelligent, interactive companion that c
 
 ### 2. **Intelligent Movement**
 - Walk in any direction using sophisticated gait algorithms
-- Rotate and maintain balance using IMU-based stability control
 - Execute complex movement patterns and routines
 - Precise positioning using inverse kinematics
 
@@ -148,7 +147,7 @@ flowchart LR
 
 ### **Sensors and Input**
 - **6-Microphone Array**: Spatial audio processing and sound localization
-- **ICM-20948 IMU**: 9-axis inertial measurement unit for balance and orientation
+- **ICM-20948 IMU**: 9-axis inertial measurement unit for orientation tracking
 - **GPIO Button**: Physical button for system control and emergency stop
 - **DualSense Controller**: Wireless gamepad for manual control
 
@@ -198,7 +197,7 @@ flowchart LR
 ### **Hardware Integration**
 - **Maestro UART**: Servo control and communication
 - **Lights Handler**: LED control and animation management
-- **IMU Integration**: Balance compensation and orientation tracking
+- **IMU Integration**: Orientation tracking and sensor data
 - **Sensor Management**: Multi-sensor data fusion and processing
 
 ## Control Modes

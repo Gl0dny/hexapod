@@ -15,7 +15,7 @@
 
 ## Overview
 
-The IMU (Inertial Measurement Unit) system provides real-time sensor data for balance compensation and orientation tracking in the hexapod robot. The system uses the ICM-20948 9-DOF sensor to provide acceleration, gyroscope, magnetometer, and temperature data.
+The IMU (Inertial Measurement Unit) system provides real-time sensor data for orientation tracking in the hexapod robot. The system uses the ICM-20948 9-DOF sensor to provide acceleration, gyroscope, magnetometer, and temperature data.
 
 ## Hardware Specifications
 

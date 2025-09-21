@@ -10,8 +10,6 @@ except ImportError:
     # ButtonHandler is only available on Raspberry Pi
     ButtonHandler = None  # type: ignore
 
-from .balance_compensator import BalanceCompensator
-
 __all__ = [
     "Joint",
     "Leg",
@@ -21,5 +19,4 @@ __all__ = [
     "PredefinedPosition",
     "PredefinedAnglePosition",
     "ButtonHandler",
-    "BalanceCompensator",
 ]

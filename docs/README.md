@@ -56,7 +56,6 @@ hexapod/
 │   │   ├── leg.py                            # Individual leg control and positioning
 │   │   ├── joint.py                          # Joint management and servo control
 │   │   ├── calibration.py                    # Servo calibration system
-│   │   ├── balance_compensator.py            # IMU-based stability control
 │   │   └── sensors/                          # Sensor integration
 │   │       ├── imu.py                        # IMU data processing
 │   │       └── button_handler.py             # GPIO button control
