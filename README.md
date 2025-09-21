@@ -40,7 +40,7 @@ The hexapod operates through a sophisticated voice control system that processes
 ### System Phases
 
 #### 1. **Wake Word Detection Mode**
-![Wake Word Mode](assets/gifs/wake_word_mode.gif)
+![Wake Word Mode](assets/gifs/test.gif)
 *"Listening for 'Hexapod'..."* - System continuously monitors audio input for the wake word using Picovoice Porcupine engine. LEDs show pulsing animation (blue base with green pulse) during passive listening state.
 
 #### 2. **Intent Recognition Mode**
