@@ -657,18 +657,6 @@ class TestTaskInterface:
             mock_task_class.assert_called_once()
             mock_task.start.assert_called_once()
     
-    def test_show_off(self, task_interface):
-        """Test show off command."""
-        with patch('hexapod.task_interface.task_interface.tasks.ShowOffTask') as mock_task_class:
-            mock_task = MagicMock()
-            mock_task_class.return_value = mock_task
-            task_interface.task = mock_task
-            
-            task_interface.show_off()
-            
-            mock_task_class.assert_called_once()
-            mock_task.start.assert_called_once()
-    
     def test_say_hello(self, task_interface):
         """Test say hello command."""
         with patch('hexapod.task_interface.task_interface.tasks.SayHelloTask') as mock_task_class:
@@ -969,17 +957,6 @@ class TestTaskInterface:
             
             # Should not raise exception, just log it
             task_interface.helix()
-    
-    def test_show_off_exception(self, task_interface):
-        """Test show off command with exception."""
-        with patch('hexapod.task_interface.task_interface.tasks.ShowOffTask') as mock_task_class:
-            mock_task_class.side_effect = Exception("Show off error")
-            
-            # Set a mock task to satisfy the @task decorator
-            task_interface.task = MagicMock()
-            
-            # Should not raise exception, just log it
-            task_interface.show_off()
     
     def test_say_hello_exception(self, task_interface):
         """Test say hello command with exception."""

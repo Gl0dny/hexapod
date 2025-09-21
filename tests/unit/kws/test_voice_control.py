@@ -1111,11 +1111,6 @@ class TestIntentDispatcher:
             intent_dispatcher.handle_helix({})
             mock_logger.info.assert_called()
     
-    def test_handle_show_off(self, intent_dispatcher):
-        """Test show off intent handler."""
-        with patch('hexapod.kws.intent_dispatcher.logger') as mock_logger:
-            intent_dispatcher.handle_show_off({})
-            mock_logger.info.assert_called()
     
     def test_handle_hello(self, intent_dispatcher):
         """Test hello intent handler."""

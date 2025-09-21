@@ -938,33 +938,6 @@ class TaskInterface:
     @task_decorator
     @inject_lights_handler
     @inject_hexapod
-    def show_off(
-        self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
-    ) -> None:
-        """
-        Initiate the show-off routine.
-
-        Args:
-            hexapod (Hexapod): The hexapod instance.
-            lights_handler (LightsInteractionHandler): Handles lights activity.
-        """
-        try:
-            self.task = tasks.ShowOffTask(
-                hexapod,
-                lights_handler,
-                callback=lambda: (
-                    self._notify_task_completion(self.task)
-                    if self.task is not None
-                    else None
-                ),
-            )
-        except Exception as e:
-            logger.exception(f"Show-off task failed: {e}")
-
-    @voice_command
-    @task_decorator
-    @inject_lights_handler
-    @inject_hexapod
     def say_hello(
         self, hexapod: Hexapod, lights_handler: LightsInteractionHandler
     ) -> None:

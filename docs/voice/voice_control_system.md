@@ -159,7 +159,6 @@ flowchart LR
 
 - **`sit_up`**: Perform sit-up motion
 - **`helix`**: Perform helix maneuver
-- **`show_off`**: Run demonstration routine
 - **`hello`**: Execute greeting sequence
 
 ### **Recording Commands**

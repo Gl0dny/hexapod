@@ -170,7 +170,6 @@ All tasks inherit from the abstract `Task` class which provides:
 
 - **`sit_up()`**: Perform sit-up motion
 - **`helix()`**: Execute helix maneuver
-- **`show_off()`**: Run demonstration routine
 - **`say_hello()`**: Execute greeting sequence
 
 ### Light Commands

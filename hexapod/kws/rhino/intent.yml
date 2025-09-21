@@ -88,8 +88,6 @@ context:
       - "(Start, Begin, Perform) marching (for) $pv.TwoDigitInteger:march_time $time_unit:time_unit"
     helix:
       - "[Helix, Spiral]"
-    show_off:
-      - "[Show off, Let them see]"
     hello:
       - Say [hello, hi, hey]
       - Wave (hello, hi, hey) (your) (hand, leg)

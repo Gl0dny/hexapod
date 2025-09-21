@@ -131,13 +131,6 @@ flowchart LR
 - **Execution**: Spiral movement sequence
 - **Features**: Complex 3D movement patterns
 
-#### **ShowOffTask** (`hexapod/task_interface/tasks/show_off_task.py`)
-
-**Purpose**: Demonstration routine
-- **Parameters**: Lights handler for visual effects
-- **Execution**: Showcase movement sequence
-- **Features**: Impressive movement demonstrations
-
 #### **SayHelloTask** (`hexapod/task_interface/tasks/say_hello_task.py`)
 
 **Purpose**: Greeting sequence
@@ -164,7 +157,6 @@ flowchart LR
 
 - **`sit_up()`**: Perform sit-up motion
 - **`helix()`**: Execute helix maneuver
-- **`show_off()`**: Run demonstration routine
 - **`say_hello()`**: Execute greeting sequence
 
 ### **Control Commands**

@@ -68,7 +68,6 @@ class IntentDispatcher:
             "rainbow": self.handle_rainbow,
             "sit_up": self.handle_sit_up,
             "helix": self.handle_helix,
-            "show_off": self.handle_show_off,
             "hello": self.handle_hello,
             "start_recording": self.handle_start_recording,
             "stop_recording": self.handle_stop_recording,
@@ -527,15 +526,6 @@ class IntentDispatcher:
         """
         self.task_interface.helix()
 
-    @handler
-    def handle_show_off(self, slots: Dict[str, Any]) -> None:
-        """
-        Handle the 'show_off' intent.
-
-        Args:
-            slots (Dict[str, Any]): Additional data for the intent.
-        """
-        self.task_interface.show_off()
 
     @handler
     def handle_hello(self, slots: Dict[str, Any]) -> None:

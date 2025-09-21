@@ -55,7 +55,7 @@ The voice control interface provides hands-free control of the hexapod robot thr
 - **System Control**: help, system_status, shut_down, wake_up, sleep
 - **Movement**: move, rotate, march_in_place, idle_stance, stop
 - **Advanced**: follow, sound_source_localization, calibrate
-- **Entertainment**: sit_up, helix, show_off, say_hello
+- **Entertainment**: sit_up, helix, say_hello
 - **Recording**: start_recording, stop_recording
 - **Lights**: turn_lights, change_color, set_brightness
 

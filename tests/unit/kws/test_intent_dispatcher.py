@@ -30,7 +30,7 @@ class TestIntentDispatcher:
             "repeat", "turn_lights", "change_color", "set_brightness", "set_speed",
             "set_accel", "march_in_place", "idle_stance", "move", "stop", "rotate",
             "follow", "sound_source_localization", "stream_odas_audio", "police",
-            "rainbow", "sit_up", "helix", "show_off", "hello", "start_recording",
+            "rainbow", "sit_up", "helix", "hello", "start_recording",
             "stop_recording"
         ]
         for handler_name in expected_handlers:
@@ -346,11 +346,6 @@ class TestIntentDispatcher:
         dispatcher.handle_helix(slots)
         mock_task_interface.helix.assert_called_once()
     
-    def test_handle_show_off(self, dispatcher, mock_task_interface):
-        """Test handle_show_off method."""
-        slots = {}
-        dispatcher.handle_show_off(slots)
-        mock_task_interface.show_off.assert_called_once()
     
     def test_handle_hello(self, dispatcher, mock_task_interface):
         """Test handle_hello method."""

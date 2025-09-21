@@ -118,10 +118,6 @@ The hexapod operates through a sophisticated voice control system that processes
 ![Say Hello](assets/gifs/say_hello.gif)
 *"Hexapod, say hello/wave" - Friendly greeting gesture with leg movement*
 
-#### Show Off
-![Show Off](assets/gifs/show_off.gif)
-*"Hexapod, show off/demonstrate" - Demonstration routine showcasing capabilities*
-
 #### Helix
 ![Helix](assets/gifs/helix.gif)
 *"Hexapod, helix/spiral" - Helical movement pattern*
