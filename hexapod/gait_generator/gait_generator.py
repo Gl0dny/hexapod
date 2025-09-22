@@ -142,7 +142,7 @@ class GaitGenerator:
             return
 
         for leg_idx in state.swing_legs:
-            logger.debug(f"\nCalculating swing path for leg {leg_idx}")
+            logger.debug(f"Calculating swing path for leg {leg_idx}")
             swing_target = self.current_gait.calculate_leg_target(
                 leg_idx, is_swing=True
             )

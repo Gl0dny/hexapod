@@ -372,7 +372,7 @@ class BaseGait(ABC):
         projection_origin = Vector2D(0, 0)
 
         if self.rotation_input != 0:
-            logger.info(f"Rotation input detected: {self.rotation_input}")
+            logger.debug(f"Rotation input detected: {self.rotation_input} for leg {leg_index}")
             # Handle rotation movement
             # For rotation, all legs move in the same relative direction regardless of mounting angle
             if self.rotation_input > 0:  # Clockwise rotation
@@ -411,7 +411,7 @@ class BaseGait(ABC):
                         f"Stance leg {leg_index} rotation (half circle): move back to center (0,0). Projection: {projection_direction}, Origin: {projection_origin}"
                     )
         else:
-            logger.info(f"Translation input detected: {self.direction_input}")
+            logger.debug(f"Translation input detected: {self.direction_input} for leg {leg_index}")
             # Handle translation movement
             # Project the global movement direction into the leg's local coordinate system
             global_direction = self.direction_input

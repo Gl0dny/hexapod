@@ -62,7 +62,7 @@ class TaskInterface:
             pin=26, external_control_paused_event=self.external_control_paused_event
         )
         self.task_complete_callback: Optional[Callable[[Task], None]] = None
-        logger.debug("TaskInterface initialized successfully.")
+        logger.info("TaskInterface initialized successfully.")
 
     def request_pause_voice_control(self) -> None:
         """
@@ -71,7 +71,7 @@ class TaskInterface:
         """
         self.voice_control_paused_event.set()
         time.sleep(0.1)
-        logger.debug("Voice control pause requested")
+        logger.info("Voice control pause requested")
 
     def request_unpause_voice_control(self) -> None:
         """
@@ -80,7 +80,7 @@ class TaskInterface:
         """
         self.voice_control_paused_event.clear()
         time.sleep(0.1)
-        logger.debug("Voice control unpause requested")
+        logger.info("Voice control unpause requested")
 
     def request_block_voice_control_pausing(self) -> None:
         """
@@ -90,7 +90,7 @@ class TaskInterface:
         """
         self.external_control_paused_event.set()
         time.sleep(0.1)
-        logger.debug("Voice control pausing blocking requested")
+        logger.info("Voice control pausing blocking requested")
 
     def request_unblock_voice_control_pausing(self) -> None:
         """
@@ -100,7 +100,7 @@ class TaskInterface:
         """
         self.external_control_paused_event.clear()
         time.sleep(0.1)
-        logger.debug("Voice control pausing unblocking requested")
+        logger.info("Voice control pausing unblocking requested")
 
     @staticmethod
     def inject_hexapod(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -144,7 +144,7 @@ class TaskInterface:
         """
         if hasattr(self, "task") and self.task:
             try:
-                logger.debug(f"Stopping existing task {self.task}.")
+                logger.info(f"Stopping existing task {self.task}.")
 
                 # Check if this is a task that needs unpausing (ODAS tasks and calibration)
                 task_name = self.task.__class__.__name__
@@ -165,7 +165,7 @@ class TaskInterface:
             except Exception as e:
                 logger.exception(f"Error stopping task: {e}")
         else:
-            logger.debug("No active task to stop.")
+            logger.info("No active task to stop.")
 
     @staticmethod
     def task_decorator(method: Callable[..., Any]) -> Callable[..., Any]:
@@ -186,7 +186,7 @@ class TaskInterface:
 
         @wraps(method)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-            logger.debug(f"Starting task for method {method.__name__}.")
+            logger.info(f"Starting task for method {method.__name__}.")
             result = method(self, *args, **kwargs)
 
             if not hasattr(self, "task") or self.task is None:
@@ -557,7 +557,7 @@ class TaskInterface:
             lights_handler (LightsInteractionHandler): The lights handler instance.
             brightness_percentage (float): The brightness percentage to set.
         """
-        logger.debug(f"Setting brightness to {brightness_percentage}%.")
+        logger.info(f"Setting brightness to {brightness_percentage}%.")
         lights_handler.set_brightness(int(brightness_percentage))
         lights_handler.listen_wakeword()
 
@@ -577,7 +577,7 @@ class TaskInterface:
             hexapod (Hexapod): The hexapod instance.
             speed_percentage (float): The speed percentage to set.
         """
-        logger.debug(f"Setting speed to {speed_percentage}%.")
+        logger.info(f"Setting speed to {speed_percentage}%.")
         hexapod.set_all_servos_speed(int(speed_percentage))
         lights_handler.listen_wakeword()
 
@@ -597,7 +597,7 @@ class TaskInterface:
             hexapod (Hexapod): The hexapod instance.
             accel_percentage (float): The acceleration percentage to set.
         """
-        logger.debug(f"Setting acceleration to {accel_percentage}%.")
+        logger.info(f"Setting acceleration to {accel_percentage}%.")
         hexapod.set_all_servos_accel(int(accel_percentage))
         lights_handler.listen_wakeword()
 
@@ -649,7 +649,7 @@ class TaskInterface:
         try:
             hexapod.move_to_position(PredefinedPosition.ZERO)
             hexapod.wait_until_motion_complete()
-            logger.debug("Hexapod set to home position")
+            logger.info("Hexapod set to home position")
             lights_handler.listen_wakeword()
 
         except Exception as e:

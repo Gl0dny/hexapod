@@ -19,7 +19,6 @@ import sys
 
 from hexapod.odas.odas_audio_processor import ODASAudioProcessor
 
-
 def convert_odas_to_wav(
     input_file: Path,
     output_file: Path,

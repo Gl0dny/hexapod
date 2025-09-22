@@ -131,7 +131,7 @@ class Joint:
             angle (float): Target angle in degrees.
             check_custom_limits (bool): Whether to enforce angle limits.
         """
-        logger.info(
+        logger.debug(
             f"Setting angle to {angle}° with speed/accel set at hexapod level. Invert: {self.invert}"
         )
         if self.invert:
@@ -144,7 +144,7 @@ class Joint:
         logger.debug(f"Calculated servo target: {target}")
 
         self.controller.set_target(self.channel, target)
-        logger.info(f"Angle set to {angle}°, Servo target set to {target}.")
+        logger.debug(f"Angle set to {angle}°, Servo target set to {target}.")
 
     def angle_to_servo_target(self, angle: float) -> int:
         """

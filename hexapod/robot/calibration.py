@@ -92,7 +92,7 @@ class Calibration:
         self.hexapod.move_to_position(PredefinedPosition.LOW_PROFILE)
         self.hexapod.wait_until_motion_complete(stop_event=stop_event)
 
-        logger.debug("Starting calibration of all servos.")
+        logger.info("Starting calibration of all servos.")
         logger.debug(f"Calibration status: {self.status}")
         try:
             for i, leg in enumerate(self.hexapod.legs):

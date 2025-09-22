@@ -670,9 +670,7 @@ class Hexapod:
         Returns:
             bool: True if at least one servo is still moving, False otherwise.
         """
-        logger.debug("Querying moving state from Maestro controller")
         moving_state = self.controller.get_moving_state()
-        logger.debug(f"Moving state: {moving_state}")
         if moving_state == 0x01:
             return True
         else:

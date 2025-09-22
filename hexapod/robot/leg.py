@@ -196,8 +196,8 @@ class Leg:
         logger.debug(f"femur_angle_deg: {femur_angle_deg}")
         logger.debug(f"tibia_angle_deg: {tibia_angle_deg}")
 
-        logger.info(
-            f"Calculated angles - coxa_angle_deg: {coxa_angle_deg}, femur_angle_deg: {femur_angle_deg}, tibia_angle_deg: {tibia_angle_deg}"
+        logger.debug(
+            f"Calculated angles - coxa_angle_deg: {coxa_angle_deg}, femur_angle_deg: {femur_angle_deg}, tibia_angle_deg: {tibia_angle_deg} for position x: {x}, y: {y}, z: {z}"
         )
         return coxa_angle_deg, femur_angle_deg, tibia_angle_deg
 
