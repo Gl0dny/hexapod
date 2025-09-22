@@ -28,7 +28,9 @@ def main():
 
     # Initialize hexapod
     config_path = PROJECT_ROOT / "hexapod" / "robot" / "config" / "hexapod_config.yaml"
-    calibration_path = PROJECT_ROOT / "hexapod" / "robot" / "config" / "calibration.json"
+    calibration_path = (
+        PROJECT_ROOT / "hexapod" / "robot" / "config" / "calibration.json"
+    )
 
     print("\nInitializing hexapod...")
     hexapod = Hexapod(config_path=config_path, calibration_data_path=calibration_path)

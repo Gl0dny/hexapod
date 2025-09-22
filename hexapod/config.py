@@ -18,11 +18,11 @@ if TYPE_CHECKING:
 class Config:
     """
     Configuration manager for the hexapod system.
-    
+
     Manages configuration values from multiple sources including environment variables,
     .env files, and command line arguments. Provides validation and access to
     configuration values with proper error handling.
-    
+
     Attributes:
         _config (Dict[str, Any]): Internal dictionary storing configuration values
     """
@@ -51,12 +51,12 @@ class Config:
     def get(self, key: str, default: Any = None) -> Any:
         """
         Get a configuration value.
-        
+
         Args:
             key (str): The configuration key to retrieve
             default (Any, optional): Default value to return if key is not found.
                                    Defaults to None.
-        
+
         Returns:
             Any: The configuration value for the given key, or default if not found
         """
@@ -65,7 +65,7 @@ class Config:
     def set_value(self, key: str, value: Any) -> None:
         """
         Set a configuration value.
-        
+
         Args:
             key (str): The configuration key to set
             value (Any): The value to set for the given key
@@ -75,7 +75,7 @@ class Config:
     def update_from_args(self, args: argparse.Namespace) -> None:
         """
         Update configuration from command line arguments.
-        
+
         Args:
             args (argparse.Namespace): Parsed command line arguments containing
                                      configuration values to update
@@ -86,7 +86,7 @@ class Config:
     def validate(self) -> None:
         """
         Validate required configuration values.
-        
+
         Raises:
             ValueError: If required configuration values are missing or invalid
         """
@@ -100,10 +100,10 @@ class Config:
     def get_picovoice_key(self) -> str:
         """
         Get the Picovoice access key.
-        
+
         Returns:
             str: The Picovoice access key for authentication
-            
+
         Raises:
             ValueError: If the Picovoice access key is not set
         """
@@ -116,7 +116,7 @@ class Config:
 def create_config_parser() -> argparse.ArgumentParser:
     """
     Create command line argument parser for Picovoice configuration.
-    
+
     Returns:
         argparse.ArgumentParser: Configured argument parser with Picovoice-specific
                                command line options

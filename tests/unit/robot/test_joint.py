@@ -217,11 +217,11 @@ class TestJoint:
 
     def test_set_angle_logging(self, joint_default, caplog):
         """Test that set_angle logs appropriate messages."""
-        with caplog.at_level("INFO"):
+        with caplog.at_level("DEBUG"):
             joint_default.set_angle(45.0)
 
-        assert "Setting angle to 45.0°" in caplog.text
-        assert "Angle set to 45.0°" in caplog.text
+        assert "Setting angle to 45.0° with speed/accel set at hexapod level" in caplog.text
+        assert "Calculated servo target:" in caplog.text
 
     def test_set_angle_inverted_logging(self, joint_custom, caplog):
         """Test that set_angle logs inversion messages."""

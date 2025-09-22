@@ -19,13 +19,13 @@ if TYPE_CHECKING:
 class ButtonHandler:
     """
     GPIO button handler for hexapod robot system control.
-    
+
     Handles physical button input via Raspberry Pi GPIO, providing functionality for:
     - Short press detection (toggle system state or stop current task)
     - Long press detection (system shutdown)
     - External control pause management
     - Thread-safe state management
-    
+
     Attributes:
         pin (int): GPIO pin number for button input
         is_running (bool): Current system running state
@@ -37,7 +37,7 @@ class ButtonHandler:
         external_control_paused_event (Optional[threading.Event]): Event indicating
             if external control is paused
     """
-    
+
     def __init__(
         self,
         pin: int = 26,
@@ -46,7 +46,7 @@ class ButtonHandler:
     ) -> None:
         """
         Initialize button handler with GPIO configuration.
-        
+
         Args:
             pin (int, optional): GPIO pin number for button input. Defaults to 26.
             long_press_time (float, optional): Duration in seconds to detect long press.
@@ -73,7 +73,7 @@ class ButtonHandler:
     def get_state(self) -> bool:
         """
         Get current button state.
-        
+
         Returns:
             bool: True if button is currently pressed, False otherwise
         """
@@ -82,7 +82,7 @@ class ButtonHandler:
     def toggle_state(self) -> bool:
         """
         Toggle the system running state.
-        
+
         Returns:
             bool: The new running state after toggle
         """
@@ -93,11 +93,11 @@ class ButtonHandler:
     def check_button(self) -> Tuple[Optional[str], bool]:
         """
         Check button state and return action and system state.
-        
+
         Monitors button press/release events and determines appropriate actions:
         - Short press: toggles system state (or stops current task if external control paused)
         - Long press: triggers system shutdown (only when external control not paused)
-        
+
         Returns:
             Tuple[Optional[str], bool]: A tuple containing:
                 - action (Optional[str]): Action triggered by button press:
@@ -150,7 +150,7 @@ class ButtonHandler:
     def cleanup(self) -> None:
         """
         Clean up GPIO resources.
-        
+
         Releases the GPIO pin and cleans up any GPIO-related resources.
         Should be called when the button handler is no longer needed.
         """

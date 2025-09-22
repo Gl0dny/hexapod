@@ -28,7 +28,7 @@ def clean_logs(log_dir: Optional[Path] = None) -> None:
     from the specified directory or project root if no directory is provided.
 
     Args:
-        log_dir (Optional[Path]): Directory containing log files to clean. 
+        log_dir (Optional[Path]): Directory containing log files to clean.
                                  If None, uses the project root directory.
     """
     if log_dir is None:
@@ -49,7 +49,7 @@ def override_log_levels(config: dict, log_level: str) -> dict:
 
     Args:
         config (dict): The logging configuration dictionary to modify
-        log_level (str): Logging level to override all loggers 
+        log_level (str): Logging level to override all loggers
                         (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
     Returns:
@@ -96,9 +96,9 @@ def setup_logging(
         log_dir (Optional[Path]): Directory to store log files. Defaults to "logs".
         config_file (Optional[Path]): Path to the logging configuration YAML file.
                                     Defaults to config/config.yaml in this module.
-        log_level (str): Logging level to override all loggers 
+        log_level (str): Logging level to override all loggers
                         (DEBUG, INFO, WARNING, ERROR, CRITICAL). Defaults to "DEBUG".
-                        
+
     Raises:
         FileNotFoundError: If the logging configuration file is not found
     """
