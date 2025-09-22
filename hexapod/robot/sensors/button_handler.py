@@ -17,12 +17,44 @@ if TYPE_CHECKING:
 
 
 class ButtonHandler:
+    """
+    GPIO button handler for hexapod robot system control.
+    
+    Handles physical button input via Raspberry Pi GPIO, providing functionality for:
+    - Short press detection (toggle system state or stop current task)
+    - Long press detection (system shutdown)
+    - External control pause management
+    - Thread-safe state management
+    
+    Attributes:
+        pin (int): GPIO pin number for button input
+        is_running (bool): Current system running state
+        lock (threading.Lock): Thread lock for safe state access
+        long_press_time (float): Duration in seconds to detect long press
+        press_start_time (float): Timestamp when current press started
+        is_pressed (bool): Current button press state
+        long_press_detected (bool): Whether current press is detected as long
+        external_control_paused_event (Optional[threading.Event]): Event indicating
+            if external control is paused
+    """
+    
     def __init__(
         self,
         pin: int = 26,
         long_press_time: float = 3.0,
         external_control_paused_event: Optional[threading.Event] = None,
     ) -> None:
+        """
+        Initialize button handler with GPIO configuration.
+        
+        Args:
+            pin (int, optional): GPIO pin number for button input. Defaults to 26.
+            long_press_time (float, optional): Duration in seconds to detect long press.
+                                             Defaults to 3.0.
+            external_control_paused_event (Optional[threading.Event], optional): Event
+                indicating if external control is paused. When set, short press
+                becomes stop_task instead of toggle. Defaults to None.
+        """
         self.pin: int = pin
         self.is_running: bool = True
         self.lock = threading.Lock()
@@ -39,9 +71,21 @@ class ButtonHandler:
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     def get_state(self) -> bool:
+        """
+        Get current button state.
+        
+        Returns:
+            bool: True if button is currently pressed, False otherwise
+        """
         return not GPIO.input(self.pin)  # Returns True when button is pressed
 
     def toggle_state(self) -> bool:
+        """
+        Toggle the system running state.
+        
+        Returns:
+            bool: The new running state after toggle
+        """
         with self.lock:
             self.is_running = not self.is_running
             return self.is_running
@@ -49,10 +93,19 @@ class ButtonHandler:
     def check_button(self) -> Tuple[Optional[str], bool]:
         """
         Check button state and return action and system state.
+        
+        Monitors button press/release events and determines appropriate actions:
+        - Short press: toggles system state (or stops current task if external control paused)
+        - Long press: triggers system shutdown (only when external control not paused)
+        
         Returns:
-            Tuple[Optional[str], bool]: (action, is_running)
-            - action: 'long_press', 'toggle', 'stop_task', or None
-            - is_running: current system state (only valid for 'toggle' action)
+            Tuple[Optional[str], bool]: A tuple containing:
+                - action (Optional[str]): Action triggered by button press:
+                    - 'long_press': Long press detected (system shutdown)
+                    - 'toggle': Short press detected (toggle system state)
+                    - 'stop_task': Short press when external control paused
+                    - None: No action triggered
+                - is_running (bool): Current system running state
         """
         current_time = time.time()
         button_state = GPIO.input(self.pin)
@@ -95,4 +148,10 @@ class ButtonHandler:
         return None, self.is_running
 
     def cleanup(self) -> None:
+        """
+        Clean up GPIO resources.
+        
+        Releases the GPIO pin and cleans up any GPIO-related resources.
+        Should be called when the button handler is no longer needed.
+        """
         GPIO.cleanup(self.pin)

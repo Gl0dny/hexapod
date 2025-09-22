@@ -144,12 +144,10 @@ class ManualHexapodController(threading.Thread, ABC):
             if hasattr(self.task_interface.hexapod, "gait_generator"):
                 if self.task_interface.hexapod.gait_generator.is_running:
                     self.task_interface.hexapod.gait_generator.stop()
-                    logger.debug("Gait generation stopped")
 
             # Reset to safe position and deactivate servos
             self.reset_position()
             self.task_interface.hexapod.deactivate_all_servos()
-            logger.debug("Hexapod servos deactivated")
         except Exception as e:
             logger.exception(f"Error during base cleanup: {e}")
 
@@ -282,7 +280,6 @@ class ManualHexapodController(threading.Thread, ABC):
         """Stop gait control if running."""
         if self.is_gait_control_active():
             self.task_interface.hexapod.gait_generator.stop()
-            logger.gamepad_mode_info("Gait generation stopped")
 
     def is_gait_control_active(self) -> bool:
         """Return True if gait generator is running."""

@@ -4,7 +4,7 @@
 
 [← Back to Documentation](../README.md)
 
-This document describes the audio recording utilities available in the `hexapod/utils/audio/record` directory. These utilities are designed to work with the ReSpeaker 6-Mic Array and provide different ways to record audio data.
+This document describes the audio recording utilities available in the `scripts/audio/record` directory. These utilities are designed to work with the ReSpeaker 6-Mic Array and provide different ways to record audio data.
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ The simplest recording utility that captures all 8 channels into a single WAV fi
 
 **Usage:**
 ```python
-from src.utils.audio.record.record import record_audio
+from scripts.audio.record.record import record_audio
 
 # Record 5 seconds of audio
 record_audio(seconds=5, output_file="output.wav")
@@ -49,7 +49,7 @@ Records from all 8 channels and saves each channel to a separate WAV file.
 
 **Usage:**
 ```python
-from src.utils.audio.record.record_channels import record_channels
+from scripts.audio.record.record_channels import record_channels
 
 # Record 5 seconds of audio from all channels
 record_channels(seconds=5, output_template="output_channel_{}.wav")
@@ -67,7 +67,7 @@ Records from all 8 channels but extracts and saves only one selected channel.
 
 **Usage:**
 ```python
-from src.utils.audio.record.record_single_channel import record_single_channel
+from scripts.audio.record.record_single_channel import record_single_channel
 
 # Record 5 seconds of audio from channel 0
 record_single_channel(seconds=5, channel=0, output_file="output_one_channel.wav")
@@ -88,7 +88,7 @@ All recording utilities share these common parameters:
 To identify the correct audio device index for your ReSpeaker:
 
 ```python
-from src.utils.audio.record.identify_audio_devices import list_audio_devices
+from scripts.audio.record.identify_audio_devices import list_audio_devices
 
 # List all available audio devices
 list_audio_devices()

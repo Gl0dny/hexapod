@@ -26,12 +26,27 @@ shutdown_event = threading.Event()
 
 
 def shutdown_callback() -> None:
-    """Callback function to trigger program shutdown."""
+    """
+    Callback function to trigger program shutdown.
+    
+    Sets the global shutdown event to signal all threads to stop gracefully.
+    This function is typically called by signal handlers or other shutdown mechanisms.
+    """
     shutdown_event.set()
 
 
 def handle_button_interactions(task_interface: TaskInterface) -> None:
-    """Handle button interactions for voice control mode."""
+    """
+    Handle button interactions for voice control mode.
+    
+    Processes different button press actions:
+    - Long press: Starts sound source localization
+    - Short press (toggle): Starts/stops the system
+    - Short press (stop_task): Stops current blocking task
+    
+    Args:
+        task_interface (TaskInterface): The task interface managing robot operations
+    """
     action, is_running = task_interface.button_handler.check_button()
 
     if action == "long_press":
@@ -63,7 +78,20 @@ def shutdown_cleanup(
     manual_controller: Optional[GamepadHexapodController],
     task_interface: TaskInterface,
 ) -> None:
-    """Perform cleanup when shutting down the program."""
+    """
+    Perform cleanup when shutting down the program.
+    
+    Stops all running threads and performs necessary cleanup operations:
+    - Stops and joins voice control thread
+    - Stops and joins manual controller thread
+    - Cleans up task interface resources
+    - Logs thread status for debugging
+    
+    Args:
+        voice_control (Optional[VoiceControl]): Voice control instance to stop
+        manual_controller (Optional[GamepadHexapodController]): Manual controller to stop
+        task_interface (TaskInterface): Task interface to clean up
+    """
     logger.critical("Stopping all tasks and deactivating hexapod...")
 
     if voice_control:
@@ -84,7 +112,18 @@ def shutdown_cleanup(
 
 
 def create_main_parser() -> argparse.ArgumentParser:
-    """Create the main argument parser for the hexapod application."""
+    """
+    Create the main argument parser for the hexapod application.
+    
+    Sets up command line argument parsing with options for:
+    - Picovoice configuration (access key)
+    - Logging configuration (level, clean logs)
+    - Manual controller settings
+    - Audio device selection
+    
+    Returns:
+        argparse.ArgumentParser: Configured argument parser with all application options
+    """
     parser = argparse.ArgumentParser(
         description="Hexapod Voice Control System",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -158,13 +197,19 @@ def create_application_components(
 
     This function ensures that all components are properly initialized and their
     dependencies are correctly injected, eliminating the need for manual assignment.
-
+    
     Args:
-        config: Configuration object with environment settings
-        args: Command line arguments containing additional configuration
-
+        config (Config): Configuration instance with validated settings
+        args (argparse.Namespace): Parsed command line arguments
+        
     Returns:
-        tuple[TaskInterface, VoiceControl]: Properly configured task interface and voice control
+        tuple[TaskInterface, VoiceControl]: Tuple containing:
+            - TaskInterface: Main task management interface
+            - VoiceControl: Voice control system instance
+            
+    Raises:
+        ValueError: If required configuration values are missing
+        FileNotFoundError: If required files are not found
     """
     if args.clean:
         clean_logs()
@@ -210,7 +255,21 @@ def initialize_manual_controller(
     config: Config,
     args: argparse.Namespace,
 ) -> Optional[GamepadHexapodController]:
-    """Initialize manual controller and return it, or None if failed."""
+    """
+    Initialize manual controller and return it, or None if failed.
+    
+    Attempts to create and start a gamepad controller for manual robot control.
+    If initialization fails, falls back to voice control mode.
+    
+    Args:
+        task_interface (TaskInterface): Task interface for robot control
+        voice_control (VoiceControl): Voice control instance to pause/unpause
+        config (Config): Configuration instance (unused but kept for consistency)
+        args (argparse.Namespace): Command line arguments (unused but kept for consistency)
+        
+    Returns:
+        Optional[GamepadHexapodController]: Initialized controller or None if failed
+    """
 
     try:
         # Ensure voice control is paused in manual mode
@@ -235,7 +294,17 @@ def run_main_loop(
     manual_controller: Optional[GamepadHexapodController],
     task_interface: TaskInterface,
 ) -> None:
-    """Run the main application loop."""
+    """
+    Run the main application loop.
+    
+    Continuously monitors for shutdown events and handles button interactions.
+    The loop runs until a shutdown event is triggered, then performs cleanup.
+    
+    Args:
+        voice_control (Optional[VoiceControl]): Voice control instance (may be None)
+        manual_controller (Optional[GamepadHexapodController]): Manual controller (may be None)
+        task_interface (TaskInterface): Task interface for robot operations
+    """
     cleanup_done = False
 
     try:
@@ -276,7 +345,17 @@ def run_main_loop(
 
 
 def main() -> None:  # pragma: no cover
-    """Main entry point."""
+    """
+    Main entry point for the Hexapod Voice Control System.
+    
+    Initializes the application, validates configuration, creates components,
+    and starts the main control loop. Handles both voice control and manual
+    control modes with proper error handling and cleanup.
+    
+    Raises:
+        SystemExit: If configuration validation fails
+        KeyboardInterrupt: If user interrupts the program
+    """
     parser = create_main_parser()
     args = parser.parse_args()
 

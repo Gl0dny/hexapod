@@ -22,6 +22,18 @@ logger = get_custom_logger("kws_logger")
 
 
 def handler(func: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Decorator for intent handler methods.
+    
+    Adds logging functionality to intent handler methods, automatically
+    logging when an intent is being handled.
+    
+    Args:
+        func (Callable[..., Any]): The intent handler function to decorate
+        
+    Returns:
+        Callable[..., Any]: Decorated function with logging
+    """
     @wraps(func)
     def wrapper(self: Any, slots: Dict[str, Any]) -> None:
         logger.info(f"Handling intent with {func.__name__}")
@@ -93,7 +105,19 @@ class IntentDispatcher:
             raise NotImplementedError(f"No handler for intent: {intent}")
 
     def _parse_duration_in_seconds(self, value: Any, unit: Any) -> Optional[float]:
-        """Helper to convert value and time_unit to seconds."""
+        """
+        Helper to convert value and time_unit to seconds.
+        
+        Parses duration values from voice commands and converts them to seconds
+        for use in task execution.
+        
+        Args:
+            value (Any): The numeric value of the duration
+            unit (Any): The time unit (seconds, minutes, etc.)
+            
+        Returns:
+            Optional[float]: Duration in seconds, or None if parsing fails
+        """
         if value is None or unit is None:
             return None
         try:

@@ -24,8 +24,12 @@ def clean_logs(log_dir: Optional[Path] = None) -> None:
     """
     Clean all log files in the specified directory.
 
+    Removes all log files matching common log file patterns (*.log, *.log.*, etc.)
+    from the specified directory or project root if no directory is provided.
+
     Args:
-        log_dir: Directory containing log files to clean. If None, uses the project root.
+        log_dir (Optional[Path]): Directory containing log files to clean. 
+                                 If None, uses the project root directory.
     """
     if log_dir is None:
         log_dir = Path(__file__).resolve().parent.parent.parent.parent
@@ -40,12 +44,16 @@ def override_log_levels(config: dict, log_level: str) -> dict:
     """
     Override all logger levels in the configuration with the specified log level.
 
+    Modifies the logging configuration to set all loggers and handlers to the
+    specified log level, with special handling for stdout/stderr handlers.
+
     Args:
-        config: The logging configuration dictionary
-        log_level: Logging level to override all loggers (DEBUG, INFO, WARNING, ERROR)
+        config (dict): The logging configuration dictionary to modify
+        log_level (str): Logging level to override all loggers 
+                        (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
     Returns:
-        dict: Modified configuration with overridden log levels
+        dict: Modified configuration dictionary with overridden log levels
     """
     if not log_level:
         return config
@@ -80,10 +88,19 @@ def setup_logging(
     """
     Set up logging configuration for the application.
 
+    Loads logging configuration from YAML file, updates file paths to use
+    the specified log directory, overrides log levels, and initializes
+    the logging system with queue handler support.
+
     Args:
-        log_dir: Directory to store log files
-        config_file: Path to the logging configuration file
-        log_level: Logging level to override all loggers (DEBUG, INFO, WARNING, ERROR)
+        log_dir (Optional[Path]): Directory to store log files. Defaults to "logs".
+        config_file (Optional[Path]): Path to the logging configuration YAML file.
+                                    Defaults to config/config.yaml in this module.
+        log_level (str): Logging level to override all loggers 
+                        (DEBUG, INFO, WARNING, ERROR, CRITICAL). Defaults to "DEBUG".
+                        
+    Raises:
+        FileNotFoundError: If the logging configuration file is not found
     """
     if log_dir is None:
         log_dir = Path("logs")
