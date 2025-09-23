@@ -141,11 +141,19 @@ handlers:
     backupCount: 5
     filters:
       - gait_generator_filter
+  terminal_logger:
+    class: logging.handlers.RotatingFileHandler
+    level: USER_INFO
+    formatter: verbose
+    filename: terminal.log
+    maxBytes: 10485760 # 10MB
+    backupCount: 5
   queue_handler:
     class: logging.handlers.QueueHandler
     level: DEBUG
     handlers:
       - stdout
+      - terminal_logger
       - main_logger
       - task_interface_logger
       - interface_logger

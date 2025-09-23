@@ -25,18 +25,18 @@ def clean_logs(log_dir: Optional[Path] = None) -> None:
     Clean all log files in the specified directory.
 
     Removes all log files matching common log file patterns (*.log, *.log.*, etc.)
-    from the specified directory or project root if no directory is provided.
+    from the specified directory or logs directory within current working directory if no directory is provided.
 
     Args:
         log_dir (Optional[Path]): Directory containing log files to clean.
-                                 If None, uses the project root directory.
+                                 If None, uses the logs directory within current working directory.
     """
     if log_dir is None:
-        log_dir = Path(__file__).resolve().parent.parent.parent.parent
+        log_dir = Path.cwd() / "logs"
 
     log_patterns = ["*.log", "*.log.*", "*.log.jsonl", "*.log.json"]
     for pattern in log_patterns:
-        for log_file in log_dir.rglob(pattern):
+        for log_file in log_dir.glob(pattern):
             log_file.unlink()
 
 
@@ -68,13 +68,14 @@ def override_log_levels(config: dict, log_level: str) -> dict:
             if logger_name != "root":  # Skip root logger as it's handled above
                 logger_config["level"] = log_level
 
-    # Override handler levels (except stdout which should stay at USER_INFO)
+    # Override handler levels (except stdout, stderr, and terminal_logger which should stay at their original levels)
     if "handlers" in config:
         for handler_name, handler_config in config["handlers"].items():
             if handler_name not in [
                 "stdout",
                 "stderr",
-            ]:  # Keep stdout/stderr at their original levels
+                "terminal_logger",
+            ]:  # Keep stdout/stderr/terminal_logger at their original levels
                 handler_config["level"] = log_level
 
     return config
