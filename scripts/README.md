@@ -9,6 +9,8 @@ scripts/
 ├── movement/           # Movement and kinematics testing
 ├── voice_control/      # Voice control and speech recognition testing
 ├── audio/             # Audio recording and playback utilities
+├── controllers/        # Controller testing and validation
+├── sensors/           # Sensor testing and calibration
 └── README.md          # This file
 ```
 
@@ -35,6 +37,13 @@ scripts/
   - `play_wav_audio.py` - WAV file playback and conversion
   - `play_raw_audio.py` - Raw audio file playback
 
+### Controller Testing (`controllers/`)
+- `test_dualsense_controller.py` - DualSense controller detection and input testing
+- `test_dualsense_led.py` - DualSense LED controller comprehensive testing
+
+### Sensor Testing (`sensors/`)
+- `test_imu_output.py` - IMU output testing and calibration
+
 ## Usage
 
 ```bash
@@ -47,4 +56,10 @@ python scripts/voice_control/script_name.py
 # Audio utilities
 python scripts/audio/record/script_name.py
 python scripts/audio/playback/script_name.py
+
+# Controller testing
+python scripts/controllers/script_name.py
+
+# Sensor testing
+python scripts/sensors/script_name.py
 ```
